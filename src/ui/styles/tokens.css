@@ -19,11 +19,15 @@
   --ox: #b6a3dc;
   --pr: #c8432a;
 
-  /* trạng thái — luôn kèm chữ; --ok/--warn không đạt AA cho chữ nhỏ trên nền vàng,
-     chỉ dùng cho viền, chấm, icon, chữ lớn (xem docs/PROGRESS.md) */
+  /* trạng thái — viền, chấm, icon (≥ 3:1). Luôn kèm chữ hoặc icon, không chỉ màu. */
   --ok: #2f7d4c;
-  --warn: #b9700d;
+  --warn: #9a5c00;
   --bad: #b3261e;
+
+  /* trạng thái — chữ (≥ 4,5:1, AA). Chữ trạng thái chỉ dùng --ok-ink, --warn-ink hoặc --bad,
+     không dùng --ok / --warn làm màu chữ (xem docs/DESIGN.md, "Quy tắc màu trạng thái"). */
+  --ok-ink: #1f5c37;
+  --warn-ink: #844c00;
 
   /* màn hình mặt cắt luôn nền tối để vật liệu nổi bật */
   --screen: #0f1320;

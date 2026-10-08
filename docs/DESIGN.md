@@ -10,10 +10,19 @@ Prototype tham chiếu: `reference/prototype-m04-etch.html`.
 --bg:#efdb98; --panel:#f8eec6; --panel-2:#f3e4ad; --ink:#1c2230; --muted:#5f5a45; --line:#d4bf75;
 --navy:#22305a;                         /* hành động */
 --si:#5b6b80; --ox:#b6a3dc; --pr:#c8432a; /* vật liệu */
---ok:#2f7d4c; --warn:#b9700d; --bad:#b3261e;
+--ok:#2f7d4c; --warn:#9a5c00; --bad:#b3261e;   /* trạng thái: viền, chấm, icon */
+--ok-ink:#1f5c37; --warn-ink:#844c00;           /* trạng thái: chữ (bad dùng --bad) */
+--screen:#0f1320;                               /* nền màn hình mặt cắt */
 ```
 Màu vật liệu bổ sung khi cần: kim loại Al/Cu, nitride Si₃N₄, poly-Si. Thêm vào token, không dùng màu rời.
-Màn hình mặt cắt luôn nền tối `#0f1320` để vật liệu nổi bật.
+Màn hình mặt cắt luôn nền tối `--screen` (`#0f1320`) để vật liệu nổi bật.
+
+### Quy tắc màu trạng thái
+- **Chữ** biểu thị trạng thái chỉ dùng `--ok-ink`, `--warn-ink` hoặc `--bad`. Không đặt `--ok` / `--warn` làm màu chữ.
+- **Viền, chấm, icon, thanh nhấn** dùng `--ok`, `--warn`, `--bad`.
+- Trạng thái luôn kèm **chữ hoặc icon** ("Đạt", "Cảnh báo", "Lỗi"), không bao giờ chỉ bằng màu.
+- Tương phản tối thiểu trên `--bg`, `--panel`, `--panel-2`: chữ ≥ 4,5:1 (AA); viền/chấm/icon ≥ 3:1.
+  Số đo hiện tại ghi ở `docs/PROGRESS.md`; `tests/ui/tokens.test.ts` kiểm tra tự động.
 
 ## Chữ
 - Tiêu đề: Saira Condensed 700–800, viết hoa.
@@ -28,7 +37,7 @@ Màn hình mặt cắt luôn nền tối `#0f1320` để vật liệu nổi bậ
 ## Thành phần
 - `StepNav`, `ParamSlider` (nhãn + giá trị có đơn vị), `Segmented`, `MetricTile` (ok/warn/bad),
   `Note` (ok/warn/bad), `Grade` (điểm lớn + một câu giải thích), `EquationChip`.
-- Trạng thái luôn thể hiện bằng cả màu và chữ (không chỉ màu).
+- Trạng thái luôn thể hiện bằng cả màu và chữ/icon (không chỉ màu); xem "Quy tắc màu trạng thái".
 
 ## Chuyển động
 - Một khoảnh khắc chính mỗi bước: animation khắc, ánh sáng UV, ion rơi. Tránh hiệu ứng rải rác.
