@@ -43,9 +43,12 @@ Thủng tới Si (có/chưa), đáy/thiết kế (nm), đỉnh (nm), undercut (n
 - ≥85 Đạt, 60–84 Biên, <60 Hỏng. Luôn kèm một câu nói rõ nguyên nhân chính.
 
 ## Ca hồi quy (dùng làm test khi port, hằng số giữ như prototype)
+Điều kiện litho chung cho cả 3 ca: resist quay 3000 rpm (500 nm), nguồn i-line, liều ×1, lưới mặc định 260×150 ô, 10 nm/ô.
+Chỉ khác cửa sổ thiết kế như ghi trong bảng.
+
 | Ca | Công thức | Kỳ vọng (±20 nm, ±2°) |
 |---|---|---|
-| A | Ướt BOE 6:1 (100 nm/phút), 3,3 phút, cửa sổ 800 nm, i-line, liều 1 | thủng; đáy ≈1040; đỉnh ≈1440; undercut ≈320; góc ≈56° |
+| A | Ướt BOE 6:1 (100 nm/phút), 3,3 phút, cửa sổ 800 nm | thủng; đáy ≈1040; đỉnh ≈1440; undercut ≈320; góc ≈56° |
 | B | RIE 200 W, 30 mTorr, 4,6 phút, cửa sổ 800 nm | thủng; đỉnh ≈820; đáy ≈800; góc ≈88° |
 | C | RIE 80 W, 180 mTorr, 9 phút, cửa sổ 400 nm | thủng; undercut ≈260; góc ≈68° |
 
