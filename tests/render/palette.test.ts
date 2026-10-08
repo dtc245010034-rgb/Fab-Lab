@@ -9,6 +9,7 @@ import {
   paletteFromTokens,
   parseHexColor,
   readPalette,
+  toCssHex,
   withMonospaceFallback,
 } from '../../src/render/canvas2d/palette';
 
@@ -54,6 +55,21 @@ describe('parseHexColor', () => {
 
   it('names what it was reading in the error', () => {
     expect(() => parseHexColor('red', 'token --si')).toThrow(/token --si/);
+  });
+});
+
+describe('toCssHex', () => {
+  it('writes a colour back as the 6-digit hex a canvas fillStyle accepts', () => {
+    expect(toCssHex([91, 107, 128])).toBe('#5b6b80');
+    expect(toCssHex([0, 0, 0])).toBe('#000000');
+    expect(toCssHex([255, 255, 255])).toBe('#ffffff');
+    expect(toCssHex([15, 19, 32])).toBe('#0f1320');
+  });
+
+  it('round-trips with parseHexColor', () => {
+    for (const hex of ['#5b6b80', '#b6a3dc', '#c8432a', '#f8eec6', '#0f1320']) {
+      expect(toCssHex(parseHexColor(hex))).toBe(hex);
+    }
   });
 });
 

@@ -26,7 +26,7 @@ function specifiers(source: string): string[] {
 
 describe('src/render/', () => {
   it('has source files to check', () => {
-    for (const name of ['pixels.ts', 'overlay.ts', 'palette.ts']) {
+    for (const name of ['pixels.ts', 'overlay.ts', 'palette.ts', 'crossSection.ts']) {
       expect(files.some((f) => f.name.endsWith(`canvas2d/${name}`))).toBe(true);
     }
   });

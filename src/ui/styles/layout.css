@@ -78,23 +78,70 @@
   color: var(--muted);
 }
 
+/* recipe and cell size wrap as two units, never in the middle of "1 ô = 10 nm" */
+.vmeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 12px;
+}
+
+.vmeta > span {
+  white-space: nowrap;
+}
+
 .screen {
   width: 100%;
+  display: flex;
+  justify-content: center; /* the canvas is a whole-number multiple of the grid, so it may be narrower */
   background: var(--screen);
   border-radius: 4px;
   overflow: hidden;
 }
 
+/* Size is set from script (whole device pixels per grid cell); see render/canvas2d/pixels.ts. */
 .screen canvas {
   display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 8 / 5; /* grid budget: 400 x 250 cells */
+  max-width: 100%;
   image-rendering: pixelated;
 }
 
 .legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
   font: 500 12px/1.3 var(--f-mono);
+  color: var(--muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+}
+
+.caption {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.debug {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font: 500 12px/1.3 var(--f-mono);
+  font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
 

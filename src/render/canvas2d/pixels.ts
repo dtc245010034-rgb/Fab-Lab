@@ -19,7 +19,7 @@ export function gridToPixels(
   field: ArrivalField,
   timeMin: number,
   palette: MaterialPalette,
-): Uint8ClampedArray {
+): Uint8ClampedArray<ArrayBuffer> {
   const { materials, widthCells, heightCells } = grid;
   const { arrival, maxTimeMin } = field;
   if (arrival.length !== materials.length || materials.length !== widthCells * heightCells) {
@@ -71,6 +71,32 @@ export function chooseScale(availableDevicePx: number, cells: number): number {
     throw new RangeError(`cells must be a positive whole number, got ${cells}`);
   }
   return Math.max(1, Math.floor(availableDevicePx / cells));
+}
+
+export interface CanvasPlan {
+  /** Device pixels per grid cell, a whole number. */
+  scale: number;
+  /** Size of the canvas backing store, device pixels. */
+  widthPx: number;
+  heightPx: number;
+  /** Size to give the canvas in css pixels so that one device pixel is one backing-store pixel. */
+  cssWidth: number;
+  cssHeight: number;
+}
+
+/** Sizes the canvas for a container `availableCssWidth` wide on a screen with ratio `dpr`. */
+export function planCanvas(
+  grid: { widthCells: number; heightCells: number },
+  availableCssWidth: number,
+  dpr: number,
+): CanvasPlan {
+  if (!Number.isFinite(dpr) || dpr <= 0) {
+    throw new RangeError(`dpr must be a positive finite number, got ${dpr}`);
+  }
+  const scale = chooseScale(Math.floor(availableCssWidth * dpr), grid.widthCells);
+  const widthPx = grid.widthCells * scale;
+  const heightPx = grid.heightCells * scale;
+  return { scale, widthPx, heightPx, cssWidth: widthPx / dpr, cssHeight: heightPx / dpr };
 }
 
 /** Rounds to the grid resolution (one cell), the finest size the picture can tell apart. */

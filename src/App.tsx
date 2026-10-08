@@ -1,7 +1,14 @@
+import { useMemo } from 'react';
+import { DEFAULT_RECIPE } from './sim/defaults';
+import { runRecipe } from './sim/recipe';
+import { isDebugRequested } from './ui/describe';
 import Traveler from './ui/Traveler';
 import Viewer from './ui/Viewer';
 
 export default function App() {
+  // On the main thread for now; the worker (S0.4) takes this over.
+  const result = useMemo(() => runRecipe(DEFAULT_RECIPE), []);
+
   return (
     <div className="app">
       <header className="app-head">
@@ -13,7 +20,11 @@ export default function App() {
         </p>
       </header>
       <main className="lab">
-        <Viewer />
+        <Viewer
+          recipe={DEFAULT_RECIPE}
+          result={result}
+          debug={isDebugRequested(window.location.search)}
+        />
         <Traveler />
       </main>
     </div>

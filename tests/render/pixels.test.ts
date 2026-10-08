@@ -8,6 +8,7 @@ import {
   chooseScale,
   formatApproxNm,
   gridToPixels,
+  planCanvas,
   roundToResolution,
 } from '../../src/render/canvas2d/pixels';
 import type { MaterialPalette } from '../../src/render/canvas2d/palette';
@@ -163,6 +164,40 @@ describe('chooseScale', () => {
   it('refuses a cell count that is not a positive whole number', () => {
     expect(() => chooseScale(500, 0)).toThrow(RangeError);
     expect(() => chooseScale(500, 2.5)).toThrow(RangeError);
+  });
+});
+
+describe('planCanvas', () => {
+  const GRID = { widthCells: 260, heightCells: 150 };
+
+  it.each([
+    // [available css px, dpr, scale, backing store (device px), css size]
+    [810, 1, 3, [780, 450], [780, 450]], // desktop
+    [810, 2, 6, [1560, 900], [780, 450]], // desktop, retina: same css size, twice the pixels
+    [317, 1, 1, [260, 150], [260, 150]], // 380 px phone, dpr 1
+    [317, 2, 2, [520, 300], [260, 150]],
+    [317, 3, 3, [780, 450], [260, 150]], // 380 px phone, dpr 3
+    [810, 1.25, 3, [780, 450], [624, 360]], // Windows scaling: still whole device pixels
+  ])('%d css px at dpr %d → ×%d', (avail, dpr, scale, backing, css) => {
+    const plan = planCanvas(GRID, avail, dpr);
+    expect(plan.scale).toBe(scale);
+    expect([plan.widthPx, plan.heightPx]).toEqual(backing);
+    expect([plan.cssWidth, plan.cssHeight]).toEqual(css);
+  });
+
+  it('always maps the backing store to whole device pixels, whatever the ratio', () => {
+    for (const dpr of [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4]) {
+      const plan = planCanvas(GRID, 700, dpr);
+      expect(plan.widthPx).toBe(GRID.widthCells * plan.scale);
+      expect(plan.cssWidth * dpr).toBeCloseTo(plan.widthPx, 6);
+      expect(plan.cssHeight * dpr).toBeCloseTo(plan.heightPx, 6);
+    }
+  });
+
+  it('refuses a container with no width or a bad pixel ratio', () => {
+    expect(() => planCanvas(GRID, 0, 1)).toThrow(RangeError);
+    expect(() => planCanvas(GRID, 500, 0)).toThrow(RangeError);
+    expect(() => planCanvas(GRID, 500, NaN)).toThrow(RangeError);
   });
 });
 

@@ -48,6 +48,12 @@ export function parseHexColor(text: string, what = 'colour'): Rgb {
   ];
 }
 
+/** The 6-digit hex text a canvas `fillStyle` takes; the inverse of `parseHexColor`. */
+export function toCssHex([red, green, blue]: Rgb): string {
+  const byte = (v: number) => v.toString(16).padStart(2, '0');
+  return `#${byte(red)}${byte(green)}${byte(blue)}`;
+}
+
 /**
  * Glyphs such as ≈ and ₂ are not in the self-hosted font subsets, so the browser takes them from
  * another font; the stack must therefore end in a generic family that always exists.
