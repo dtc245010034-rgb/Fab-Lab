@@ -30,9 +30,10 @@
     (Δundercut ≈ rate × Δt, sai ≤ 1 ô) trên 5 cặp thời gian; không nới ngưỡng.
   - Tối ưu hiệu năng (commit riêng): `arrivalTime(grid, rates, { maxTimeMin })` dừng tìm khi vượt mốc; ô muộn hơn mốc trả `Infinity`.
     `maxTimeMin` phải là giá trị lớn nhất của thanh trượt thời gian cho công thức đó (BOE 8 phút, HF 49% 0,5 phút, RIE 14 phút), **không** phải thời gian hiện tại:
-    kéo thanh thời gian chỉ đổi ngưỡng đọc `arrival ≤ T`, không tính lại. Đọc ở T > `maxTimeMin` sẽ sai (ô chưa tính hiện như chưa bị khắc); worker (S0.4) phải tính lại khi đổi công thức.
+    kéo thanh thời gian chỉ đổi ngưỡng đọc `arrival ≤ T`, không tính lại. `arrivalTime` trả `{ arrival, maxTimeMin }` và `measureEtch(section, field, timeMin)` ném `RangeError` nếu `timeMin > maxTimeMin` (ô chưa tính là `Infinity`, đọc muộn hơn sẽ báo thiếu khắc mà không có dấu hiệu nào); worker (S0.4) phải tính lại khi đổi công thức.
     Ô không khí không đi qua heap (thời gian 0, relax thẳng sang lân cận), heap có cận trên chặt 16 ô/ô rắn và có chốt chặn tràn. Kết quả ≤ `maxTimeMin` trùng bản không giới hạn (test trên 10 công thức, 5 mốc thời gian mỗi công thức).
     Kiểm bằng Dijkstra quét mảng O(n²) độc lập trên lưới ngẫu nhiên có seed. Bài học đo được: tách phần relax thành closure làm vòng lặp chậm 15–60%, nên giữ một vòng lặp, relax viết thẳng trong thân.
+  - Sau review (commit riêng): `arrivalTime` kiểm tra đầu vào và ném `RangeError`: tốc độ đứng phải hữu hạn và > 0, tốc độ ngang hữu hạn và ≥ 0, độ chọn lọc > 0 (cho phép `Infinity`), không NaN; mã vật liệu lạ trong lưới (kiểm trong vòng đếm ô rắn, không thêm vòng quét). Kiểm đột biến cho phần này: 10/10 bị bắt.
 
 ## Next
 - S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này.
@@ -109,6 +110,8 @@ Node: trung bình của 2 lần `npm run bench`. Chrome: trung vị 40 lần sau
 | A ướt BOE 6:1, cửa sổ 800 nm | 3,4 / 3,6 | 3,7 / 3,5 | 15,7 / 16,4 | 23,4 / 18,2 |
 | B RIE 200 W, 30 mTorr, 800 nm | 3,9 / 4,0 | 3,7 / 3,9 | 21,0 / 18,3 | 38,0 / 20,8 |
 | C RIE 80 W, 180 mTorr, 400 nm | 3,4 / 3,5 | 3,2 / 3,4 | 14,8 / 15,6 | 16,5 / 24,1 |
+
+Đo lại sau commit review (thêm kiểm tra rates và mã vật liệu): không đổi trong sai số. Node: A / B / C = 3,3 / 3,8 / 3,3 ms (arrival, có giới hạn); Chrome 4× (arrival, có giới hạn) 15,7 / 20,5 / 15,3 ms, tệ nhất trong 40 lần 18,7 / 29,4 / 18,8 ms; toàn bộ tệ nhất 24,1 / 35,5 / 17,7 ms. Bảng trên giữ nguyên.
 
 Không truyền `maxTimeMin` (đường không giới hạn) thì bản (b) tương đương bản (a): Node 3,5 / 11,8 / 11,9 ms, Chrome 4× 18,1 / 53,7 / 53,9 ms cho A / B / C.
 Cả ba ca đều dưới 50 ms ở CPU 4× khi có giới hạn; ca RIE nhanh gấp 2,5–3 lần so với bản (a). Mục "< 50 ms trên điện thoại" vẫn chưa tick cho tới khi đo trên máy thật.

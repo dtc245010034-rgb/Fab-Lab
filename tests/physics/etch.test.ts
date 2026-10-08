@@ -34,6 +34,9 @@ function gridOf(rows: string[], cellNm = 10): MaterialGrid {
   return { materials, widthCells, heightCells: rows.length, cellNm };
 }
 
+/** The arrival-time array only; the field object is checked in its own tests. */
+const arrive = (...args: Parameters<typeof arrivalTime>) => arrivalTime(...args).arrival;
+
 const rates = (over: Partial<EtchRates> = {}): EtchRates => ({
   verticalNmPerMin: 100,
   lateralNmPerMin: 100,
@@ -163,7 +166,7 @@ describe('rieRates', () => {
 describe('arrivalTime (shortest-path etch front)', () => {
   it('is 0 in air and grows by one cell-time per cell straight down', () => {
     const g = gridOf(['.', 'O', 'O', 'O', 'O']);
-    const t = arrivalTime(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 100 }));
+    const t = arrive(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 100 }));
     expect(t.length).toBe(5);
     expect(t[0]).toBe(0);
     for (let k = 1; k <= 4; k++) expect(t[k]!).toBeCloseTo((k * 10) / 100, 12);
@@ -171,7 +174,7 @@ describe('arrivalTime (shortest-path etch front)', () => {
 
   it('goes up at the lateral rate, not the vertical rate', () => {
     const g = gridOf(['O', 'O', 'O', '.']);
-    const t = arrivalTime(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 20 }));
+    const t = arrive(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 20 }));
     expect(t[2]!).toBeCloseTo(10 / 20, 12);
     expect(t[1]!).toBeCloseTo(20 / 20, 12);
     expect(t[0]!).toBeCloseTo(30 / 20, 12);
@@ -179,34 +182,34 @@ describe('arrivalTime (shortest-path etch front)', () => {
 
   it('goes sideways at the lateral rate: d cells from an air face take d·cell/lateral', () => {
     const g = gridOf(['..OOOOOO', '..OOOOOO', '..OOOOOO']);
-    const t = arrivalTime(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 25 }));
+    const t = arrive(g, rates({ verticalNmPerMin: 100, lateralNmPerMin: 25 }));
     const midRow = 1 * 8;
     for (let d = 1; d <= 6; d++) expect(t[midRow + 1 + d]!).toBeCloseTo((d * 10) / 25, 12);
   });
 
   it('scales with the cell size (nm) and inversely with the rate (nm/min)', () => {
     const rows = ['.', 'O', 'O'];
-    const a = arrivalTime(gridOf(rows, 10), rates({ verticalNmPerMin: 100 }));
-    const b = arrivalTime(gridOf(rows, 20), rates({ verticalNmPerMin: 100 }));
-    const c = arrivalTime(gridOf(rows, 10), rates({ verticalNmPerMin: 50 }));
+    const a = arrive(gridOf(rows, 10), rates({ verticalNmPerMin: 100 }));
+    const b = arrive(gridOf(rows, 20), rates({ verticalNmPerMin: 100 }));
+    const c = arrive(gridOf(rows, 10), rates({ verticalNmPerMin: 50 }));
     expect(b[2]!).toBeCloseTo(2 * a[2]!, 12);
     expect(c[2]!).toBeCloseTo(2 * a[2]!, 12);
   });
 
   it('slows down in a material by its selectivity, and never enters one that is not attacked', () => {
     const rows = ['.', 'P', 'P', 'S', 'S'];
-    const slow = arrivalTime(gridOf(rows), rates({ resistSelectivity: 4, siSelectivity: 10 }));
+    const slow = arrive(gridOf(rows), rates({ resistSelectivity: 4, siSelectivity: 10 }));
     expect(slow[1]!).toBeCloseTo((10 * 4) / 100, 12);
     expect(slow[2]!).toBeCloseTo((2 * 10 * 4) / 100, 12);
     expect(slow[3]!).toBeCloseTo((2 * 10 * 4) / 100 + (10 * 10) / 100, 12);
-    const blocked = arrivalTime(gridOf(rows), rates());
+    const blocked = arrive(gridOf(rows), rates());
     expect(blocked[1]).toBe(Infinity);
     expect(blocked[3]).toBe(Infinity);
   });
 
   it('with zero lateral rate only moves straight down, so cells beside a window stay untouched', () => {
     const g = gridOf(['..OO', 'OOOO', 'OOOO']);
-    const t = arrivalTime(g, rates({ lateralNmPerMin: 0, anisotropy: 1 }));
+    const t = arrive(g, rates({ lateralNmPerMin: 0, anisotropy: 1 }));
     expect(t[1 * 4 + 0]!).toBeCloseTo(10 / 100, 12);
     expect(t[2 * 4 + 1]!).toBeCloseTo(20 / 100, 12);
     expect(t[0 * 4 + 2]).toBe(Infinity);
@@ -221,10 +224,7 @@ describe('arrivalTime (shortest-path etch front)', () => {
     );
     const cell = 10;
     const rate = 100;
-    const t = arrivalTime(
-      gridOf(rows, cell),
-      rates({ verticalNmPerMin: rate, lateralNmPerMin: rate }),
-    );
+    const t = arrive(gridOf(rows, cell), rates({ verticalNmPerMin: rate, lateralNmPerMin: rate }));
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         if (x === 20 && y === 0) continue;
@@ -240,8 +240,8 @@ describe('arrivalTime (shortest-path etch front)', () => {
     const rows = ['...OO.....', '.OOOOO....', 'PPOOOOSSSS', 'SSSSSSSSSS'];
     const mirrored = rows.map((r) => [...r].reverse().join(''));
     const r = rates({ lateralNmPerMin: 30, resistSelectivity: 3, siSelectivity: 8 });
-    const a = arrivalTime(gridOf(rows), r);
-    const b = arrivalTime(gridOf(mirrored), r);
+    const a = arrive(gridOf(rows), r);
+    const b = arrive(gridOf(mirrored), r);
     const w = rows[0]!.length;
     for (let y = 0; y < rows.length; y++) {
       for (let x = 0; x < w; x++) expect(a[y * w + x]!).toBeCloseTo(b[y * w + (w - 1 - x)]!, 12);
@@ -250,8 +250,8 @@ describe('arrivalTime (shortest-path etch front)', () => {
 
   it('rejects a grid whose arrays do not match its dimensions or has a non-positive cell size', () => {
     const g = gridOf(['.', 'O']);
-    expect(() => arrivalTime({ ...g, widthCells: 3 }, rates())).toThrow(RangeError);
-    expect(() => arrivalTime({ ...g, cellNm: 0 }, rates())).toThrow(RangeError);
+    expect(() => arrive({ ...g, widthCells: 3 }, rates())).toThrow(RangeError);
+    expect(() => arrive({ ...g, cellNm: 0 }, rates())).toThrow(RangeError);
   });
 });
 
@@ -269,12 +269,12 @@ describe('arrivalTime with maxTimeMin (stop the search at the largest time the l
     return gridOf(rows);
   })();
   const r = rates({ lateralNmPerMin: 30, resistSelectivity: 3, siSelectivity: 8 });
-  const full = arrivalTime(layered, r);
+  const full = arrive(layered, r);
   const finite = [...full].filter((t) => Number.isFinite(t) && t > 0).sort((a, b) => a - b);
   const median = finite[Math.floor(finite.length / 2)]!;
 
   it('keeps every arrival time up to the limit and marks the rest unreached', () => {
-    const bounded = arrivalTime(layered, r, { maxTimeMin: median });
+    const bounded = arrive(layered, r, { maxTimeMin: median });
     let kept = 0;
     full.forEach((t, i) => {
       if (t <= median) {
@@ -290,24 +290,24 @@ describe('arrivalTime with maxTimeMin (stop the search at the largest time the l
 
   it('includes a cell that arrives exactly at the limit', () => {
     const i = full.indexOf(finite[Math.floor(finite.length / 3)]!);
-    const bounded = arrivalTime(layered, r, { maxTimeMin: full[i]! });
+    const bounded = arrive(layered, r, { maxTimeMin: full[i]! });
     expect(bounded[i]).toBe(full[i]);
   });
 
   it('is the same as no limit when the limit is omitted or Infinity', () => {
-    expect(arrivalTime(layered, r, {})).toEqual(full);
-    expect(arrivalTime(layered, r, { maxTimeMin: Infinity })).toEqual(full);
+    expect(arrive(layered, r, {})).toEqual(full);
+    expect(arrive(layered, r, { maxTimeMin: Infinity })).toEqual(full);
   });
 
   it('with limit 0 reaches nothing but air', () => {
-    const bounded = arrivalTime(layered, r, { maxTimeMin: 0 });
+    const bounded = arrive(layered, r, { maxTimeMin: 0 });
     bounded.forEach((t, i) => {
       expect(t, `cell ${i}`).toBe(layered.materials[i] === Material.AIR ? 0 : Infinity);
     });
   });
 
   it.each([-1, Number.NaN])('rejects limit %s', (maxTimeMin) => {
-    expect(() => arrivalTime(layered, r, { maxTimeMin })).toThrow(RangeError);
+    expect(() => arrive(layered, r, { maxTimeMin })).toThrow(RangeError);
   });
 });
 
@@ -391,10 +391,70 @@ describe('arrivalTime against a plain O(n²) Dijkstra (no heap) on random grids'
     }
     const grid: MaterialGrid = { materials, widthCells: width, heightCells: height, cellNm: 10 };
     const expected = reference(grid, r);
-    const actual = arrivalTime(grid, r);
+    const actual = arrive(grid, r);
     expected.forEach((t, k) => {
       if (Number.isFinite(t)) expect(actual[k]!, `cell ${k}`).toBeCloseTo(t, 9);
       else expect(actual[k], `cell ${k}`).toBe(Infinity);
     });
+  });
+});
+
+describe('arrivalTime result', () => {
+  const g = gridOf(['.', 'O', 'O']);
+
+  it('returns the arrival times together with the limit they are valid up to', () => {
+    const field = arrivalTime(g, rates(), { maxTimeMin: 5 });
+    expect(field.maxTimeMin).toBe(5);
+    expect(field.arrival).toBeInstanceOf(Float64Array);
+    expect(field.arrival.length).toBe(3);
+  });
+
+  it('says the limit is Infinity when none was given', () => {
+    expect(arrivalTime(g, rates()).maxTimeMin).toBe(Infinity);
+    expect(arrivalTime(g, rates(), {}).maxTimeMin).toBe(Infinity);
+    expect(arrivalTime(g, rates(), { maxTimeMin: Infinity }).maxTimeMin).toBe(Infinity);
+  });
+});
+
+describe('arrivalTime input checks', () => {
+  const g = gridOf(['.', 'O', 'P', 'S']);
+  const good = rates({ resistSelectivity: 2, siSelectivity: 2 });
+
+  it.each([4, 7, 255])('rejects an unknown material code %i anywhere in the grid', (code) => {
+    for (const at of [0, 1, 3]) {
+      const materials = g.materials.slice();
+      materials[at] = code;
+      expect(() => arrivalTime({ ...g, materials }, good)).toThrow(RangeError);
+    }
+  });
+
+  it('accepts every known material code', () => {
+    expect(() => arrivalTime(g, good)).not.toThrow();
+  });
+
+  const ok = { verticalNmPerMin: 100, lateralNmPerMin: 20, resistSelectivity: 3, siSelectivity: 8 };
+  it.each([
+    ['vertical rate 0', { verticalNmPerMin: 0 }],
+    ['negative vertical rate', { verticalNmPerMin: -1 }],
+    ['NaN vertical rate', { verticalNmPerMin: Number.NaN }],
+    ['infinite vertical rate', { verticalNmPerMin: Infinity }],
+    ['negative lateral rate', { lateralNmPerMin: -0.1 }],
+    ['NaN lateral rate', { lateralNmPerMin: Number.NaN }],
+    ['infinite lateral rate', { lateralNmPerMin: Infinity }],
+    ['resist selectivity 0', { resistSelectivity: 0 }],
+    ['negative resist selectivity', { resistSelectivity: -2 }],
+    ['NaN resist selectivity', { resistSelectivity: Number.NaN }],
+    ['silicon selectivity 0', { siSelectivity: 0 }],
+    ['negative silicon selectivity', { siSelectivity: -1 }],
+    ['NaN silicon selectivity', { siSelectivity: Number.NaN }],
+  ])('rejects %s', (_name, bad) => {
+    expect(() => arrivalTime(g, { ...rates(), ...ok, ...bad })).toThrow(RangeError);
+  });
+
+  it('accepts a lateral rate of 0 and selectivities of Infinity', () => {
+    expect(() => arrivalTime(g, { ...rates(), ...ok, lateralNmPerMin: 0 })).not.toThrow();
+    expect(() =>
+      arrivalTime(g, { ...rates(), ...ok, resistSelectivity: Infinity, siSelectivity: Infinity }),
+    ).not.toThrow();
   });
 });

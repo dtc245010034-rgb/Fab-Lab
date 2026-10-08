@@ -54,9 +54,17 @@ export function simulate(
     recipe.etch.mode === 'wet'
       ? wetEtchRates(recipe.etch.etchant)
       : rieRates({ powerW: recipe.etch.powerW, pressureMTorr: recipe.etch.pressureMTorr });
-  const arrival = arrivalTime(section, rates, options);
-  const metrics = measureEtch(section, arrival, recipe.etch.timeMin);
-  return { litho, section, rates, arrival, metrics, timeMin: recipe.etch.timeMin };
+  const field = arrivalTime(section, rates, options);
+  const metrics = measureEtch(section, field, recipe.etch.timeMin);
+  return {
+    litho,
+    section,
+    rates,
+    field,
+    arrival: field.arrival,
+    metrics,
+    timeMin: recipe.etch.timeMin,
+  };
 }
 
 /** Depth etched into the oxide straight below the window centre, nm (a whole number of cells). */

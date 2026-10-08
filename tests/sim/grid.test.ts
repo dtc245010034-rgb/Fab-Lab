@@ -148,10 +148,11 @@ describe('buildGrid on other grid specs', () => {
 
 describe('measureEtch', () => {
   const section = buildGrid(spec, litho(), 'developed');
+  const field = (arrival: Float64Array, maxTimeMin = Infinity) => ({ arrival, maxTimeMin });
   const never = new Float64Array(section.materials.length).fill(Infinity);
 
   it('reports an untouched wafer when nothing has been etched', () => {
-    const m = measureEtch(section, never, 10);
+    const m = measureEtch(section, field(never), 10);
     expect(m.cleared).toBe(false);
     expect(m.topNm).toBe(0);
     expect(m.bottomNm).toBe(0);
@@ -165,7 +166,7 @@ describe('measureEtch', () => {
   it('reads a straight, window-wide cut as no undercut and a vertical wall', () => {
     const t = never.slice();
     for (let y = 80; y < 110; y++) for (let x = 90; x < 170; x++) t[y * 260 + x] = 1;
-    const m = measureEtch(section, t, 1);
+    const m = measureEtch(section, field(t), 1);
     expect(m.cleared).toBe(true);
     expect(m.topNm).toBe(800);
     expect(m.bottomNm).toBe(800);
@@ -176,13 +177,30 @@ describe('measureEtch', () => {
   it('counts only cells that have arrived by the given time', () => {
     const t = never.slice();
     for (let y = 80; y < 110; y++) for (let x = 90; x < 170; x++) t[y * 260 + x] = 1;
-    expect(measureEtch(section, t, 0.99).cleared).toBe(false);
-    expect(measureEtch(section, t, 1).cleared).toBe(true);
+    expect(measureEtch(section, field(t), 0.99).cleared).toBe(false);
+    expect(measureEtch(section, field(t), 1).cleared).toBe(true);
   });
 
   it('measures silicon loss as the deepest etched column below the oxide', () => {
     const t = never.slice();
     for (let y = 80; y < 114; y++) for (let x = 90; x < 170; x++) t[y * 260 + x] = 1;
-    expect(measureEtch(section, t, 1).siLossNm).toBe(40);
+    expect(measureEtch(section, field(t), 1).siLossNm).toBe(40);
+  });
+
+  it('refuses a time beyond the limit the arrival field was computed for', () => {
+    // Cells that arrive after maxTimeMin are stored as Infinity, so reading later would show
+    // them as untouched and silently under-report the etch.
+    const limited = field(never, 8);
+    expect(() => measureEtch(section, limited, 8.001)).toThrow(RangeError);
+    expect(() => measureEtch(section, limited, 14)).toThrow(RangeError);
+    expect(() => measureEtch(section, limited, 8)).not.toThrow();
+    expect(() => measureEtch(section, limited, 0)).not.toThrow();
+    expect(() => measureEtch(section, field(never), 1e6)).not.toThrow();
+  });
+
+  it('still rejects a negative or NaN time and an arrival array of the wrong size', () => {
+    expect(() => measureEtch(section, field(never), -1)).toThrow(RangeError);
+    expect(() => measureEtch(section, field(never), Number.NaN)).toThrow(RangeError);
+    expect(() => measureEtch(section, field(new Float64Array(10)), 1)).toThrow(RangeError);
   });
 });

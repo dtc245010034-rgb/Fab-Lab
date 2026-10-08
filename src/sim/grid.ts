@@ -6,7 +6,7 @@
  * touches the DOM or React, so it can run in the worker.
  */
 import { constants } from '../physics/constants';
-import { Material, type MaterialGrid } from '../physics/etch';
+import { Material, type ArrivalField, type MaterialGrid } from '../physics/etch';
 import type { LithoResult } from '../physics/litho';
 
 const { AIR, SI, OX, PR } = Material;
@@ -139,12 +139,14 @@ export interface EtchMetrics {
 }
 
 /**
- * Reads the etch result at `timeMin` from the arrival times of `arrivalTime()`. Dragging the time
- * only changes `timeMin`; the arrival field is not recomputed.
+ * Reads the etch result at `timeMin` from the arrival field of `arrivalTime()`. Dragging the time
+ * only changes `timeMin`; the field is not recomputed. Throws RangeError if `timeMin` is beyond
+ * `field.maxTimeMin`: the field holds Infinity for cells that arrive later than that, so reading it
+ * would under-report the etch without any sign of it.
  */
 export function measureEtch(
   section: CrossSection,
-  arrival: Float64Array,
+  field: ArrivalField,
   timeMin: number,
 ): EtchMetrics {
   const {
@@ -156,11 +158,18 @@ export function measureEtch(
     siTopRow,
     litho,
   } = section;
+  const { arrival, maxTimeMin } = field;
   if (arrival.length !== materials.length) {
     throw new RangeError(`arrival has ${arrival.length} cells, grid has ${materials.length}`);
   }
   if (!Number.isFinite(timeMin) || timeMin < 0) {
     throw new RangeError(`timeMin must be a finite number ≥ 0, got ${timeMin}`);
+  }
+  if (timeMin > maxTimeMin) {
+    throw new RangeError(
+      `timeMin ${timeMin} is beyond maxTimeMin ${maxTimeMin} that the arrival field was computed for; ` +
+        'recompute it with a larger maxTimeMin',
+    );
   }
 
   const cx = Math.floor(w / 2);

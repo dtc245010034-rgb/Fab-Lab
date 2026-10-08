@@ -128,23 +128,61 @@ export interface ArrivalOptions {
 }
 
 /**
- * Time, in minutes, at which the etch front reaches each cell (row-major, same layout as the
- * grid). 0 in air; Infinity where it never arrives (a material that is not attacked, a cell that
- * cannot be reached because the lateral rate is 0, or one that arrives after `maxTimeMin`).
- * A cell is etched after time T when its arrival time is ≤ T, so one result serves every etch
- * time up to `maxTimeMin`; reading it at a later T would wrongly show those cells as untouched.
+ * Arrival times of the etch front together with the time they are valid up to. Keep them
+ * together: `measureEtch` refuses to read the field past `maxTimeMin`.
+ */
+export interface ArrivalField {
+  /**
+   * Minutes at which the front reaches each cell (row-major, same layout as the grid). 0 in air;
+   * Infinity where it never arrives (a material that is not attacked, a cell that cannot be reached
+   * because the lateral rate is 0, or one that arrives after `maxTimeMin`).
+   */
+  readonly arrival: Float64Array;
+  /** Largest etch time the field answers for; Infinity when the search had no limit. */
+  readonly maxTimeMin: number;
+}
+
+/** Rates must be usable as divisors and step costs; a selectivity of Infinity means "not attacked". */
+function assertRates(rates: EtchRates): void {
+  const {
+    verticalNmPerMin: v,
+    lateralNmPerMin: l,
+    resistSelectivity: sr,
+    siSelectivity: ss,
+  } = rates;
+  if (!(Number.isFinite(v) && v > 0)) {
+    throw new RangeError(`verticalNmPerMin must be a finite number > 0, got ${v}`);
+  }
+  if (!(Number.isFinite(l) && l >= 0)) {
+    throw new RangeError(`lateralNmPerMin must be a finite number ≥ 0, got ${l}`);
+  }
+  // `!(x > 0)` also rejects NaN; Infinity is allowed.
+  if (!(sr > 0))
+    throw new RangeError(`resistSelectivity must be > 0 (Infinity allowed), got ${sr}`);
+  if (!(ss > 0)) throw new RangeError(`siSelectivity must be > 0 (Infinity allowed), got ${ss}`);
+}
+
+/**
+ * Time at which the etch front reaches each cell. A cell is etched after time T when its arrival
+ * time is ≤ T, so one result serves every etch time up to `maxTimeMin`; `measureEtch` throws if
+ * asked for a later T, because the cells that arrive after the limit are stored as Infinity and
+ * would wrongly read as untouched.
  *
  * Step (dx, dy) into a cell of material m costs
  *   cell · √((dx/lateral_m)² + (dy/vertical_m)²)
  * where rate_m = rate / selectivity_m, and `vertical_m` is the lateral rate for upward steps.
+ *
+ * Throws RangeError for unusable rates (see `assertRates`), a material code the selectivity table
+ * does not know, or a grid whose array does not match its dimensions.
  */
 export function arrivalTime(
   grid: MaterialGrid,
   rates: EtchRates,
   options: ArrivalOptions = {},
-): Float64Array {
+): ArrivalField {
   const { materials, widthCells: w, heightCells: h, cellNm } = grid;
   assertPositive('cellNm', cellNm);
+  assertRates(rates);
   if (
     !Number.isInteger(w) ||
     !Number.isInteger(h) ||
@@ -171,7 +209,15 @@ export function arrivalTime(
   // entries are skipped when popped). A cell is pushed only when its time strictly improves, once
   // per neighbour that can reach it, so 16 slots per solid cell is a hard upper bound.
   let solidCells = 0;
-  for (let i = 0; i < n; i++) if (materials[i] !== AIR) solidCells++;
+  for (let i = 0; i < n; i++) {
+    const code = materials[i]!;
+    if (code === AIR) continue;
+    // A code outside the table would make a step cost NaN and silently corrupt the field.
+    if (selectivity[code] === undefined) {
+      throw new RangeError(`unknown material code ${code} at cell ${i}`);
+    }
+    solidCells++;
+  }
   const capacity = Math.max(1, solidCells * STENCIL.length);
   const heapCell = new Int32Array(capacity);
   const heapTime = new Float64Array(capacity);
@@ -264,5 +310,5 @@ export function arrivalTime(
       }
     }
   }
-  return arrival;
+  return { arrival, maxTimeMin: limit };
 }
