@@ -254,3 +254,147 @@ describe('arrivalTime (shortest-path etch front)', () => {
     expect(() => arrivalTime({ ...g, cellNm: 0 }, rates())).toThrow(RangeError);
   });
 });
+
+describe('arrivalTime with maxTimeMin (stop the search at the largest time the learner can pick)', () => {
+  // Resist with a window, oxide, silicon: every material reachable, so the full field is finite.
+  const width = 30;
+  const layered = (() => {
+    const rows: string[] = [];
+    for (let y = 0; y < 22; y++) {
+      if (y < 4) rows.push('.'.repeat(width));
+      else if (y < 9) rows.push('P'.repeat(12) + '.'.repeat(6) + 'P'.repeat(12));
+      else if (y < 15) rows.push('O'.repeat(width));
+      else rows.push('S'.repeat(width));
+    }
+    return gridOf(rows);
+  })();
+  const r = rates({ lateralNmPerMin: 30, resistSelectivity: 3, siSelectivity: 8 });
+  const full = arrivalTime(layered, r);
+  const finite = [...full].filter((t) => Number.isFinite(t) && t > 0).sort((a, b) => a - b);
+  const median = finite[Math.floor(finite.length / 2)]!;
+
+  it('keeps every arrival time up to the limit and marks the rest unreached', () => {
+    const bounded = arrivalTime(layered, r, { maxTimeMin: median });
+    let kept = 0;
+    full.forEach((t, i) => {
+      if (t <= median) {
+        expect(bounded[i]!, `cell ${i}`).toBeCloseTo(t, 12);
+        kept++;
+      } else {
+        expect(bounded[i], `cell ${i}`).toBe(Infinity);
+      }
+    });
+    expect(kept).toBeGreaterThan(0);
+    expect(kept).toBeLessThan(full.length);
+  });
+
+  it('includes a cell that arrives exactly at the limit', () => {
+    const i = full.indexOf(finite[Math.floor(finite.length / 3)]!);
+    const bounded = arrivalTime(layered, r, { maxTimeMin: full[i]! });
+    expect(bounded[i]).toBe(full[i]);
+  });
+
+  it('is the same as no limit when the limit is omitted or Infinity', () => {
+    expect(arrivalTime(layered, r, {})).toEqual(full);
+    expect(arrivalTime(layered, r, { maxTimeMin: Infinity })).toEqual(full);
+  });
+
+  it('with limit 0 reaches nothing but air', () => {
+    const bounded = arrivalTime(layered, r, { maxTimeMin: 0 });
+    bounded.forEach((t, i) => {
+      expect(t, `cell ${i}`).toBe(layered.materials[i] === Material.AIR ? 0 : Infinity);
+    });
+  });
+
+  it.each([-1, Number.NaN])('rejects limit %s', (maxTimeMin) => {
+    expect(() => arrivalTime(layered, r, { maxTimeMin })).toThrow(RangeError);
+  });
+});
+
+describe('arrivalTime against a plain O(n²) Dijkstra (no heap) on random grids', () => {
+  /** Deterministic PRNG (mulberry32) so a failure is reproducible. */
+  function prng(seed: number) {
+    let a = seed;
+    return () => {
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  /** The 16 steps, written out independently of the implementation. */
+  const STEPS: [number, number][] = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1],
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+    [1, 2],
+    [1, -2],
+    [-1, 2],
+    [-1, -2],
+    [2, 1],
+    [2, -1],
+    [-2, 1],
+    [-2, -1],
+  ];
+  function reference(g: MaterialGrid, r: EtchRates): number[] {
+    const { materials, widthCells: w, heightCells: h, cellNm } = g;
+    const sel = [Infinity, r.siSelectivity, 1, r.resistSelectivity];
+    const t: number[] = Array.from(materials, (m) => (m === Material.AIR ? 0 : Infinity));
+    const done = new Array<boolean>(w * h).fill(false);
+    for (;;) {
+      let best = -1;
+      for (let i = 0; i < t.length; i++) {
+        if (!done[i] && Number.isFinite(t[i]!) && (best < 0 || t[i]! < t[best]!)) best = i;
+      }
+      if (best < 0) return t;
+      done[best] = true;
+      const x = best % w;
+      const y = Math.floor(best / w);
+      for (const [dx, dy] of STEPS) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        const j = ny * w + nx;
+        const m = materials[j]!;
+        if (m === Material.AIR || sel[m] === Infinity) continue;
+        const vertical = (dy > 0 ? r.verticalNmPerMin : r.lateralNmPerMin) / sel[m]!;
+        const lateral = r.lateralNmPerMin / sel[m]!;
+        if ((dy !== 0 && vertical <= 0) || (dx !== 0 && lateral <= 0)) continue;
+        const cost = cellNm * Math.hypot(dx !== 0 ? dx / lateral : 0, dy !== 0 ? dy / vertical : 0);
+        if (t[best]! + cost < t[j]!) t[j] = t[best]! + cost;
+      }
+    }
+  }
+
+  const rateSets: EtchRates[] = [
+    rates({ lateralNmPerMin: 100, resistSelectivity: 1, siSelectivity: 1 }),
+    rates({ lateralNmPerMin: 10, resistSelectivity: 3, siSelectivity: 12 }),
+    rates({ lateralNmPerMin: 0.5, resistSelectivity: 1.4, siSelectivity: 5 }),
+    rates({ lateralNmPerMin: 40, resistSelectivity: Infinity, siSelectivity: 7 }),
+    rates({ lateralNmPerMin: 0, resistSelectivity: 2, siSelectivity: 2 }),
+  ];
+
+  it.each(rateSets.map((r, i) => [i, r] as const))('rate set %i', (i, r) => {
+    const rand = prng(1000 + i);
+    const width = 18;
+    const height = 15;
+    const materials = new Uint8Array(width * height);
+    for (let k = 0; k < materials.length; k++) {
+      const v = rand();
+      materials[k] =
+        v < 0.3 ? Material.AIR : v < 0.5 ? Material.PR : v < 0.8 ? Material.OX : Material.SI;
+    }
+    const grid: MaterialGrid = { materials, widthCells: width, heightCells: height, cellNm: 10 };
+    const expected = reference(grid, r);
+    const actual = arrivalTime(grid, r);
+    expected.forEach((t, k) => {
+      if (Number.isFinite(t)) expect(actual[k]!, `cell ${k}`).toBeCloseTo(t, 9);
+      else expect(actual[k], `cell ${k}`).toBe(Infinity);
+    });
+  });
+});

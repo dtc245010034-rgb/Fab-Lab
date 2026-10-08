@@ -117,17 +117,32 @@ const STENCIL: readonly (readonly [dx: number, dy: number])[] = (() => {
   return steps;
 })();
 
+export interface ArrivalOptions {
+  /**
+   * Stop the search once the front would arrive later than this many minutes (default: no limit).
+   * Pass the largest etch time the learner can select for this recipe, not the time currently
+   * chosen: dragging the time control then only changes which cells count as etched and never
+   * needs a recompute. Cells that arrive later than the limit are returned as Infinity.
+   */
+  maxTimeMin?: number;
+}
+
 /**
  * Time, in minutes, at which the etch front reaches each cell (row-major, same layout as the
- * grid). 0 in air; Infinity where it never arrives (a material that is not attacked, or a cell
- * that cannot be reached because the lateral rate is 0). A cell is etched after time T when its
- * arrival time is ≤ T, so one result serves every etch time.
+ * grid). 0 in air; Infinity where it never arrives (a material that is not attacked, a cell that
+ * cannot be reached because the lateral rate is 0, or one that arrives after `maxTimeMin`).
+ * A cell is etched after time T when its arrival time is ≤ T, so one result serves every etch
+ * time up to `maxTimeMin`; reading it at a later T would wrongly show those cells as untouched.
  *
  * Step (dx, dy) into a cell of material m costs
  *   cell · √((dx/lateral_m)² + (dy/vertical_m)²)
  * where rate_m = rate / selectivity_m, and `vertical_m` is the lateral rate for upward steps.
  */
-export function arrivalTime(grid: MaterialGrid, rates: EtchRates): Float64Array {
+export function arrivalTime(
+  grid: MaterialGrid,
+  rates: EtchRates,
+  options: ArrivalOptions = {},
+): Float64Array {
   const { materials, widthCells: w, heightCells: h, cellNm } = grid;
   assertPositive('cellNm', cellNm);
   if (
@@ -139,6 +154,10 @@ export function arrivalTime(grid: MaterialGrid, rates: EtchRates): Float64Array 
   ) {
     throw new RangeError(`materials has ${materials.length} cells, expected ${w} × ${h}`);
   }
+  const limit = options.maxTimeMin ?? Infinity;
+  if (Number.isNaN(limit) || limit < 0) {
+    throw new RangeError(`maxTimeMin must be a number ≥ 0, got ${limit}`);
+  }
   const n = w * h;
 
   const arrival = new Float64Array(n).fill(Infinity);
@@ -148,15 +167,22 @@ export function arrivalTime(grid: MaterialGrid, rates: EtchRates): Float64Array 
   selectivity[OX] = 1;
   selectivity[PR] = rates.resistSelectivity;
 
-  // Binary min-heap with lazy deletion (a cell may be pushed several times; stale entries are
-  // skipped when popped). Each relaxation pushes at most once, so 24 slots per cell are plenty.
-  const heapCell = new Int32Array(n * 24);
-  const heapTime = new Float64Array(n * 24);
+  // Binary min-heap of solid cells with lazy deletion (a cell may be pushed several times; stale
+  // entries are skipped when popped). A cell is pushed only when its time strictly improves, once
+  // per neighbour that can reach it, so 16 slots per solid cell is a hard upper bound.
+  let solidCells = 0;
+  for (let i = 0; i < n; i++) if (materials[i] !== AIR) solidCells++;
+  const capacity = Math.max(1, solidCells * STENCIL.length);
+  const heapCell = new Int32Array(capacity);
+  const heapTime = new Float64Array(capacity);
   let heapSize = 0;
   let topCell = 0;
   let topTime = 0;
 
   const push = (cell: number, time: number): void => {
+    // Never true if the bound above holds; writing past a typed array would silently drop entries.
+    if (heapSize >= capacity)
+      throw new Error('arrivalTime: heap capacity exceeded (internal error)');
     let k = heapSize++;
     while (k > 0) {
       const parent = (k - 1) >> 1;
@@ -191,18 +217,28 @@ export function arrivalTime(grid: MaterialGrid, rates: EtchRates): Float64Array 
     heapTime[k] = time;
   };
 
-  for (let i = 0; i < n; i++) {
-    if (materials[i] === AIR) {
-      arrival[i] = 0;
-      push(i, 0);
+  // One search loop. Its sources are first every air cell (reached at time 0, taken straight from
+  // the grid instead of through the heap: popping thousands of air cells one by one was most of the
+  // work) and then the heap. The relaxation is written inline: as a closure its captured variables
+  // live in a context object and the loop measurably slows down.
+  let airScan = 0;
+  for (;;) {
+    let cell: number;
+    let time: number;
+    while (airScan < n && materials[airScan] !== AIR) airScan++;
+    if (airScan < n) {
+      cell = airScan++;
+      time = 0;
+      arrival[cell] = 0;
+    } else if (heapSize > 0) {
+      pop();
+      if (topTime > arrival[topCell]!) continue; // stale entry
+      cell = topCell;
+      time = topTime;
+    } else {
+      break;
     }
-  }
 
-  while (heapSize > 0) {
-    pop();
-    const cell = topCell;
-    const time = topTime;
-    if (time > arrival[cell]!) continue; // stale entry
     const x = cell % w;
     const y = (cell / w) | 0;
     for (const [dx, dy] of STENCIL) {
@@ -221,6 +257,7 @@ export function arrivalTime(grid: MaterialGrid, rates: EtchRates): Float64Array 
         cellNm *
         Math.sqrt((dx !== 0 ? (dx / lateral) ** 2 : 0) + (dy !== 0 ? (dy / vertical) ** 2 : 0));
       const arrives = time + cost;
+      if (arrives > limit) continue;
       if (arrives < arrival[next]!) {
         arrival[next] = arrives;
         push(next, arrives);

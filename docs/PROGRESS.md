@@ -28,9 +28,14 @@
   - Phát hiện về quy luật ướt "undercut ≈ độ sâu ±1 ô": trên lưới, undercut = độ sâu đo được − đúng 1 ô (bước đầu từ ô không khí vào oxit tốn trọn một ô).
     So với `rate × t` thô, sai lệch có thể tới 2 ô (thêm 1 ô do làm tròn xuống số ô nguyên). Test kiểm ±1 ô theo độ sâu đo trong cùng mô hình, và kiểm hệ số góc
     (Δundercut ≈ rate × Δt, sai ≤ 1 ô) trên 5 cặp thời gian; không nới ngưỡng.
+  - Tối ưu hiệu năng (commit riêng): `arrivalTime(grid, rates, { maxTimeMin })` dừng tìm khi vượt mốc; ô muộn hơn mốc trả `Infinity`.
+    `maxTimeMin` phải là giá trị lớn nhất của thanh trượt thời gian cho công thức đó (BOE 8 phút, HF 49% 0,5 phút, RIE 14 phút), **không** phải thời gian hiện tại:
+    kéo thanh thời gian chỉ đổi ngưỡng đọc `arrival ≤ T`, không tính lại. Đọc ở T > `maxTimeMin` sẽ sai (ô chưa tính hiện như chưa bị khắc); worker (S0.4) phải tính lại khi đổi công thức.
+    Ô không khí không đi qua heap (thời gian 0, relax thẳng sang lân cận), heap có cận trên chặt 16 ô/ô rắn và có chốt chặn tràn. Kết quả ≤ `maxTimeMin` trùng bản không giới hạn (test trên 10 công thức, 5 mốc thời gian mỗi công thức).
+    Kiểm bằng Dijkstra quét mảng O(n²) độc lập trên lưới ngẫu nhiên có seed. Bài học đo được: tách phần relax thành closure làm vòng lặp chậm 15–60%, nên giữ một vòng lặp, relax viết thẳng trong thân.
 
 ## Next
-- S0.2 (còn lại trong phiên): tối ưu `arrivalTime` (tùy chọn `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian, heap vừa đủ) ở commit riêng, đo lại, cập nhật bảng bên dưới.
+- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này.
 - Đo thời gian tính lại trên điện thoại thật sau khi deploy ở S0.3, rồi mới tick "< 50 ms trên điện thoại" trong `m04-etch.md`.
 - Còn lại của M04 (ngoài S0.2): KOH, Bosch, Endpoint (S1.3), UI và chấm điểm (S1.2).
 - Khi port UI từ prototype: prototype tô chữ chỉ số bằng `--ok`/`--warn` (`.m.g b`, `.grade.g b`…); phải đổi sang `--ok-ink`/`--warn-ink`.
@@ -96,6 +101,17 @@ Node: trung bình của 2 lần `npm run bench`. Chrome: trung vị 40 lần sau
 | C RIE 80 W, 180 mTorr, 400 nm | 18,1 | 11,7 / 11,9 | 11,5 / 11,7 | 57,8 / 55,4 |
 
 Ở CPU 4×, ca B và C vượt 50 ms, nên cần bước tối ưu (b).
+
+**Bản (b): `maxTimeMin` = mức tối đa của thanh trượt (A: 8 phút, B và C: 14 phút), ô không khí không qua heap, heap vừa đủ**
+
+| Ca | Node: arrival / toàn bộ | Chrome 1×: arrival / toàn bộ | Chrome 4×: arrival / toàn bộ | Chrome 4×, tệ nhất trong 40 lần |
+|---|---|---|---|---|
+| A ướt BOE 6:1, cửa sổ 800 nm | 3,4 / 3,6 | 3,7 / 3,5 | 15,7 / 16,4 | 23,4 / 18,2 |
+| B RIE 200 W, 30 mTorr, 800 nm | 3,9 / 4,0 | 3,7 / 3,9 | 21,0 / 18,3 | 38,0 / 20,8 |
+| C RIE 80 W, 180 mTorr, 400 nm | 3,4 / 3,5 | 3,2 / 3,4 | 14,8 / 15,6 | 16,5 / 24,1 |
+
+Không truyền `maxTimeMin` (đường không giới hạn) thì bản (b) tương đương bản (a): Node 3,5 / 11,8 / 11,9 ms, Chrome 4× 18,1 / 53,7 / 53,9 ms cho A / B / C.
+Cả ba ca đều dưới 50 ms ở CPU 4× khi có giới hạn; ca RIE nhanh gấp 2,5–3 lần so với bản (a). Mục "< 50 ms trên điện thoại" vẫn chưa tick cho tới khi đo trên máy thật.
 
 ## Science review
 (chưa có)

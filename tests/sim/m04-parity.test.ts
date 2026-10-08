@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { printLitho } from '../../src/physics/litho';
-import { simulate } from './helpers';
+import { simulate, sliderMaxMin } from './helpers';
 import { GOLDEN_ETCH, GOLDEN_LITHO } from './prototype-golden';
 
 const close = (label: string, actual: number, expected: number) =>
@@ -66,5 +66,38 @@ describe('etch parity with the prototype', () => {
     }
     expect(finiteCount).toBe(g.arrival.finiteCount);
     close('sum of arrival times', sumFinite, g.arrival.sumFinite);
+  });
+});
+
+describe('stopping the search at the slider maximum changes nothing the learner can see', () => {
+  it.each(GOLDEN_ETCH.map((g) => [g.id, g] as const))('case %s', (_id, g) => {
+    const recipe = {
+      litho: {
+        spinRpm: g.litho.rpm,
+        source: g.litho.source,
+        designNm: g.litho.designNm,
+        dose: g.litho.dose,
+      },
+      etch: g.recipe,
+    };
+    const maxTimeMin = sliderMaxMin(g.recipe);
+    expect(g.recipe.timeMin).toBeLessThanOrEqual(maxTimeMin);
+
+    const full = simulate(recipe);
+    const bounded = simulate(recipe, undefined, { maxTimeMin });
+    expect(bounded.metrics).toEqual(full.metrics);
+
+    // Every time the slider can reach gives the same picture, not only the chosen one.
+    for (const t of [0, 0.25 * maxTimeMin, 0.5 * maxTimeMin, 0.75 * maxTimeMin, maxTimeMin]) {
+      const b = simulate({ ...recipe, etch: { ...recipe.etch, timeMin: t } }, undefined, {
+        maxTimeMin,
+      });
+      const f = simulate({ ...recipe, etch: { ...recipe.etch, timeMin: t } });
+      expect(b.metrics, `t = ${t} min`).toEqual(f.metrics);
+    }
+    bounded.arrival.forEach((t, i) => {
+      if (full.arrival[i]! <= maxTimeMin) expect(t).toBeCloseTo(full.arrival[i]!, 12);
+      else expect(t).toBe(Infinity);
+    });
   });
 });

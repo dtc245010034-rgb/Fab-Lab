@@ -1,5 +1,11 @@
 // Test-only glue: runs litho → grid → etch rates → arrival time → metrics the way a caller would.
-import { arrivalTime, Material, rieRates, wetEtchRates } from '../../src/physics/etch';
+import {
+  arrivalTime,
+  Material,
+  rieRates,
+  wetEtchRates,
+  type ArrivalOptions,
+} from '../../src/physics/etch';
 import { printLitho, type LithoInput } from '../../src/physics/litho';
 import { DEFAULT_GRID_SPEC } from '../../src/sim/defaults';
 import { buildGrid, measureEtch, type GridSpec } from '../../src/sim/grid';
@@ -28,14 +34,27 @@ export const rie = (powerW: number, pressureMTorr: number, timeMin: number): Etc
   timeMin,
 });
 
-export function simulate(recipe: Recipe, spec: GridSpec = DEFAULT_GRID_SPEC) {
+/**
+ * Largest time the prototype's time slider offers for a recipe: 8 min (BOE), 0.5 min (HF 49 %),
+ * 14 min (RIE). A caller passes this as `maxTimeMin` so that dragging the time never recomputes.
+ */
+export function sliderMaxMin(step: EtchStep): number {
+  if (step.mode === 'dry') return 14;
+  return step.etchant === 'hf49' ? 0.5 : 8;
+}
+
+export function simulate(
+  recipe: Recipe,
+  spec: GridSpec = DEFAULT_GRID_SPEC,
+  options?: ArrivalOptions,
+) {
   const litho = printLitho(recipe.litho);
   const section = buildGrid(spec, litho, 'developed');
   const rates =
     recipe.etch.mode === 'wet'
       ? wetEtchRates(recipe.etch.etchant)
       : rieRates({ powerW: recipe.etch.powerW, pressureMTorr: recipe.etch.pressureMTorr });
-  const arrival = arrivalTime(section, rates);
+  const arrival = arrivalTime(section, rates, options);
   const metrics = measureEtch(section, arrival, recipe.etch.timeMin);
   return { litho, section, rates, arrival, metrics, timeMin: recipe.etch.timeMin };
 }
