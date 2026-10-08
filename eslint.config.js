@@ -65,6 +65,16 @@ export default tseslint.config(
     ),
   },
   {
+    files: ['src/render/**'],
+    rules: layer(
+      {
+        group: dirs('ui', 'workers', 'modules', 'content'),
+        message: 'render/ draws results: no imports from ui, workers, modules, content.',
+      },
+      noReact,
+    ),
+  },
+  {
     files: ['src/workers/**'],
     rules: layer(noReact),
   },
