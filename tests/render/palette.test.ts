@@ -20,6 +20,7 @@ const TOKENS: Record<string, string> = {
   '--ox': '#b6a3dc',
   '--pr': '#c8432a',
   '--panel': '#f8eec6',
+  '--navy': '#22305a',
   '--f-mono': "'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace",
 };
 
@@ -106,10 +107,11 @@ describe('paletteFromTokens', () => {
     });
     expect(p.ink).toEqual([248, 238, 198]); // --panel: lines and label text on the dark screen
     expect(p.chip).toEqual([15, 19, 32]); // --screen: label background
+    expect(p.surround).toEqual([34, 48, 90]); // --navy: the canvas outside the grid
     expect(p.fontStack).toBe(TOKENS['--f-mono']);
   });
 
-  it.each(['--screen', '--si', '--ox', '--pr', '--panel'])(
+  it.each(['--screen', '--si', '--ox', '--pr', '--panel', '--navy'])(
     'throws, naming %s, when it is not a hex colour',
     (token) => {
       expect(() => paletteFromTokens(reader({ [token]: 'rgb(1, 2, 3)' }))).toThrow(
@@ -118,12 +120,19 @@ describe('paletteFromTokens', () => {
     },
   );
 
-  it.each(['--screen', '--si', '--ox', '--pr', '--panel'])(
+  it.each(['--screen', '--si', '--ox', '--pr', '--panel', '--navy'])(
     'throws, naming %s, when it is missing',
     (token) => {
       expect(() => paletteFromTokens(reader({ [token]: '' }))).toThrow(new RegExp(token));
     },
   );
+
+  it('gives the canvas outside the grid a colour that is not air, nor any material', () => {
+    const { materials, surround } = paletteFromTokens(reader());
+    for (const [name, colour] of Object.entries(materials)) {
+      expect(surround, `surround equals ${name}`).not.toEqual(colour);
+    }
+  });
 
   it('throws when the mono font stack is missing', () => {
     expect(() => paletteFromTokens(reader({ '--f-mono': '' }))).toThrow(/--f-mono/);

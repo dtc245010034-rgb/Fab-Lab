@@ -36,6 +36,7 @@ export default function Viewer({ recipe, result, debug = false }: Props) {
         <h2 id="viewer-title">Mặt cắt wafer</h2>
         <span className="vmeta">
           <span>{describeRecipe(recipe.etch)}</span>
+          {' · '}
           <span>1 ô = {formatViNumber(section.cellNm)} nm</span>
         </span>
       </div>

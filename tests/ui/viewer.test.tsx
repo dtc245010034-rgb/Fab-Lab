@@ -35,6 +35,12 @@ describe('Viewer with the default recipe', () => {
     expect(screen.getByText(/1 ô = 10 nm/)).toBeInTheDocument();
   });
 
+  it('separates the recipe from the grid resolution with " · "', () => {
+    renderViewer();
+    const meta = document.querySelector('.vmeta')!;
+    expect(meta.textContent).toBe('RIE 200 W · 30 mTorr · 4,6 phút · 1 ô = 10 nm');
+  });
+
   it('has a material legend with all four colours, as list items', () => {
     renderViewer();
     const legend = screen.getByRole('list', { name: /chú giải vật liệu/i });

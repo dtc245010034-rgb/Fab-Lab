@@ -76,7 +76,11 @@ export function chooseScale(availableDevicePx: number, cells: number): number {
 export interface CanvasPlan {
   /** Device pixels per grid cell, a whole number. */
   scale: number;
-  /** Size of the canvas backing store, device pixels. */
+  /** Width of the grid image (cells × scale), device pixels. */
+  gridWidthPx: number;
+  /** Where the grid image starts on the canvas, device pixels; the rest is the surround. */
+  gridX: number;
+  /** Size of the canvas backing store, device pixels. `heightPx` is also the grid image's height. */
   widthPx: number;
   heightPx: number;
   /** Size to give the canvas in css pixels so that one device pixel is one backing-store pixel. */
@@ -84,7 +88,12 @@ export interface CanvasPlan {
   cssHeight: number;
 }
 
-/** Sizes the canvas for a container `availableCssWidth` wide on a screen with ratio `dpr`. */
+/**
+ * Sizes the canvas for a container `availableCssWidth` wide on a screen with ratio `dpr`. The grid
+ * image is a whole number of device pixels per cell, so it is usually narrower than the container;
+ * the canvas takes the full container width and centres the grid in it, and what is left on both
+ * sides is drawn as surround rather than left to whatever is behind the canvas.
+ */
 export function planCanvas(
   grid: { widthCells: number; heightCells: number },
   availableCssWidth: number,
@@ -93,10 +102,21 @@ export function planCanvas(
   if (!Number.isFinite(dpr) || dpr <= 0) {
     throw new RangeError(`dpr must be a positive finite number, got ${dpr}`);
   }
-  const scale = chooseScale(Math.floor(availableCssWidth * dpr), grid.widthCells);
-  const widthPx = grid.widthCells * scale;
+  const availableDevicePx = Math.floor(availableCssWidth * dpr);
+  const scale = chooseScale(availableDevicePx, grid.widthCells);
+  const gridWidthPx = grid.widthCells * scale;
+  // A container narrower than the grid at ×1 keeps the whole grid; css max-width shrinks it.
+  const widthPx = Math.max(gridWidthPx, availableDevicePx);
   const heightPx = grid.heightCells * scale;
-  return { scale, widthPx, heightPx, cssWidth: widthPx / dpr, cssHeight: heightPx / dpr };
+  return {
+    scale,
+    gridWidthPx,
+    gridX: Math.floor((widthPx - gridWidthPx) / 2),
+    widthPx,
+    heightPx,
+    cssWidth: widthPx / dpr,
+    cssHeight: heightPx / dpr,
+  };
 }
 
 /** Rounds to the grid resolution (one cell), the finest size the picture can tell apart. */

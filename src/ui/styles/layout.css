@@ -78,13 +78,7 @@
   color: var(--muted);
 }
 
-/* recipe and cell size wrap as two units, never in the middle of "1 ô = 10 nm" */
-.vmeta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 12px;
-}
-
+/* recipe and cell size are joined by " · " in the text and wrap as two units, never in the middle of "1 ô = 10 nm" */
 .vmeta > span {
   white-space: nowrap;
 }
@@ -92,8 +86,8 @@
 .screen {
   width: 100%;
   display: flex;
-  justify-content: center; /* the canvas is a whole-number multiple of the grid, so it may be narrower */
-  background: var(--screen);
+  justify-content: center; /* the canvas is as wide as the container, give or take one device pixel */
+  background: var(--navy); /* the same surround as in the canvas, never the air colour (--screen) */
   border-radius: 4px;
   overflow: hidden;
 }

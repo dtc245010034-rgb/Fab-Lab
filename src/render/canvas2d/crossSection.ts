@@ -1,14 +1,24 @@
 /**
  * Draws the M04 cross-section on a canvas: one pixel per grid cell scaled up by a whole number
- * without smoothing, then the dimension lines, the 500 nm bar and their labels at the screen's
- * own resolution. Everything computable without a canvas lives in pixels.ts, overlay.ts and
- * palette.ts; this file only does the drawing calls.
+ * without smoothing and centred in the canvas, the surround on both sides of it with a zigzag
+ * break line on each edge (the wafer goes on), then the dimension lines, the 500 nm bar and their
+ * labels at the screen's own resolution. Everything computable without a canvas lives in
+ * pixels.ts, overlay.ts and palette.ts; this file only does the drawing calls.
  *
  * Plain data in, pixels out: it knows nothing about React or about where the data was computed.
  */
 import type { ArrivalField } from '../../physics/etch';
 import type { CrossSection, EtchMetrics } from '../../sim/grid';
-import { overlayLayout, placeChip, SCALE_BAR_NM, type LabelAnchor, type Rect } from './overlay';
+import {
+  breakEdges,
+  overlayLayout,
+  placeChip,
+  SCALE_BAR_NM,
+  surroundRects,
+  type BreakEdge,
+  type LabelAnchor,
+  type Rect,
+} from './overlay';
 import { toCssHex, type Rgb, type RenderPalette } from './palette';
 import { formatApproxNm, gridToPixels, planCanvas } from './pixels';
 
@@ -52,10 +62,35 @@ export async function loadLabelFont(fontStack: string, sample: string): Promise<
   }
 }
 
+/** The teeth of a break line (surround colour, between the grid edge and the zigzag) and its stroke. */
+function drawBreakEdge(
+  ctx: CanvasRenderingContext2D,
+  edge: BreakEdge,
+  heightPx: number,
+  palette: RenderPalette,
+): void {
+  const trace = () => {
+    ctx.beginPath();
+    edge.zigzag.forEach(({ x, y }, i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+  };
+  trace();
+  ctx.lineTo(edge.edgeX, heightPx);
+  ctx.lineTo(edge.edgeX, 0);
+  ctx.closePath();
+  ctx.fillStyle = toCssHex(palette.surround);
+  ctx.fill();
+
+  trace();
+  ctx.strokeStyle = toCssHex(palette.ink);
+  ctx.lineWidth = edge.lineWidthPx;
+  ctx.lineJoin = 'miter';
+  ctx.stroke();
+}
+
 /**
- * Resizes `canvas` to a whole-number multiple of the grid and draws the view on it. Returns null
- * when the canvas has no 2-D context. Call again after the font has loaded or the container
- * has changed size.
+ * Resizes `canvas` to the container width, lays the grid in the middle, in a whole-number multiple
+ * of its size, and draws the view on it. Returns null when the canvas has no 2-D context. Call
+ * again after the font has loaded or the container has changed size.
  */
 export function drawCrossSection(
   canvas: HTMLCanvasElement,
@@ -82,10 +117,15 @@ export function drawCrossSection(
   if (!bufferCtx) return null;
   const pixels = gridToPixels(section, field, timeMin, palette.materials);
   bufferCtx.putImageData(new ImageData(pixels, section.widthCells, section.heightCells), 0, 0);
+  ctx.fillStyle = toCssHex(palette.surround);
+  for (const r of surroundRects(plan)) ctx.fillRect(r.x, r.y, r.w, r.h);
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(buffer, 0, 0, plan.widthPx, plan.heightPx);
+  ctx.drawImage(buffer, plan.gridX, 0, plan.gridWidthPx, plan.heightPx);
+  for (const edge of breakEdges(plan, dpr)) drawBreakEdge(ctx, edge, plan.heightPx, palette);
 
-  // Overlays, in device pixels so lines and text stay sharp.
+  // Overlays, in device pixels so lines and text stay sharp. Their geometry starts at the grid.
+  ctx.save();
+  ctx.translate(plan.gridX, 0);
   const layout = overlayLayout(section, metrics, plan.scale, dpr);
   const fill = (r: Rect, colour: Rgb) => {
     ctx.fillStyle = toCssHex(colour);
@@ -104,7 +144,7 @@ export function drawCrossSection(
   ctx.font = `600 ${fontPx}px ${palette.fontStack}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const bounds = { w: plan.widthPx, h: plan.heightPx };
+  const bounds = { w: plan.gridWidthPx, h: plan.heightPx };
   const label = (anchor: LabelAnchor, text: string) => {
     const chip = placeChip(
       anchor,
@@ -125,6 +165,7 @@ export function drawCrossSection(
     );
   }
   label(layout.scaleBar.label, `${SCALE_BAR_NM} nm`);
+  ctx.restore();
 
   return { scale: plan.scale, widthPx: plan.widthPx, heightPx: plan.heightPx };
 }

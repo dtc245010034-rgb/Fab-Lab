@@ -52,6 +52,14 @@
     - Trên ảnh ca B, resist chỉ còn ≈ 410 nm chứ không phải 500 nm: RIE ăn cả resist (độ chọn lọc resist ≈ 3,6 ở 200 W), đúng mô hình, không phải lỗi vẽ.
     - Điện thoại: hệ số phóng là số nguyên nên ảnh rộng ≈ 260 css px trong khung ≈ 317 px (dpr 2 và 3), hai bên có dải nền `--screen`; ở dpr 1,25 là ×1 (208 css px). Nhãn chiếm khá nhiều chỗ trên ảnh nhỏ; chưa chỉnh.
     - `npm audit`: 3 cảnh báo mức cao, cả ba qua chuỗi `wrangler → miniflare → sharp` (chỉ dev, không vào `dist/`; dependency production: 0). `npm audit fix --force` sẽ hạ wrangler xuống 4.15.2 nên không chạy.
+- S0.3-fix: sửa nhỏ sau review S0.3 (nhánh `s0.3-fix`)
+  - Nền canvas ngoài lưới không còn trùng màu không khí: canvas giờ rộng đúng bằng khung chứa (`planCanvas` thêm `gridWidthPx`, `gridX`; lưới nằm giữa, cạnh chia đều), hai bên tô bằng token `--navy` (`SURROUND_TOKEN`, không thêm hex mới; `.screen` trong CSS cùng token, có test khóa).
+    Hai mép trái/phải có đường ngắt zigzag (`breakEdges` trong `overlay.ts`: răng sâu 4 css px, mỗi nét dốc 6 css px, nét 1 css px, màu `--panel`); răng cắn vào lưới tối đa 4 css px ở rìa, xa vùng cửa sổ khắc nên không ảnh hưởng số đo. Nét chéo của zigzag có khử răng cưa, nên hàng quét ở sát mép có màu pha (phần ô vẫn chỉ có màu token).
+  - Test thuần: mọi pixel ngoài lưới (7 cỡ khung × dpr, với giá trị token thật đọc từ `tokens.css`) có màu surround và ≠ màu không khí; hai dải + lưới lát kín canvas; zigzag chạy từ đỉnh tới đáy, đối xứng, tỉ lệ theo dpr; `--navy` ≠ `--screen` và tương phản ≥ 1,3 với nó.
+  - Header Viewer: " · " giữa dòng công thức và "1 ô = 10 nm" (chuỗi nằm trong văn bản, không phải CSS; khi xuống dòng ở 380 px dấu chấm nằm cuối dòng trên).
+  - Số test: 426 (trước đó 391). `npm run build`, `npm run lint` xanh. JS 54,5 KB gzip.
+  - Cần review mắt: chọn `--navy` vì là token tối khác hẳn `--screen` mà không trùng vật liệu nào (`--ink` quá gần `--screen`, `--muted` gần `--si`); tương phản `--navy`/`--screen` chỉ ≈ 1,4:1 nên phần việc phân biệt chủ yếu do đường zigzag sáng. Nếu muốn dải ngoài sáng hơn, đổi `SURROUND_TOKEN` và token của `.screen` (một dòng mỗi nơi).
+  - Ghi chú về `CLAUDE.md`: `npm run e2e` chưa tồn tại (thuộc S0.4), nên chưa chạy được trước khi merge.
 
 ## Next
 - S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu (cold) của `runRecipe` đo được trung vị 38,7 ms (29–54 ms) trên Chrome desktop và ≈ 85 ms ở CPU 4× (ước lượng), xem "Cold và warm trên bản build" bên dưới; đưa nó ra worker để không chặn luồng UI. Lần gọi thứ 2–3 cũng chưa ấm hẳn (28 ms ở 1×, 42–58 ms ở 4×).

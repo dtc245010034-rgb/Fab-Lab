@@ -16,6 +16,8 @@ Prototype tham chiếu: `reference/prototype-m04-etch.html`.
 ```
 Màu vật liệu bổ sung khi cần: kim loại Al/Cu, nitride Si₃N₄, poly-Si. Thêm vào token, không dùng màu rời.
 Màn hình mặt cắt luôn nền tối `--screen` (`#0f1320`) để vật liệu nổi bật.
+`--screen` cũng là màu của không khí và phần đã khắc, nên **không** dùng làm nền phần canvas nằm ngoài lưới: hai bên lưới dùng `--navy`,
+kèm đường ngắt zigzag màu `--panel` ở hai mép (quy ước bản vẽ: wafer còn tiếp ngoài khung nhìn). Token này là `SURROUND_TOKEN` trong `src/render/canvas2d/palette.ts`.
 
 ### Quy tắc màu trạng thái
 - **Chữ** biểu thị trạng thái chỉ dùng `--ok-ink`, `--warn-ink` hoặc `--bad`. Không đặt `--ok` / `--warn` làm màu chữ.

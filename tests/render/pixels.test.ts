@@ -2,6 +2,8 @@
  * Pure grid → pixel mapping of the cross-section renderer. No canvas involved: the arrays it
  * returns are what gets handed to ImageData.
  */
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { Material, type ArrivalField, type MaterialGrid } from '../../src/physics/etch';
 import {
@@ -11,7 +13,8 @@ import {
   planCanvas,
   roundToResolution,
 } from '../../src/render/canvas2d/pixels';
-import type { MaterialPalette } from '../../src/render/canvas2d/palette';
+import { surroundRects } from '../../src/render/canvas2d/overlay';
+import { paletteFromTokens, type MaterialPalette } from '../../src/render/canvas2d/palette';
 import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import { runRecipe } from '../../src/sim/recipe';
 import { BASE_LITHO, wet } from '../sim/helpers';
@@ -171,26 +174,51 @@ describe('planCanvas', () => {
   const GRID = { widthCells: 260, heightCells: 150 };
 
   it.each([
-    // [available css px, dpr, scale, backing store (device px), css size]
-    [810, 1, 3, [780, 450], [780, 450]], // desktop
-    [810, 2, 6, [1560, 900], [780, 450]], // desktop, retina: same css size, twice the pixels
-    [317, 1, 1, [260, 150], [260, 150]], // 380 px phone, dpr 1
-    [317, 2, 2, [520, 300], [260, 150]],
-    [317, 3, 3, [780, 450], [260, 150]], // 380 px phone, dpr 3
-    [810, 1.25, 3, [780, 450], [624, 360]], // Windows scaling: still whole device pixels
-  ])('%d css px at dpr %d → ×%d', (avail, dpr, scale, backing, css) => {
+    // [available css px, dpr, scale, grid image width (device px), backing store, css size, grid x]
+    [810, 1, 3, 780, [810, 450], [810, 450], 15], // desktop: the canvas fills the container
+    [810, 2, 6, 1560, [1620, 900], [810, 450], 30], // desktop, retina: same css size, twice the pixels
+    [317, 1, 1, 260, [317, 150], [317, 150], 28], // 380 px phone, dpr 1: 57 px left over, split in two
+    [317, 2, 2, 520, [634, 300], [317, 150], 57],
+    [317, 3, 3, 780, [951, 450], [317, 150], 85], // 380 px phone, dpr 3
+    [810, 1.25, 3, 780, [1012, 450], [809.6, 360], 116], // Windows scaling: whole device pixels
+  ])('%d css px at dpr %d → ×%d', (avail, dpr, scale, gridW, backing, css, gridX) => {
     const plan = planCanvas(GRID, avail, dpr);
     expect(plan.scale).toBe(scale);
+    expect(plan.gridWidthPx).toBe(gridW);
     expect([plan.widthPx, plan.heightPx]).toEqual(backing);
     expect([plan.cssWidth, plan.cssHeight]).toEqual(css);
+    expect(plan.gridX).toBe(gridX);
+  });
+
+  it('never makes the canvas narrower than the grid image, so the grid is never cut', () => {
+    const plan = planCanvas(GRID, 200, 1); // container narrower than the grid: still ×1
+    expect(plan.scale).toBe(1);
+    expect(plan.gridWidthPx).toBe(260);
+    expect(plan.widthPx).toBe(260);
+    expect(plan.gridX).toBe(0);
   });
 
   it('always maps the backing store to whole device pixels, whatever the ratio', () => {
     for (const dpr of [1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4]) {
       const plan = planCanvas(GRID, 700, dpr);
-      expect(plan.widthPx).toBe(GRID.widthCells * plan.scale);
+      expect(plan.gridWidthPx).toBe(GRID.widthCells * plan.scale);
+      expect(plan.heightPx).toBe(GRID.heightCells * plan.scale);
+      expect(Number.isInteger(plan.widthPx)).toBe(true);
+      expect(Number.isInteger(plan.gridX)).toBe(true);
+      expect(plan.gridX + plan.gridWidthPx).toBeLessThanOrEqual(plan.widthPx);
       expect(plan.cssWidth * dpr).toBeCloseTo(plan.widthPx, 6);
       expect(plan.cssHeight * dpr).toBeCloseTo(plan.heightPx, 6);
+    }
+  });
+
+  it('never makes the canvas wider than its container', () => {
+    for (const [avail, dpr] of [
+      [810, 1],
+      [810, 1.25],
+      [317, 3],
+      [701, 1.5],
+    ] as const) {
+      expect(planCanvas(GRID, avail, dpr).cssWidth).toBeLessThanOrEqual(avail);
     }
   });
 
@@ -199,6 +227,77 @@ describe('planCanvas', () => {
     expect(() => planCanvas(GRID, 500, 0)).toThrow(RangeError);
     expect(() => planCanvas(GRID, 500, NaN)).toThrow(RangeError);
   });
+});
+
+describe('the canvas outside the grid', () => {
+  const GRID = { widthCells: 260, heightCells: 150 };
+
+  /** The real token values, read from the stylesheet the page loads. */
+  const realPalette = () => {
+    const css = readFileSync(
+      fileURLToPath(new URL('../../src/ui/styles/tokens.css', import.meta.url)),
+      'utf8',
+    ).replace(/\/\*[\s\S]*?\*\//g, '');
+    const values = new Map<string, string>();
+    for (const m of css.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)) values.set(m[1]!, m[2]!);
+    return paletteFromTokens((token) => values.get(token) ?? '');
+  };
+
+  /** What a canvas shows after `surroundRects` are filled with `colour`; the rest stays `empty`. */
+  const paint = (
+    plan: ReturnType<typeof planCanvas>,
+    colour: readonly [number, number, number],
+    empty: readonly [number, number, number],
+  ) => {
+    const { widthPx, heightPx } = plan;
+    const px = new Uint8ClampedArray(widthPx * heightPx * 4);
+    for (let i = 0; i < widthPx * heightPx; i++) px.set([...empty, 255], i * 4);
+    for (const r of surroundRects(plan)) {
+      for (let y = r.y; y < r.y + r.h; y++) {
+        for (let x = r.x; x < r.x + r.w; x++) px.set([...colour, 255], (y * widthPx + x) * 4);
+      }
+    }
+    return px;
+  };
+
+  it.each([
+    [810, 1],
+    [810, 2],
+    [317, 1],
+    [317, 3],
+    [810, 1.25],
+    [701, 1.5],
+    [200, 1],
+  ])(
+    '%d css px at dpr %d: every pixel outside the grid has the surround colour, not air',
+    (avail, dpr) => {
+      const { materials, surround } = realPalette();
+      const plan = planCanvas(GRID, avail, dpr);
+      const EMPTY = [255, 0, 255] as const; // not a token: shows any pixel nobody painted
+      const px = paint(plan, surround, EMPTY);
+      const same = (i: number, c: readonly number[]) =>
+        px[i] === c[0] && px[i + 1] === c[1] && px[i + 2] === c[2];
+      // one assertion at the end: a failing pixel is named, and 1.4 M pixels stay fast
+      const wrong: string[] = [];
+      let outside = 0;
+      for (let y = 0; y < plan.heightPx; y++) {
+        for (let x = 0; x < plan.widthPx; x++) {
+          const i = (y * plan.widthPx + x) * 4;
+          const inGrid = x >= plan.gridX && x < plan.gridX + plan.gridWidthPx;
+          if (inGrid) {
+            if (!same(i, EMPTY)) wrong.push(`(${x}, ${y}) inside the grid was painted`);
+          } else {
+            outside++;
+            if (!same(i, surround)) wrong.push(`(${x}, ${y}) outside the grid is not the surround`);
+            if (same(i, materials.air)) wrong.push(`(${x}, ${y}) outside the grid is air-coloured`);
+          }
+        }
+      }
+      expect(wrong.slice(0, 5)).toEqual([]);
+      // a container wider than the grid really has margins to check
+      if (plan.widthPx > plan.gridWidthPx) expect(outside).toBeGreaterThan(0);
+    },
+  );
 });
 
 describe('displayed numbers (grid resolution is one cell)', () => {

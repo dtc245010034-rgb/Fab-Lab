@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { MATERIAL_TOKENS, SURROUND_TOKEN } from '../../src/render/canvas2d/palette';
 
 const srcDir = fileURLToPath(new URL('../../src', import.meta.url));
 const stylesDir = join(srcDir, 'ui', 'styles');
@@ -112,5 +113,34 @@ describe('status colour rules (docs/DESIGN.md, "Quy tắc màu trạng thái")',
       const source = readFileSync(join(srcDir, file), 'utf8');
       expect(source, `${file} uses --ok/--warn as text colour`).not.toMatch(textColourOfStatus);
     }
+  });
+});
+
+describe('cross-section surround (the canvas outside the grid)', () => {
+  const name = SURROUND_TOKEN.replace(/^--/, '');
+
+  it('is an existing token, not one of the material tokens', () => {
+    expect(tokens.has(name)).toBe(true);
+    expect(Object.values(MATERIAL_TOKENS)).not.toContain(SURROUND_TOKEN);
+  });
+
+  it('is told apart from air (--screen) and from every material', () => {
+    const air = token(MATERIAL_TOKENS.air.slice(2));
+    expect(token(name)).not.toBe(air);
+    // near-black tokens such as --ink (about 1.1:1 on --screen) would look the same as air
+    expect(contrast(token(name), air)).toBeGreaterThanOrEqual(1.3);
+    for (const material of ['si', 'ox', 'pr'] as const) {
+      expect(token(name)).not.toBe(token(material));
+    }
+  });
+
+  it('is the background of .screen in layout.css, so a stray pixel at the edge is not air-coloured', () => {
+    const layout = readFileSync(join(stylesDir, 'layout.css'), 'utf8').replace(
+      /\/\*[\s\S]*?\*\//g,
+      '',
+    );
+    const rule = /\.screen\s*\{([^}]*)\}/.exec(layout)?.[1] ?? '';
+    const background = /(?<![-\w])background\s*:\s*([^;]+);/.exec(rule)?.[1]?.trim();
+    expect(background).toBe(`var(${SURROUND_TOKEN})`);
   });
 });

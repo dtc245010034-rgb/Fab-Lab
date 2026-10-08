@@ -114,6 +114,82 @@ export function overlayLayout(
   };
 }
 
+/** The part of a `CanvasPlan` the frame around the grid needs. */
+export interface FramePlan {
+  gridX: number;
+  gridWidthPx: number;
+  widthPx: number;
+  heightPx: number;
+}
+
+/** The canvas on each side of the grid image, full height; a strip is 0 wide when there is no room. */
+export function surroundRects(plan: FramePlan): [left: Rect, right: Rect] {
+  const rightX = plan.gridX + plan.gridWidthPx;
+  return [
+    { x: 0, y: 0, w: plan.gridX, h: plan.heightPx },
+    { x: rightX, y: 0, w: plan.widthPx - rightX, h: plan.heightPx },
+  ];
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * A zigzag break line down one edge of the grid, the drawing convention for "the wafer goes on
+ * beyond this cut". The teeth bite into the grid by at most `depthPx`: the surround is drawn
+ * between the edge and the zigzag, the zigzag is stroked `lineWidthPx` thick.
+ */
+export interface BreakEdge {
+  side: 'left' | 'right';
+  /** x of the grid edge this line belongs to. */
+  edgeX: number;
+  /** From the top of the canvas to the bottom; x alternates between `edgeX` and `edgeX ± depthPx`. */
+  zigzag: Point[];
+  depthPx: number;
+  lineWidthPx: number;
+}
+
+/** Size of the teeth in css pixels: depth into the grid, and the height of one slope. */
+const BREAK_DEPTH_CSS_PX = 4;
+const BREAK_SLOPE_CSS_PX = 6;
+
+/** `dpr` is the device pixel ratio; sizes in css pixels are multiplied by it. */
+export function breakEdges(plan: FramePlan, dpr: number): [left: BreakEdge, right: BreakEdge] {
+  if (!Number.isFinite(dpr) || dpr <= 0) {
+    throw new RangeError(`dpr must be a positive finite number, got ${dpr}`);
+  }
+  const depthPx = Math.max(1, Math.round(BREAK_DEPTH_CSS_PX * dpr));
+  const slopePx = Math.max(1, Math.round(BREAK_SLOPE_CSS_PX * dpr));
+  const lineWidthPx = Math.max(1, Math.round(dpr));
+
+  /** Distance into the grid at height `y`: 0 at even vertices, `depthPx` at odd ones, straight between. */
+  const biteAt = (y: number) => {
+    const k = Math.floor(y / slopePx);
+    const t = (y - k * slopePx) / slopePx;
+    const from = k % 2 === 0 ? 0 : depthPx;
+    const to = k % 2 === 0 ? depthPx : 0;
+    return from + (to - from) * t;
+  };
+  const ys: number[] = [];
+  for (let y = 0; y < plan.heightPx; y += slopePx) ys.push(y);
+  ys.push(plan.heightPx); // the last slope is cut off by the bottom of the canvas
+
+  const line = (side: 'left' | 'right'): BreakEdge => {
+    const edgeX = side === 'left' ? plan.gridX : plan.gridX + plan.gridWidthPx;
+    const sign = side === 'left' ? 1 : -1;
+    return {
+      side,
+      edgeX,
+      zigzag: ys.map((y) => ({ x: edgeX + sign * biteAt(y), y })),
+      depthPx,
+      lineWidthPx,
+    };
+  };
+  return [line('left'), line('right')];
+}
+
 /**
  * The chip rectangle for a label of `size` hung on `anchor`, slid back inside `bounds` rather than
  * cut off at an edge. Throws RangeError if the chip cannot fit at all.

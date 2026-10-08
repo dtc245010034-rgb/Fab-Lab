@@ -20,6 +20,8 @@ export interface RenderPalette {
   ink: Rgb;
   /** Background of a label chip, so text stays readable over any material. */
   chip: Rgb;
+  /** The canvas beside the grid, where the wafer carries on out of view. Never the air colour. */
+  surround: Rgb;
   /** Font stack of the numbers and units; always ends in the generic `monospace`. */
   fontStack: string;
 }
@@ -34,6 +36,8 @@ export const MATERIAL_TOKENS = {
 
 const INK_TOKEN = '--panel';
 const CHIP_TOKEN = '--screen';
+/** Also the background of `.screen` in layout.css; tests/ui/tokens.test.ts keeps the two equal. */
+export const SURROUND_TOKEN = '--navy';
 const FONT_TOKEN = '--f-mono';
 
 /** `#rgb` or `#rrggbb`, with the whitespace a custom property keeps from its source. */
@@ -78,6 +82,7 @@ export function paletteFromTokens(read: (token: string) => string): RenderPalett
     },
     ink: colour(INK_TOKEN),
     chip: colour(CHIP_TOKEN),
+    surround: colour(SURROUND_TOKEN),
     fontStack: withMonospaceFallback(fontText),
   };
 }

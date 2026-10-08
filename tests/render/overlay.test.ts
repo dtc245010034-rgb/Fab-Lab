@@ -3,7 +3,13 @@
  * Pure: the drawing code only strokes what this returns.
  */
 import { describe, expect, it } from 'vitest';
-import { overlayLayout, placeChip } from '../../src/render/canvas2d/overlay';
+import {
+  breakEdges,
+  overlayLayout,
+  placeChip,
+  surroundRects,
+} from '../../src/render/canvas2d/overlay';
+import { planCanvas } from '../../src/render/canvas2d/pixels';
 import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import type { EtchMetrics } from '../../src/sim/grid';
 import { runRecipe } from '../../src/sim/recipe';
@@ -185,5 +191,114 @@ describe('labels do not collide on the default recipe at the smallest scale', ()
     expect(overlap(top, bottom)).toBe(false);
     expect(overlap(top, scale)).toBe(false);
     expect(overlap(bottom, scale)).toBe(false);
+  });
+});
+
+describe('surroundRects: the canvas on either side of the grid', () => {
+  const PLAN_GRID = { widthCells: 260, heightCells: 150 };
+
+  it.each([
+    [810, 1],
+    [317, 1],
+    [317, 3],
+    [810, 1.25],
+  ])(
+    '%d css px at dpr %d: left strip + grid + right strip tile the canvas exactly',
+    (avail, dpr) => {
+      const plan = planCanvas(PLAN_GRID, avail, dpr);
+      const [left, right] = surroundRects(plan);
+      expect(left).toEqual({ x: 0, y: 0, w: plan.gridX, h: plan.heightPx });
+      expect(right.x).toBe(plan.gridX + plan.gridWidthPx);
+      expect(right.y).toBe(0);
+      expect(right.h).toBe(plan.heightPx);
+      expect(left.w + plan.gridWidthPx + right.w).toBe(plan.widthPx);
+    },
+  );
+
+  it('has empty strips when the container is exactly as wide as the grid image', () => {
+    const plan = planCanvas(PLAN_GRID, 780, 1);
+    const [left, right] = surroundRects(plan);
+    expect(left.w).toBe(0);
+    expect(right.w).toBe(0);
+  });
+});
+
+describe('breakEdges: zigzag break lines on the left and right edge of the grid', () => {
+  const PLAN_GRID = { widthCells: 260, heightCells: 150 };
+  const plan = planCanvas(PLAN_GRID, 810, 1); // gridX 15, grid 780 wide, 450 high
+
+  it('puts one on the left edge and one on the right edge of the grid', () => {
+    const [left, right] = breakEdges(plan, 1);
+    expect(left.side).toBe('left');
+    expect(left.edgeX).toBe(plan.gridX);
+    expect(right.side).toBe('right');
+    expect(right.edgeX).toBe(plan.gridX + plan.gridWidthPx);
+  });
+
+  it.each([1, 1.25, 2, 3])(
+    'dpr %d: runs from the top of the canvas to the bottom, top to bottom',
+    (dpr) => {
+      const p = planCanvas(PLAN_GRID, 810, dpr);
+      for (const e of breakEdges(p, dpr)) {
+        const ys = e.zigzag.map((pt) => pt.y);
+        expect(ys[0]).toBe(0);
+        expect(ys[ys.length - 1]).toBe(p.heightPx);
+        for (let i = 1; i < ys.length; i++) expect(ys[i]!).toBeGreaterThan(ys[i - 1]!);
+      }
+    },
+  );
+
+  it('is a real zigzag: x swings between the edge and the edge plus the tooth depth', () => {
+    const [left, right] = breakEdges(plan, 1);
+    for (const e of [left, right]) {
+      const offsets = e.zigzag.slice(0, -1).map((pt) => Math.abs(pt.x - e.edgeX)); // last point is clipped
+      expect(offsets.some((o) => o === 0)).toBe(true);
+      expect(offsets.some((o) => o === e.depthPx)).toBe(true);
+      // alternates: no two neighbouring vertices are both on the edge or both at full depth
+      for (let i = 1; i < offsets.length; i++) expect(offsets[i]).not.toBe(offsets[i - 1]);
+      expect(e.zigzag.length).toBeGreaterThan(10);
+    }
+  });
+
+  it('bites into the grid, never out of the canvas: left x ≥ edge, right x ≤ edge', () => {
+    const [left, right] = breakEdges(plan, 1);
+    for (const pt of left.zigzag) {
+      expect(pt.x).toBeGreaterThanOrEqual(left.edgeX);
+      expect(pt.x).toBeLessThanOrEqual(left.edgeX + left.depthPx);
+    }
+    for (const pt of right.zigzag) {
+      expect(pt.x).toBeLessThanOrEqual(right.edgeX);
+      expect(pt.x).toBeGreaterThanOrEqual(right.edgeX - right.depthPx);
+    }
+    for (const pt of [...left.zigzag, ...right.zigzag]) {
+      expect(pt.x).toBeGreaterThanOrEqual(0);
+      expect(pt.x).toBeLessThanOrEqual(plan.widthPx);
+    }
+  });
+
+  it('is symmetric: the right line is the left line mirrored about the grid centre', () => {
+    const [left, right] = breakEdges(plan, 1);
+    const centreX = plan.gridX + plan.gridWidthPx / 2;
+    expect(right.zigzag.map((pt) => [2 * centreX - pt.x, pt.y])).toEqual(
+      left.zigzag.map((pt) => [pt.x, pt.y]),
+    );
+  });
+
+  it('scales with the pixel ratio so it looks the same size on every screen', () => {
+    const one = breakEdges(planCanvas(PLAN_GRID, 810, 1), 1)[0];
+    const two = breakEdges(planCanvas(PLAN_GRID, 810, 2), 2)[0];
+    expect(two.depthPx).toBe(2 * one.depthPx);
+    expect(two.lineWidthPx).toBe(2 * one.lineWidthPx);
+  });
+
+  it('keeps the teeth shallow (a few pixels) and the line at least one pixel thick', () => {
+    const [left] = breakEdges(plan, 1);
+    expect(left.depthPx).toBeGreaterThanOrEqual(2);
+    expect(left.depthPx).toBeLessThanOrEqual(8);
+    expect(left.lineWidthPx).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each([0, -1, NaN, Infinity])('refuses device pixel ratio %s', (dpr) => {
+    expect(() => breakEdges(plan, dpr)).toThrow(RangeError);
   });
 });
