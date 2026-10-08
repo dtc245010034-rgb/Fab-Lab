@@ -1,0 +1,417 @@
+<title>Fab Lab: Khắc Oxit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700;800&family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: cleanroom "yellow room" — cross-section viewer (left) + process traveler card with steps & recipe controls (right). Single deliberate light look. */
+:root{
+  color-scheme: light;
+  --bg:#efdb98;       /* yellow-light room */
+  --panel:#f8eec6;
+  --panel-2:#f3e4ad;
+  --ink:#1c2230;
+  --muted:#5f5a45;
+  --line:#d4bf75;
+  --navy:#22305a;     /* action */
+  --si:#5b6b80; --ox:#b6a3dc; --pr:#c8432a;
+  --ok:#2f7d4c; --warn:#b9700d; --bad:#b3261e;
+  --f-display:"Saira Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:end;gap:12px}
+h1{font:800 clamp(30px,5vw,52px)/.95 var(--f-display);letter-spacing:.01em;margin:0;text-transform:uppercase;text-wrap:balance}
+h1 small{display:block;font:600 13px/1.4 var(--f-mono);letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.sub{margin:8px 0 0;max-width:62ch;color:var(--muted)}
+.tag{font:600 11px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;border:1.5px solid var(--ink);padding:7px 10px;border-radius:3px}
+
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+@media (max-width:960px){.lab{grid-template-columns:minmax(0,1fr)}}
+.viewer{background:var(--panel);border:1.5px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.vhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.vhead b{font:700 22px/1 var(--f-display);text-transform:uppercase;letter-spacing:.02em}
+.vhead span{font:500 12px/1.3 var(--f-mono);color:var(--muted)}
+.cv{position:relative;width:100%;background:#0f1320;border-radius:4px;overflow:hidden}
+.cv canvas{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 12px/1 var(--f-mono);color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-2px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.m{background:var(--panel-2);border-radius:5px;padding:8px 10px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.m span{font:500 11px/1.2 var(--f-mono);letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.m b{font:600 18px/1.1 var(--f-mono);font-variant-numeric:tabular-nums}
+.m.w b{color:var(--warn)} .m.x b{color:var(--bad)} .m.g b{color:var(--ok)}
+
+.traveler{background:var(--panel);border:1.5px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-width:0}
+.steps{display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1.5px solid var(--line)}
+.steps button{font:700 13px/1.1 var(--f-display);text-transform:uppercase;letter-spacing:.03em;background:none;border:0;border-right:1px solid var(--line);padding:10px 2px;color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.steps button:last-child{border-right:0}
+.steps button em{font:600 10px/1 var(--f-mono);font-style:normal}
+.steps button[aria-current="step"]{background:var(--navy);color:#f8eec6}
+.steps button.done{color:var(--ink)}
+.tbody{padding:16px;display:flex;flex-direction:column;gap:14px}
+.tbody h2{font:800 26px/1 var(--f-display);text-transform:uppercase;margin:0}
+.eq{font:600 12px/1.4 var(--f-mono);color:var(--navy);background:var(--panel-2);padding:6px 9px;border-radius:4px;width:max-content;max-width:100%}
+.mech{margin:0;font-size:14px;color:var(--ink)}
+.mech b{font-weight:600}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl label{display:flex;justify-content:space-between;font:500 13px/1.2 var(--f-body)}
+.ctl label output{font:600 13px/1.2 var(--f-mono);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--navy)}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:4px}
+.seg button{font:600 12px/1.2 var(--f-mono);background:var(--panel-2);border:1.5px solid var(--line);border-radius:4px;padding:8px 4px;cursor:pointer;color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#f8eec6}
+.note{font:500 13px/1.45 var(--f-body);padding:9px 11px;border-radius:4px;border-left:4px solid var(--ok);background:var(--panel-2)}
+.note.w{border-color:var(--warn)} .note.x{border-color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:700 15px/1 var(--f-display);text-transform:uppercase;letter-spacing:.04em;padding:11px 16px;border-radius:4px;border:1.5px solid var(--navy);background:var(--navy);color:#f8eec6;cursor:pointer}
+.btn.ghost{background:none;color:var(--navy)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--pr);outline-offset:2px}
+.grade{display:flex;align-items:center;gap:14px}
+.grade b{font:800 48px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.grade span{font:500 14px/1.4 var(--f-body)}
+.grade.g b{color:var(--ok)} .grade.w b{color:var(--warn)} .grade.x b{color:var(--bad)}
+.foot{font:400 12px/1.5 var(--f-mono);color:var(--muted);max-width:90ch}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1><small>Fab Lab · module 01</small>Khắc cửa sổ oxit</h1>
+      <p class="sub">Tự tay mở một cửa sổ qua lớp SiO₂ 300 nm xuống đế silicon: phủ cản quang, phơi sáng, tráng, rồi chọn khắc ướt hay khắc khô. Mặt cắt bên trái được tính lại theo từng thông số bạn chọn.</p>
+    </div>
+    <span class="tag">Mô hình đơn giản hóa · giá trị minh họa</span>
+  </header>
+
+  <div class="lab">
+    <div class="viewer">
+      <div class="vhead"><b id="vTitle">Mặt cắt wafer</b><span id="vScale">1 ô = 10 nm · rộng 2,6 µm</span></div>
+      <div class="cv"><canvas id="cv" width="1040" height="600" aria-label="Mặt cắt ngang wafer"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--si)"></i>Si (đế)</span>
+        <span><i style="background:var(--ox)"></i>SiO₂</span>
+        <span><i style="background:var(--pr)"></i>Cản quang</span>
+        <span><i style="background:#3f8fbf"></i>Dung dịch khắc</span>
+        <span><i style="background:#8f4fd6"></i>Plasma</span>
+      </div>
+      <div class="metrics" id="metrics"></div>
+    </div>
+
+    <div class="traveler">
+      <nav class="steps" id="steps" aria-label="Các bước quy trình"></nav>
+      <div class="tbody" id="tbody"></div>
+    </div>
+  </div>
+  <p class="foot">Mô hình: lưới 2D 260×150 ô (10 nm/ô). Mặt khắc lan từ vùng tiếp xúc với chất khắc theo thuật toán đường đi ngắn nhất, với tốc độ khác nhau theo vật liệu và theo hướng (dọc/ngang). Đúng về định tính (undercut, dị hướng, độ chọn lọc), không phải mô phỏng TCAD. Tốc độ khắc và hệ số lấy theo bậc độ lớn thường gặp trong giáo trình, chỉ để minh họa.</p>
+</div>
+
+<script>
+(function(){
+const W=260,H=150,CELL=10, SI_TOP=110, OX_TOP=80, OX_T=30;
+const AIR=0,SI=1,OX=2,PR=3;
+const $=id=>document.getElementById(id);
+
+/* ---------- process parameters ---------- */
+const LAMBDAS=[
+  {id:'g',name:'g-line',nm:436,NA:.45},
+  {id:'i',name:'i-line',nm:365,NA:.6},
+  {id:'krf',name:'KrF',nm:248,NA:.8},
+  {id:'arf',name:'ArF',nm:193,NA:.93}];
+const WETS=[
+  {id:'boe10',name:'BOE 10:1',rate:50},
+  {id:'boe6',name:'BOE 6:1',rate:100},
+  {id:'hf49',name:'HF 49%',rate:2000}];
+const P={rpm:3000,lam:'i',design:800,dose:1,mode:'wet',wet:'boe6',wetT:3.3,power:200,press:30,dryT:4.6};
+let step=0, animT=null, anim=null;
+
+/* ---------- derived lithography ---------- */
+function litho(){
+  const L=LAMBDAS.find(l=>l.id===P.lam);
+  const rt=Math.round(500*Math.sqrt(3000/P.rpm)); // nm
+  const cdMin=0.6*L.nm/L.NA;
+  const r=P.design/cdMin;
+  let printed=P.design+150*(P.dose-1), scum=0, status='ok', msg='';
+  if(r<0.7){printed=0;scum=rt;status='x';msg=`Kích thước ${P.design} nm nhỏ hơn nhiều so với giới hạn phân giải ≈${Math.round(cdMin)} nm của ${L.name}: cửa sổ không mở được.`;}
+  else if(r<1){printed*=0.55+0.45*(r-0.7)/0.3;scum=rt*0.5*(1-r)/0.3;status='w';msg=`Sát giới hạn phân giải (≈${Math.round(cdMin)} nm): ảnh bị nhòe, cửa sổ hẹp lại và còn lớp cặn cản quang.`;}
+  if(P.dose<0.85&&printed>0){scum+=rt*0.6*(0.85-P.dose)/0.25;status=status==='x'?'x':'w';msg+=(msg?' ':'')+'Liều chiếu thấp: đáy cản quang chưa được làm tan hết (scum).';}
+  if(P.dose>1.35&&printed>0){status=status==='x'?'x':'w';msg+=(msg?' ':'')+'Liều quá cao: cửa sổ bị nở rộng hơn thiết kế.';}
+  scum=Math.min(rt,scum); printed=Math.max(0,printed);
+  const taper=r<1.3?(1.3-r)*80:0;
+  return {L,rt,cdMin,r,printed,scum,taper,status,msg};
+}
+
+/* ---------- grid ---------- */
+function buildGrid(stage){ // stage: 'ox','resist','exposed','developed'
+  const g=new Uint8Array(W*H), lat=new Uint8Array(W*H);
+  const li=litho(), rc=Math.round(li.rt/CELL), cx=W/2;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    let m=AIR; if(y>=SI_TOP)m=SI; else if(y>=OX_TOP)m=OX;
+    else if(stage!=='ox'&&y>=OX_TOP-rc){
+      m=PR;
+      if(stage==='exposed'||stage==='developed'){
+        const k=(OX_TOP-1-y); // 0 at bottom of resist
+        const half=(li.printed/2+li.taper*k/Math.max(1,rc))/CELL;
+        const inOpen=Math.abs(x+.5-cx)<half;
+        const scumRows=Math.round(li.scum/CELL);
+        if(inOpen&&k>=scumRows){ if(stage==='developed')m=AIR; else lat[y*W+x]=1; }
+      }
+    }
+    g[y*W+x]=m;
+  }
+  return {g,lat,li,rc};
+}
+
+/* ---------- etch model (anisotropic Dijkstra) ---------- */
+function etchRates(){
+  if(P.mode==='wet'){
+    const w=WETS.find(e=>e.id===P.wet);
+    return {kind:'wet',name:w.name,v:w.rate,l:w.rate,selPR:Infinity,selSi:Infinity,A:0};
+  }
+  const v=20+0.25*P.power;
+  const A=Math.min(.97,Math.max(.25,.98-P.press/250-(150-P.power)/600));
+  const selPR=Math.max(1.4,8-P.power/45);
+  const selSi=Math.max(5,15-P.power/40);
+  return {kind:'dry',name:'RIE CHF₃/CF₄',v,l:v*(1-A),selPR,selSi,A};
+}
+const NB=[];for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){if(!dx&&!dy)continue;const a=Math.abs(dx),b=Math.abs(dy);if(a===2&&b===2)continue;if((a===2&&b===0)||(a===0&&b===2))continue;NB.push([dx,dy]);}
+function arrival(grid,R){
+  const {g}=grid, N=W*H, t=new Float64Array(N).fill(Infinity);
+  const heapI=new Int32Array(N*24), heapT=new Float64Array(N*24); let hn=0;
+  const push=(i,v)=>{let k=hn++;heapI[k]=i;heapT[k]=v;while(k>0){const p=(k-1)>>1;if(heapT[p]<=heapT[k])break;[heapI[p],heapI[k]]=[heapI[k],heapI[p]];[heapT[p],heapT[k]]=[heapT[k],heapT[p]];k=p;}};
+  const pop=()=>{const i=heapI[0],v=heapT[0];hn--;heapI[0]=heapI[hn];heapT[0]=heapT[hn];let k=0;for(;;){const l=2*k+1,r=l+1;let s=k;if(l<hn&&heapT[l]<heapT[s])s=l;if(r<hn&&heapT[r]<heapT[s])s=r;if(s===k)break;[heapI[s],heapI[k]]=[heapI[k],heapI[s]];[heapT[s],heapT[k]]=[heapT[k],heapT[s]];k=s;}return [i,v];};
+  for(let i=0;i<N;i++)if(g[i]===AIR){t[i]=0;push(i,0);}
+  const sel=[0,R.selSi,1,R.selPR];
+  while(hn){
+    const [i,ti]=pop(); if(ti>t[i])continue;
+    const x=i%W,y=(i/W)|0;
+    for(const [dx,dy] of NB){
+      const nx=x+dx,ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H)continue;
+      const j=ny*W+nx, m=g[j]; if(m===AIR)continue;
+      const s=sel[m]; if(s===Infinity)continue;
+      const vv=(dy>0?R.v:R.l)/s, ll=R.l/s;
+      if((dy!==0&&vv<=0)||(dx!==0&&ll<=0))continue;
+      const cost=CELL*Math.sqrt((dx/(ll||1e-9))**2*(dx?1:0)+(dy/(vv||1e-9))**2*(dy?1:0));
+      const nt=ti+cost; if(nt<t[j]){t[j]=nt;push(j,nt);}
+    }
+  }
+  return t;
+}
+
+/* ---------- metrics ---------- */
+function measure(grid,arr,T){
+  const {g,li}=grid, cx=W/2|0, et=i=>g[i]!==AIR&&arr[i]<=T;
+  const res={printed:li.printed};
+  let cleared=true; for(let y=OX_TOP;y<SI_TOP;y++)if(!et(y*W+cx)){cleared=false;break;}
+  const width=row=>{if(!et(row*W+cx)&&g[row*W+cx]!==AIR)return 0;let a=cx,b=cx;while(a>0&&(et(row*W+a-1)||g[row*W+a-1]===AIR))a--;while(b<W-1&&(et(row*W+b+1)||g[row*W+b+1]===AIR))b++;return b-a+1;};
+  res.cleared=cleared;
+  res.top=width(OX_TOP)*CELL; res.bot=cleared?width(SI_TOP-1)*CELL:0;
+  res.under=Math.max(0,(res.top-li.printed)/2);
+  let si=0;for(let x=0;x<W;x++){let d=0;for(let y=SI_TOP;y<H&&et(y*W+x);y++)d++;si=Math.max(si,d);}res.siLoss=si*CELL;
+  let minPR=Infinity;for(let x=0;x<W;x++){if(Math.abs(x-cx)*CELL<li.printed/2+res.under+40)continue;let c=0;for(let y=0;y<OX_TOP;y++)if(g[y*W+x]===PR&&!et(y*W+x))c++;minPR=Math.min(minPR,c);}
+  res.prLeft=minPR===Infinity?0:minPR*CELL;
+  res.angle=cleared?Math.atan2(OX_T*CELL,Math.max(0,(res.top-res.bot)/2))*180/Math.PI:0;
+  return res;
+}
+function grade(m,li){
+  if(li.printed<=0)return {s:0,c:'x',t:'Quang khắc thất bại: không có cửa sổ để khắc.'};
+  if(m.prLeft<=0)return {s:15,c:'x',t:'Cản quang bị ăn hết, oxit ngoài vùng thiết kế cũng bị khắc. Giảm công suất hoặc thời gian, hoặc phủ cản quang dày hơn.'};
+  if(!m.cleared)return {s:25,c:'x',t:'Chưa khắc thủng lớp oxit: cửa sổ không chạm tới silicon. Tăng thời gian khắc.'};
+  const err=(m.bot-P.design)/P.design;
+  let pen=Math.abs(err)*120+Math.max(0,m.under-60)/10+Math.max(0,m.siLoss-20)/2+Math.max(0,80-m.angle)*.3+(li.scum>0?8:0);
+  const s=Math.max(0,Math.min(100,Math.round(100-pen)));
+  const tips=[];
+  if(err>.1)tips.push(`đáy cửa sổ rộng hơn thiết kế ${Math.round(err*100)}%`);
+  if(err<-.1)tips.push(`đáy cửa sổ hẹp hơn thiết kế ${Math.round(-err*100)}%`);
+  if(m.under>60)tips.push(`undercut ${Math.round(m.under)} nm`);
+  if(m.siLoss>20)tips.push(`khắc lẹm vào Si ${m.siLoss} nm`);
+  if(m.angle<80)tips.push(`thành vách nghiêng ${Math.round(m.angle)}°`);
+  return {s,c:s>=85?'g':s>=60?'w':'x',t:s>=85?'Đạt: cửa sổ đúng kích thước, thành vách tốt.':'Cần chỉnh: '+tips.join(', ')+'.'};
+}
+
+/* ---------- rendering ---------- */
+const cv=$('cv'), ctx=cv.getContext('2d');
+const off=document.createElement('canvas'); off.width=W; off.height=H; const octx=off.getContext('2d');
+const COL={air:[18,22,36],si:[91,107,128],ox:[182,163,220],pr:[200,67,42],lat:[236,150,110],wet:[63,143,191],plasma:[70,40,110]};
+let cache={key:'',arr:null,grid:null};
+function etchData(){
+  const key=JSON.stringify([P.rpm,P.lam,P.design,P.dose,P.mode,P.wet,P.power,P.press]);
+  if(cache.key!==key){const grid=buildGrid('developed');cache={key,grid,arr:arrival(grid,etchRates())};}
+  return cache;
+}
+function draw(){
+  let grid, arr=null, T=0, R=null, stageName;
+  if(step===0)grid=buildGrid('ox');
+  else if(step===1)grid=buildGrid('resist');
+  else if(step===2)grid=buildGrid('exposed');
+  else if(step===3)grid=buildGrid('developed');
+  else {const d=etchData();grid=d.grid;arr=d.arr;R=etchRates();T=step===4?(animT??curT()):curT();}
+  const img=octx.createImageData(W,H), D=img.data;
+  const media=step===4?(P.mode==='wet'?COL.wet:COL.plasma):COL.air;
+  for(let i=0;i<W*H;i++){
+    let m=grid.g[i]; if(arr&&m!==AIR&&arr[i]<=T)m=AIR;
+    if(step===5&&m===PR)m=AIR;
+    let c=m===SI?COL.si:m===OX?COL.ox:m===PR?(grid.lat[i]?COL.lat:COL.pr):media;
+    const y=(i/W)|0;
+    if(m===SI){const s=((i*2654435761)>>>0)%9;c=[c[0]+s-4,c[1]+s-4,c[2]+s-4];}
+    if(m===AIR&&step===4&&P.mode==='dry'){const f=Math.max(0,1-y/OX_TOP);c=[c[0]+60*f,c[1]+20*f,c[2]+80*f];}
+    D[i*4]=c[0];D[i*4+1]=c[1];D[i*4+2]=c[2];D[i*4+3]=255;
+  }
+  octx.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(off,0,0,cv.width,cv.height);
+  const sx=cv.width/W, sy=cv.height/H;
+  ctx.font='600 22px "JetBrains Mono", monospace'; ctx.textBaseline='middle';
+  // layer labels
+  const lbl=(t,y,col)=>{ctx.fillStyle=col;ctx.fillText(t,14,y);} ;
+  lbl('Si',(SI_TOP+15)*sy,'#e9eef5'); if(step<5||true)lbl('SiO₂ 300 nm',(OX_TOP+15)*sy,'#2a2340');
+  if(step>=1&&step<5){lbl(`Cản quang ${grid.li.rt} nm`,(OX_TOP-grid.rc/2)*sy,'#fff1e6');}
+  // exposure: mask + rays
+  if(step===2){
+    const li=grid.li, half=li.printed/2/CELL, cx=W/2;
+    const y0=(OX_TOP-grid.rc-12)*sy;
+    ctx.fillStyle='#d9dde6';ctx.fillRect(0,y0-10,(cx-Math.max(half,P.design/2/CELL))*sx,14);ctx.fillRect((cx+Math.max(half,P.design/2/CELL))*sx,y0-10,cv.width,14);
+    ctx.strokeStyle='rgba(170,120,255,.85)';ctx.lineWidth=3;
+    for(let k=-3;k<=3;k++){const x=(cx+k*(P.design/2/CELL)/3.5)*sx;ctx.beginPath();ctx.moveTo(x,y0-60);ctx.lineTo(x,(OX_TOP-grid.rc)*sy);ctx.stroke();}
+    ctx.fillStyle='#e8dcff';ctx.fillText(`${grid.li.L.name} · λ ${grid.li.L.nm} nm`,cx*sx-120,y0-75);
+  }
+  // dry: ion arrows
+  if(step===4&&P.mode==='dry'){
+    ctx.strokeStyle='rgba(255,220,255,.75)';ctx.lineWidth=2;const ph=(performance.now()/40)%40;
+    for(let k=0;k<14;k++){const x=(k+.5)/14*cv.width,y=((k*37+ph*3)%((OX_TOP-grid.rc-6)*sy-20))+10;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+22);ctx.lineTo(x-5,y+15);ctx.moveTo(x,y+22);ctx.lineTo(x+5,y+15);ctx.stroke();}
+    ctx.fillStyle='#f3e6ff';ctx.fillText('ion CFₓ⁺ bị gia tốc ↓  +  gốc F* (hóa học)',cv.width/2-270,24);
+  }
+  if(step===4&&P.mode==='wet'){ctx.fillStyle='#e6f6ff';ctx.fillText(`${R.name} · ${R.v} nm/phút · đẳng hướng`,cv.width/2-200,24);}
+  // dimensions after etch
+  if(step>=4){
+    const m=measure(grid,arr,T);
+    const cx=W/2;
+    const dim=(w,y,col,txt,above)=>{if(w<=0)return;const a=(cx-w/2/CELL)*sx,b=(cx+w/2/CELL)*sx;ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(a,y);ctx.lineTo(b,y);ctx.moveTo(a,y-8);ctx.lineTo(a,y+8);ctx.moveTo(b,y-8);ctx.lineTo(b,y+8);ctx.stroke();ctx.fillText(txt,Math.min(cv.width-200,b+10),y+(above?-12:12));};
+    dim(m.top,(OX_TOP+2)*sy,'#ffd84d',`đỉnh ${Math.round(m.top)} nm`,true);
+    if(m.cleared)dim(m.bot,(SI_TOP-2)*sy,'#7dffb0',`đáy ${Math.round(m.bot)} nm`,false);
+  }
+  // scale bar 500nm
+  const bw=50*sx;ctx.fillStyle='#fff';ctx.fillRect(cv.width-bw-20,cv.height-24,bw,5);ctx.font='600 18px "JetBrains Mono", monospace';ctx.fillText('500 nm',cv.width-bw-20,cv.height-40);
+  return {grid,arr,T};
+}
+function curT(){return P.mode==='wet'?P.wetT:P.dryT;}
+
+/* ---------- metrics panel ---------- */
+function metricHTML(list){$('metrics').innerHTML=list.map(([k,v,c])=>`<div class="m ${c||''}"><span>${k}</span><b>${v}</b></div>`).join('');}
+function updateMetrics(r){
+  const li=litho();
+  if(step<=1){metricHTML([['SiO₂','300 nm'],['Cản quang',step?li.rt+' nm':'—'],['Tốc độ quay',step?P.rpm+' rpm':'—']]);return;}
+  if(step<=3){metricHTML([['Giới hạn phân giải',Math.round(li.cdMin)+' nm'],['Thiết kế',P.design+' nm'],['In được',Math.round(li.printed)+' nm',li.status==='x'?'x':li.status==='w'?'w':''],['Cặn đáy',Math.round(li.scum)+' nm',li.scum>0?'w':'']]);return;}
+  const m=measure(r.grid,r.arr,r.T);
+  metricHTML([
+    ['Thủng tới Si',m.cleared?'Có':'Chưa',m.cleared?'g':'x'],
+    ['Đáy / thiết kế',m.cleared?`${Math.round(m.bot)}/${P.design}`:'—',m.cleared&&Math.abs(m.bot-P.design)/P.design>.1?'w':''],
+    ['Undercut',Math.round(m.under)+' nm',m.under>60?'w':''],
+    ['Góc vách',m.cleared?Math.round(m.angle)+'°':'—',m.cleared&&m.angle<80?'w':''],
+    ['Lẹm Si',m.siLoss+' nm',m.siLoss>20?'w':''],
+    ['Cản quang còn',m.prLeft+' nm',m.prLeft<=0?'x':m.prLeft<60?'w':'']]);
+}
+
+/* ---------- step content ---------- */
+const STEPS=[
+  {k:'Wafer',n:'01'},{k:'Phủ',n:'02'},{k:'Chiếu',n:'03'},{k:'Tráng',n:'04'},{k:'Khắc',n:'05'},{k:'Bóc',n:'06'}];
+function nav(){
+  $('steps').innerHTML=STEPS.map((s,i)=>`<button data-i="${i}" ${i===step?'aria-current="step"':''} class="${i<step?'done':''}"><em>${s.n}</em>${s.k}</button>`).join('');
+  $('steps').querySelectorAll('button').forEach(b=>b.onclick=()=>go(+b.dataset.i));
+}
+function rng(id,label,min,max,st,val,fmt){return `<div class="ctl"><label for="${id}">${label}<output id="${id}o">${fmt(val)}</output></label><input type="range" id="${id}" min="${min}" max="${max}" step="${st}" value="${val}"></div>`;}
+function seg(id,opts,cur){return `<div class="seg" id="${id}">${opts.map(o=>`<button data-v="${o.id}" aria-pressed="${o.id===cur}">${o.name}</button>`).join('')}</div>`;}
+const nextBtn=(t)=>`<div class="row"><button class="btn" id="next">${t}</button>${step>0?'<button class="btn ghost" id="back">Quay lại</button>':''}</div>`;
+
+function body(){
+  const li=litho(); let h='';
+  if(step===0){
+    h=`<h2>Wafer đã oxy hóa</h2>
+    <p class="mech">Đế silicon (100) được đưa vào lò ở khoảng 900–1100 °C. Oxy (khô) hoặc hơi nước (ướt) khuếch tán qua lớp oxit và phản ứng với Si tại mặt tiếp giáp, tạo lớp <b>SiO₂ 300 nm</b>. Oxy hóa ướt nhanh hơn nhiều; oxy hóa khô cho oxit đặc hơn, dùng cho lớp mỏng chất lượng cao.</p>
+    <div class="eq">Si + O₂ → SiO₂ &nbsp;·&nbsp; Si + 2H₂O → SiO₂ + 2H₂</div>
+    <p class="mech">Nhiệm vụ của module này: mở một <b>cửa sổ</b> xuyên qua lớp oxit để chạm tới silicon, ví dụ cho một tiếp xúc hay vùng pha tạp.</p>`+nextBtn('Phủ cản quang →');
+  }else if(step===1){
+    h=`<h2>Phủ cản quang (spin coat)</h2>
+    <p class="mech">Nhỏ resist dương lên giữa wafer rồi quay nhanh. Lực ly tâm kéo lớp lỏng mỏng dần cho tới khi dung môi bay hơi đủ để "đóng băng" độ dày. Sau đó soft bake ~90 °C để đuổi dung môi.</p>
+    <div class="eq">độ dày ∝ 1 / √(tốc độ quay)</div>
+    ${rng('rpm','Tốc độ quay',1500,6000,250,P.rpm,v=>v+' rpm')}
+    <p class="mech">Resist mỏng in được chi tiết nhỏ hơn, nhưng khi khắc khô nó cũng <b>bị ăn mòn</b>. Mỏng quá thì hết mặt nạ trước khi khắc xong.</p>`+nextBtn('Phơi sáng →');
+  }else if(step===2){
+    h=`<h2>Phơi sáng qua mask</h2>
+    <p class="mech">Ánh sáng UV đi qua vùng trong suốt của mask, phá vỡ chất ức chế trong resist dương làm vùng đó tan được trong dung dịch tráng. Chi tiết nhỏ nhất in được bị giới hạn bởi nhiễu xạ.</p>
+    <div class="eq">CD<sub>min</sub> = k₁·λ / NA &nbsp;(k₁ ≈ 0,6 ở đây)</div>
+    <div class="ctl"><label>Nguồn sáng</label>${seg('lam',LAMBDAS.map(l=>({id:l.id,name:`${l.name} ${l.nm}`})),P.lam)}</div>
+    ${rng('design','Độ rộng cửa sổ thiết kế',150,1200,50,P.design,v=>v+' nm')}
+    ${rng('dose','Liều chiếu (so với chuẩn)',0.6,1.6,0.05,P.dose,v=>'×'+(+v).toFixed(2))}
+    <div class="note ${li.status==='ok'?'':li.status}">${li.msg||`Phân giải tốt: ${P.design} nm lớn hơn giới hạn ≈${Math.round(li.cdMin)} nm của ${li.L.name}.`}</div>`+nextBtn('Tráng rửa →');
+  }else if(step===3){
+    h=`<h2>Tráng (develop)</h2>
+    <p class="mech">Ngâm trong dung dịch kiềm loãng (TMAH 2,38%). Vùng đã chiếu sáng tan đi, để lộ lớp oxit. Sau đó hard bake ~120 °C cho resist cứng hơn trước khi khắc.</p>
+    <div class="note ${li.status==='ok'?'':li.status}">${li.printed<=0?'Không có cửa sổ nào mở ra. Quay lại bước 03 và chọn nguồn sáng bước sóng ngắn hơn hoặc cửa sổ lớn hơn.':li.scum>0?`Còn lớp cặn ${Math.round(li.scum)} nm ở đáy cửa sổ. Khắc ướt bằng HF không ăn được resist nên sẽ bị chặn hoàn toàn; khắc khô phải ăn xuyên lớp này trước nên cửa sổ mở chậm hơn.`:`Cửa sổ mở sạch, rộng ≈${Math.round(li.printed)} nm.`}</div>`+nextBtn('Sang khắc →');
+  }else if(step===4){
+    const R=etchRates();
+    h=`<h2>Khắc oxit</h2>
+    <div class="seg" id="mode"><button data-v="wet" aria-pressed="${P.mode==='wet'}">Khắc ướt</button><button data-v="dry" aria-pressed="${P.mode==='dry'}">Khắc khô (RIE)</button></div>`;
+    if(P.mode==='wet'){
+      h+=`<p class="mech">Wafer ngâm trong dung dịch HF có đệm NH₄F (BOE). Phản ứng hóa học thuần túy nên ăn <b>đều mọi hướng</b>: đi xuống bao nhiêu thì ăn ngang dưới mép cản quang bấy nhiêu (undercut). Độ chọn lọc với Si và resist rất cao.</p>
+      <div class="eq">SiO₂ + 6HF → H₂SiF₆ + 2H₂O</div>
+      <div class="ctl"><label>Dung dịch</label>${seg('wet',WETS.map(w=>({id:w.id,name:w.name})),P.wet)}</div>
+      ${rng('wetT','Thời gian ngâm',0,P.wet==='hf49'?0.5:8,P.wet==='hf49'?0.01:0.1,P.wetT,v=>(+v).toFixed(2)+' phút')}
+      <p class="mech">Cần ≈${(300/R.v).toFixed(2)} phút để xuyên 300 nm. Thường khắc dư thêm 10–20% để chắc chắn sạch đáy.</p>`;
+    }else{
+      h+=`<p class="mech">Trong buồng chân không, điện trường RF biến CHF₃/CF₄ thành plasma. <b>Ion</b> được gia tốc qua lớp vỏ plasma và bắn thẳng xuống, <b>gốc F*</b> phản ứng hóa học. Ion chủ yếu đi theo phương thẳng đứng nên khắc <b>dị hướng</b>, thành vách gần thẳng đứng.</p>
+      ${rng('power','Công suất RF',50,300,10,P.power,v=>v+' W')}
+      ${rng('press','Áp suất buồng',10,200,5,P.press,v=>v+' mTorr')}
+      ${rng('dryT','Thời gian khắc',0,14,0.1,P.dryT,v=>(+v).toFixed(1)+' phút')}
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+        <div class="m"><span>Tốc độ</span><b>${Math.round(R.v)} nm/ph</b></div>
+        <div class="m"><span>Dị hướng</span><b>${R.A.toFixed(2)}</b></div>
+        <div class="m"><span>Chọn lọc PR</span><b>${R.selPR.toFixed(1)}:1</b></div></div>
+      <p class="mech">Đánh đổi: công suất cao làm ion mạnh hơn, khắc thẳng và nhanh hơn, nhưng resist bị ăn nhanh hơn (độ chọn lọc giảm). Áp suất cao làm ion va chạm nhiều hơn trên đường đi, mất hướng, khắc ngả sang đẳng hướng.</p>`;
+    }
+    h+=`<div class="row"><button class="btn" id="play">▶ Chạy khắc</button><button class="btn ghost" id="next">Bóc cản quang →</button></div>`;
+  }else{
+    const d=etchData(), m=measure(d.grid,d.arr,curT()), g=grade(m,litho());
+    h=`<h2>Bóc cản quang & đánh giá</h2>
+    <p class="mech">Resist được tẩy bằng plasma O₂ (ashing) hoặc dung môi. Còn lại lớp oxit với cửa sổ vừa mở. Đây là thứ đi tiếp vào các bước pha tạp hay kim loại hóa.</p>
+    <div class="grade ${g.c}"><b>${g.s}</b><span>${g.t}</span></div>
+    <p class="mech">Công thức: ${P.mode==='wet'?`${WETS.find(w=>w.id===P.wet).name}, ${P.wetT.toFixed(2)} phút`:`RIE ${P.power} W, ${P.press} mTorr, ${P.dryT.toFixed(1)} phút`} · ${litho().L.name}, cửa sổ ${P.design} nm, liều ×${P.dose.toFixed(2)}.</p>
+    <div class="note w">Thử cùng một cửa sổ 400 nm: khắc ướt gần như luôn hỏng vì undercut ~300 nm, còn RIE ở áp suất thấp thì đạt. Đây là lý do công nghiệp chuyển sang khắc khô khi kích thước xuống dưới vài micromet. Với khắc ướt, kỹ sư phải vẽ mask nhỏ hơn thiết kế để bù phần ăn ngang (mask bias).</div>
+    <div class="row"><button class="btn" id="redo">Chỉnh lại công thức khắc</button><button class="btn ghost" id="restart">Làm lại từ đầu</button></div>`;
+  }
+  $('tbody').innerHTML=h; wire();
+}
+function wire(){
+  const bindR=(id,key,fmt,redraw)=>{const el=$(id);if(!el)return;el.oninput=()=>{P[key]=+el.value;$(id+'o').textContent=fmt(el.value);if(redraw)body();render();};};
+  bindR('rpm','rpm',v=>v+' rpm');
+  bindR('design','design',v=>v+' nm',false);
+  bindR('dose','dose',v=>'×'+(+v).toFixed(2));
+  bindR('wetT','wetT',v=>(+v).toFixed(2)+' phút');
+  bindR('power','power',v=>v+' W');
+  bindR('press','press',v=>v+' mTorr');
+  bindR('dryT','dryT',v=>(+v).toFixed(1)+' phút');
+  ['design','dose','power','press'].forEach(id=>{const el=$(id);if(el)el.onchange=()=>body();});
+  const bindS=(id,key,after)=>{const el=$(id);if(!el)return;el.querySelectorAll('button').forEach(b=>b.onclick=()=>{P[key]=b.dataset.v;if(after)after();body();render();});};
+  bindS('lam','lam');
+  bindS('mode','mode');
+  bindS('wet','wet',()=>{const r=WETS.find(w=>w.id===P.wet).rate;P.wetT=+(300/r*1.1).toFixed(2);});
+  if($('next'))$('next').onclick=()=>go(step+1);
+  if($('back'))$('back').onclick=()=>go(step-1);
+  if($('play'))$('play').onclick=play;
+  if($('redo'))$('redo').onclick=()=>go(4);
+  if($('restart'))$('restart').onclick=()=>{Object.assign(P,{rpm:3000,lam:'i',design:800,dose:1,mode:'wet',wet:'boe6',wetT:3.3,power:200,press:30,dryT:4.6});go(0);};
+}
+const TITLES=['Mặt cắt: Si + SiO₂','Mặt cắt: sau khi phủ cản quang','Mặt cắt: ảnh ẩn sau phơi sáng','Mặt cắt: sau khi tráng','Mặt cắt: đang khắc','Mặt cắt: sau khi bóc cản quang'];
+function render(){const r=draw();updateMetrics(r);$('vTitle').textContent=TITLES[step];}
+function go(i){step=Math.max(0,Math.min(5,i));cancelAnimationFrame(anim);animT=null;nav();body();render();}
+function play(){
+  cancelAnimationFrame(anim); const target=curT(), t0=performance.now(), dur=matchMedia('(prefers-reduced-motion: reduce)').matches?1:2600;
+  etchData();
+  const tick=now=>{const k=Math.min(1,(now-t0)/dur);animT=target*k;render();if(k<1)anim=requestAnimationFrame(tick);else{animT=null;render();}};
+  anim=requestAnimationFrame(tick);
+}
+// idle loop for plasma arrows
+setInterval(()=>{if(step===4&&P.mode==='dry'&&animT===null)render();},120);
+go(0);
+})();
+</script>

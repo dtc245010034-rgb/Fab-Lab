@@ -1,0 +1,2370 @@
+{
+ "meta": {
+  "source": "Semi-Intro Ôn Thi (ghi chú cá nhân từ bài giảng b1–b8)",
+  "note": "Dữ liệu đã tách khỏi HTML. Trường courseSpecific=true là câu gắn với đề cương/slide, cần viết lại hoặc bỏ trước khi đưa vào Fab Lab."
+ },
+ "theory": [
+  {
+   "chapter": "C1",
+   "title": "Đại cương ngành bán dẫn & chuỗi giá trị",
+   "blocks": [
+    {
+     "title": "4 mô hình kinh doanh",
+     "text": "Mô hình Làm gì Ví dụ IDM Tự thiết kế, sản xuất, đóng gói, kiểm thử từ A–Z Intel, Samsung, TI, Micron Fabless Chỉ thiết kế, không có nhà máy, thuê Foundry NVIDIA, Qualcomm, AMD Foundry Sản xuất wafer theo thiết kế (file GDSII) của khách TSMC (>50% thị phần) OSAT Outsourced Semiconductor Assembly and Test: đóng gói & kiểm thử thuê ASE, Amkor, JCET",
+     "courseSpecific": false
+    },
+    {
+     "title": "Vật liệu nền",
+     "text": "Wafer Silicon là phổ biến nhất: dồi dào (≈27–28% vỏ Trái Đất), dẫn điện điều chỉnh được bằng doping, chịu nhiệt (nóng chảy 1.414°C), có lớp oxide nhiệt SiO₂ chất lượng cao. Power chip còn dùng SiC, GaN.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Nhân sự chất lượng",
+     "text": "Yield Engineer : phân tích sụt giảm yield, tìm mối liên hệ giữa defect và yield loss. QA (Quality Assurance): xây dựng, quản lý hệ thống; cập nhật SOP; định nghĩa tiêu chuẩn; quản lý Corrective/Preventive Action. QC (Quality Control): kiểm tra ngoại quan, đo đạc, kiểm thử sản phẩm.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Chuỗi giá trị",
+     "text": "Thiết kế (EDA, RTL bằng Verilog/VHDL, tape-out) → Sản xuất wafer (Front-end, fab) → Đóng gói → Kiểm thử → Sản phẩm cuối.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Định luật Moore & hậu Moore",
+     "text": "Gordon Moore (1965): số transistor trên chip tăng gấp đôi mỗi 18–24 tháng. Đang chạm giới hạn vật lý (quantum tunneling ở ~2nm). Ba hướng tiếp theo: Advanced Packaging (2.5D, 3D, HBM), Chiplet, AI-driven design.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Yield",
+     "text": "Yield = số die tốt / tổng die. Ví dụ 425/500 = 85%. Yield thấp làm giá thành mỗi chip tăng vì chi phí cố định không đổi. Node mới khởi đầu ~50–60%, node trưởng thành >90%.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Số liệu dễ hỏi",
+     "text": "Wafer phổ biến 300 mm (12 inch) và 200 mm. Máy EUV chỉ ASML sản xuất. Xây một fab ≥ 20 tỷ USD, 3–5 năm. Việt Nam hiện tập trung khâu OSAT (Intel HCM, Amkor Bắc Ninh).",
+     "courseSpecific": false
+    }
+   ]
+  },
+  {
+   "chapter": "C2",
+   "title": "Front-end: sản xuất wafer",
+   "blocks": [
+    {
+     "title": "Khái niệm cốt lõi",
+     "text": "Front-end tạo transistor và các cấu trúc vi mạch trực tiếp trên bề mặt wafer silicon, theo từng lớp chồng lên nhau, lặp lại nhiều chu kỳ. Đầu ra là wafer chứa hàng trăm die chưa đóng gói, chuyển sang Back-end.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Wafer Cleaning",
+     "text": "Loại bỏ particle và chất bẩn; xuất hiện trước, giữa và sau nhiều công đoạn. 5 nhóm nhiễm bẩn: Particle, Organic, Metallic, Native Oxide, Moisture/Watermark. RCA: SC-1 (NH₄OH/H₂O₂/H₂O) xử lý hữu cơ + hạt; SC-2 (HCl/H₂O₂/H₂O) xử lý ion kim loại; sau cùng Rinse bằng DI water và Drying. Watermark do rinse/drying không đạt.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Oxidation & Deposition (CVD/PVD)",
+     "text": "Oxidation: lò 900–1200°C tạo SiO₂ cách điện/gate oxide. CVD = Chemical Vapor Deposition : khí tiền chất phản ứng hóa học trên bề mặt, phủ đều (conformal), dùng cho SiO₂, Si₃N₄, poly-Si, W. Biến thể LPCVD, PECVD, ALD (kiểm soát từng lớp nguyên tử). PVD = Physical Vapor Deposition (sputtering, evaporation): dùng cho kim loại, barrier, seed layer; step coverage kém hơn. Thông số chính: Film Thickness, Uniformity. Lỗi: non-uniformity, contamination, delamination, void.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Photolithography",
+     "text": "In pattern từ mask (thạch anh phủ chrome) lên photoresist: Coating → Soft bake → Alignment → Exposure → PEB → Development → Hard bake. DUV 193 nm (ArF, immersion, multi-patterning), EUV 13,5 nm (ASML, ~180–380 triệu USD/máy), High-NA EUV NA 0,55. Thông số: Resolution, CD, Overlay (độ lệch giữa lớp mới và lớp cũ), Alignment. Positive resist: vùng chiếu sáng tan ra. Negative: vùng chiếu sáng cứng lại. Lỗi: misalignment, over/under-exposure (CD sai), pattern collapse, bridging, scumming, footing.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Etching",
+     "text": "Chuyển pattern từ resist xuống vật liệu. Wet : hóa chất lỏng (HF cho SiO₂, H₃PO₄ cho Si₃N₄), đẳng hướng (isotropic) → undercut, rẻ, selectivity cao, xử lý theo mẻ. Dry : plasma/RIE/ICP, kết hợp hóa học (radical) + vật lý (ion), dị hướng (anisotropic) → vách đứng, bắt buộc cho node nhỏ; rủi ro plasma damage, mask erosion. Thông số: Etch Rate, Selectivity, Uniformity, Profile, CD Bias; Endpoint Detection (OES, interferometry). Over-etch : mất mask, mỏng đường mạch, ăn vào lớp dưới. Under-etch : còn Etch Residue → leakage, short, hở tiếp xúc. Sau etch: Resist strip/Ashing (O₂ plasma) + post-etch clean.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Doping / Ion Implantation",
+     "text": "Bắn ion tạp chất vào vùng xác định (mask). P (Phosphor), As (Arsenic) → N-type (thêm electron). B (Boron) → P-type (thêm lỗ trống). Kiểm soát vị trí, liều (dose), năng lượng. Sau đó Annealing : kích hoạt tạp chất và sửa hư hại mạng tinh thể; xác nhận bằng đo Sheet Resistance.",
+     "courseSpecific": false
+    },
+    {
+     "title": "CMP & Interconnect (Metallization)",
+     "text": "CMP (Chemical Mechanical Planarization): mài cơ học + slurry hóa học để làm phẳng. Bề mặt không phẳng làm litho lớp sau mất focus. Interconnect : lắng đọng kim loại (Cu, Al) + litho + etch tạo dây dẫn nhiều lớp (10–15 lớp) nối các transistor; overlay sai gây hở hoặc chập.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Silicon & wafer",
+     "text": "Cát SiO₂ → silicon thô → polysilicon tinh khiết → kéo ingot đơn tinh thể ( Czochralski ; Float-Zone cho công suất) → cắt wire saw → vát cạnh → mài, CMP → làm sạch → inspect. Cấu trúc tinh thể: diamond cubic. IC dùng Si đơn tinh thể.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Inspection & Metrology",
+     "text": "Inspection tìm bất thường (có lỗi không, ở đâu, bao nhiêu) → Defect Map. Metrology đo giá trị (CD-SEM, overlay, ellipsometry cho thickness). Bright-field thu ánh sáng phản xạ (pattern defect). Dark-field thu ánh sáng tán xạ (nhạy particle). Optical nhanh; E-beam độ phân giải <10 nm nhưng chậm. Killer defect (bridge, open) vs Nuisance (false positive).",
+     "courseSpecific": false
+    }
+   ]
+  },
+  {
+   "chapter": "C3",
+   "title": "Back-end: đóng gói & kiểm thử (b8)",
+   "blocks": [
+    {
+     "title": "Khái niệm cốt lõi",
+     "text": "Back-end bắt đầu sau khi Front-end hoàn tất: tách die khỏi wafer, đặt vào vỏ bảo vệ, tạo kết nối điện ra ngoài, bảo vệ khỏi môi trường và kiểm tra chức năng, độ tin cậy. Die chưa phải chip : die là mạch trần; chip là die đã được đóng gói, kết nối và kiểm tra đạt. Khi làm bởi đơn vị ngoài fab thì gọi là OSAT.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Flow đầy đủ theo slide b8",
+     "text": "Wafer Sort → Backgrinding → Dicing → Die Attach → Wire Bonding → Molding → Marking & Singulation → Final Test → Packing Tóm gọn: chọn die tốt → xử lý cơ học → đóng gói → kiểm tra → giao hàng.",
+     "courseSpecific": true
+    },
+    {
+     "title": "Front-end vs Back-end (b8)",
+     "text": "Tiêu chí Front-end Back-end Đầu vào Wafer thô Wafer đã xong Front-end Đầu ra Wafer có die Packaged chip Môi trường Cleanroom Class 1–100 Ít nghiêm ngặt hơn, vẫn kiểm soát Sai số nm µm; package ở mức mm Rủi ro chính Defect vi cấu trúc, overlay Die crack, bond fail, delamination",
+     "courseSpecific": true
+    },
+    {
+     "title": "Wafer Sort / Probe Test",
+     "text": "Kiểm tra điện sơ bộ khi die còn trên wafer , trước khi cắt. Mục tiêu: xác định Good/Fail die, tránh tốn chi phí đóng gói die lỗi, tạo wafer map , phân loại bin . Edge die ở rìa thường bị loại. Known Good Die (KGD) : die đã kiểm đủ tin cậy cho module/package phức tạp. Bin Sorting: cùng pass nhưng xếp Bin 1 cao cấp, Bin 2 phổ thông, Bin 3 tiết kiệm điện.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Backgrinding",
+     "text": "Mài mỏng mặt sau (back side) wafer trước khi cắt. Lợi ích: thiết bị nhỏ gọn, tản nhiệt tốt hơn, phù hợp stack nhiều die. Rủi ro: wafer crack, warpage (cong vênh) , particle, độ dày không đều.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Dicing / Sawing",
+     "text": "Cắt wafer theo scribe line thành die. Blade dicing : lưỡi cưa kim cương, phổ biến, rẻ. Laser dicing : chính xác hơn, ít chipping, hợp wafer mỏng. Rủi ro: chipping, micro-crack ở cạnh die, particle, vỡ die khi wafer quá mỏng. Sau dicing cần handling và ESD control (wrist strap, ionizer, vật liệu chống tĩnh điện).",
+     "courseSpecific": false
+    },
+    {
+     "title": "Die Attach",
+     "text": "Bước đầu của Packaging. Vật liệu: Epoxy (phổ biến nhất), Solder (tản nhiệt tốt), DAF (màng keo, dày đều). Kiểm soát: placement accuracy, void, bond line thickness. Lỗi Nguyên nhân Hậu quả Phát hiện Die lệch vị trí Calibration máy sai Wire bond sai vị trí AOI, visual Void Epoxy không đều, bọt khí Tản nhiệt kém, crack X-ray, SAM Epoxy không đủ Dispensing sai thể tích Die bong Visual, X-ray Delamination Bề mặt nhiễm bẩn Fail reliability SAM Die tilt Áp lực đặt không đều Wire bonding khó 3D inspection",
+     "courseSpecific": false
+    },
+    {
+     "title": "Wire Bonding",
+     "text": "Dây vàng, đồng hoặc nhôm, đường kính 15–50 µm, nối bond pad trên die với leadframe/substrate. Flow: làm sạch pad → 1st bond trên die → tạo wire loop → 2nd bond trên leadframe → pull/shear test, cắt đuôi. Lỗi: bond lift (bật mối nối → open), wire short (dây chạm nhau), pad contamination, open circuit, weak bond (lực kéo dưới spec). Loop quá thấp dễ chạm dây; loop quá cao dễ wire sweep khi molding.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Flip Chip",
+     "text": "Die lật úp, nối trực tiếp với substrate qua solder bump . Flow: bump → flip → align → reflow → underfill → inspection. Ưu: đường tín hiệu ngắn, I/O toàn bề mặt (area array), tản nhiệt tốt. Nhược: đắt hơn. Dùng cho CPU, GPU, FPGA. Underfill giảm stress lên bump khi thermal cycling.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Molding / Encapsulation",
+     "text": "Bọc mold compound (epoxy) quanh die và dây: chống ẩm, bụi, oxy hóa, va đập, giữ ổn định cơ học. Rủi ro: mold void , wire sweep (dây bị đẩy lệch → short), delamination giữa mold và substrate, crack khi đổi nhiệt.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Marking & Singulation",
+     "text": "Marking (thường laser): part number, lot number, logo, mã truy xuất. Singulation : tách package khỏi strip/panel bằng blade hoặc laser; rủi ro burr, crack cạnh. Sau bước này chip sẵn sàng cho Final Test.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Final Test",
+     "text": "Sau khi đóng gói hoàn chỉnh (sau Singulation), trước giao hàng. Gồm Functional, Parametric (điện áp, dòng), Speed/Performance, Power/Leakage test. Thiết bị: Test Handler (robot gắp chip vào socket, phân khay) và Tester/ATE (gửi tín hiệu, so spec). Kết quả: Pass/Fail, gán bin, lưu dữ liệu yield.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Burn-in & Reliability",
+     "text": "Burn-in : vận hành chip ở nhiệt độ và điện áp cao hơn bình thường để kích hoạt lỗi tiềm ẩn ( infant mortality ), chip lỗi fail sớm, không đến tay khách. Reliability test kiểm tra “bền lâu không”: HTOL, Temperature Cycling, 85/85 (85°C/85%RH), HAST, Thermal Shock, Drop/Vibration, MSL.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Back-end yield & công cụ QC",
+     "text": "Total Yield = Front-end Yield × Back-end Yield . Die tốt vẫn có thể hỏng ở Back-end. Công cụ: AOI (lỗi bề mặt, lệch vị trí), X-ray (void, solder joint, vị trí dây), SAM (sóng âm, phát hiện delamination và void bên trong), Pull/Shear test (độ bám mối nối), SPC & traceability .",
+     "courseSpecific": false
+    },
+    {
+     "title": "Package & Advanced Packaging",
+     "text": "DIP (chân xuyên lỗ), SOP/SOIC (gull-wing), QFN (pad dưới đáy, tản nhiệt tốt), BGA (solder ball dạng lưới: CPU, GPU, DRAM), CSP (gần bằng die), WLCSP (đóng gói ngay trên wafer). Advanced: 2.5D (die cạnh nhau trên interposer, như GPU + HBM), 3D stacking (chồng die, nối bằng TSV ), Chiplet, SiP.",
+     "courseSpecific": false
+    }
+   ]
+  },
+  {
+   "chapter": "C4",
+   "title": "Quản lý chất lượng, sự cố & phân tích lỗi",
+   "blocks": [
+    {
+     "title": "Nguồn gốc lỗi Back-end",
+     "text": "Lỗi có thể phát sinh từ tất cả các công đoạn : dicing, die attach, bonding, molding, test…",
+     "courseSpecific": false
+    },
+    {
+     "title": "Retest Rate tăng chỉ ở 1 tester",
+     "text": "Các tester khác bình thường → dấu hiệu lỗi hệ thống test (socket tiếp xúc kém, nhiễu thiết bị), không phải lỗi chip. Hướng xử lý: dừng tester đó, kiểm tra/vệ sinh/thay socket, hiệu chuẩn, chạy lại mẫu chuẩn (golden unit), test lại các chip bị fail trên tester tốt.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Quyết định HOLD",
+     "text": "Lô có lỗi ngoại quan, sai nhãn (label) hoặc lệch số lượng → HOLD (giữ lô) để xác minh traceability và đánh giá nguyên nhân trước khi xuất.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Quy trình xử lý sự cố",
+     "text": "Hold lot / khoanh vùng → Root Cause (5 Why) → Corrective Action → Preventive Action → Release decision",
+     "courseSpecific": false
+    },
+    {
+     "title": "RCA trong Back-end (b8)",
+     "text": "1. Containment → 2. Data check → 3. Root cause → 4. Corrective action Containment: cách ly lot/thiết bị nghi ngờ. Data check: đối chiếu wafer map, test bin, X-ray/SAM, log máy, material lot. Root cause: 5-Why, Fishbone/4M, SPC trend. Corrective: hiệu chỉnh máy, sửa recipe/SOP, đào tạo, xác nhận bằng qualification lot .",
+     "courseSpecific": true
+    },
+    {
+     "title": "SPC theo dõi gì ở Back-end",
+     "text": "Die attach: epoxy volume, bond line thickness, placement offset, void rate. Wire bonding: bond force, loop height, pull strength, bond lift rate. Molding: nhiệt độ, áp suất, cure time, void/delamination rate. Final test: pass rate, fail bin trend, parametric drift, tester correlation .",
+     "courseSpecific": false
+    },
+    {
+     "title": "3 case study Back-end (b8)",
+     "text": "Die attach void : fail thermal test tăng → X-ray thấy void lớn → gốc: máy dispensing lệch calibration, volume epoxy không ổn định → X-ray định kỳ, kiểm soát volume. Wire bond failure : fail sau vibration test → SEM thấy bond lift ở first bond → gốc: bonding force không ổn định, pad nhiễm bẩn do bảo quản sai → pull/shear test theo lô. Molding delamination : sau HAST bị tách lớp → SAM phát hiện → gốc: kiểm soát ẩm kém, substrate bẩn → baking, kiểm soát MSL, dry cabinet.",
+     "courseSpecific": true
+    },
+    {
+     "title": "Công cụ RCA",
+     "text": "5-Why : hỏi “tại sao” liên tiếp đến gốc. 4M (slide b7): Equipment, Process, Material, Human. Fishbone (Ishikawa). Pareto 80/20: xử lý nguyên nhân lớn trước. SPC : control chart cảnh báo khi thông số ra ngoài giới hạn.",
+     "courseSpecific": true
+    },
+    {
+     "title": "Đọc Defect Map",
+     "text": "Ngẫu nhiên rải rác → Random (particle môi trường). Vòng ở rìa → edge handling, spin coating. Cụm giữa → nhiệt/áp suất không đều. Đường thẳng → scratch do robot/cassette. Lặp theo từng die → mask/recipe. Lỗi có quy luật = Systematic, nguy hiểm hơn vì một nguyên nhân hỏng hàng loạt die.",
+     "courseSpecific": false
+    },
+    {
+     "title": "Bài học từ case",
+     "text": "Sau PM phải chạy qualification wafer trước khi chạy production. Không rút ngắn SOP (case warm-up máy litho làm hỏng 25 wafer). Kiểm tra vật liệu đầu vào (case TSMC 2019 photoresist nhiễm bẩn). Phát hiện sớm rẻ hơn nhiều lần so với phát hiện cuối.",
+     "courseSpecific": false
+    }
+   ]
+  }
+ ],
+ "errorChains": {
+  "frontEnd": [
+   {
+    "step": "Cleaning",
+    "goal": "Loại bỏ particle, hữu cơ, ion kim loại, native oxide; chuẩn bị bề mặt sạch. Lặp lại trước, giữa và sau nhiều bước.",
+    "input": "Wafer từ bước trước",
+    "output": "Bề mặt sạch, khô, đạt spec",
+    "typicalDefect": "Particle sót lại / watermark",
+    "chain": [
+     "Particle còn trên wafer",
+     "Litho: che resist, pattern lỗi",
+     "Etch sai vùng",
+     "Bridge hoặc open",
+     "Die hỏng"
+    ]
+   },
+   {
+    "step": "Oxidation / CVD",
+    "goal": "Tạo màng cách điện (SiO₂, Si₃N₄) hoặc màng dẫn/bán dẫn (poly-Si) với độ dày và độ đồng đều đạt yêu cầu.",
+    "input": "Wafer sạch, khí tiền chất",
+    "output": "Màng mỏng đạt Film Thickness, Uniformity",
+    "typicalDefect": "Màng dày không đều (non-uniformity)",
+    "chain": [
+     "Màng dày mỏng không đều",
+     "Etch: vùng mỏng over-etch, vùng dày under-etch",
+     "CD sai, còn residue",
+     "Leakage / hở tiếp xúc",
+     "Yield giảm theo vùng"
+    ]
+   },
+   {
+    "step": "Photolithography",
+    "goal": "In pattern mạch từ mask lên photoresist; quyết định vị trí, kích thước (CD) và độ chồng khít (Overlay) giữa các lớp.",
+    "input": "Màng phẳng, photoresist, mask",
+    "output": "Pattern resist sắc nét, đúng overlay",
+    "typicalDefect": "Lệch tầng Overlay",
+    "chain": [
+     "Overlay error",
+     "Etch chuyển nguyên pattern lệch xuống vật liệu",
+     "Lỗ contact/via lệch",
+     "Interconnect tiếp xúc một phần hoặc chạm sai",
+     "Open/short, IC hỏng"
+    ]
+   },
+   {
+    "step": "Etching",
+    "goal": "Loại bỏ vật liệu ở vùng không được resist bảo vệ, chuyển pattern thành cấu trúc thật. Dry etch cho vách đứng (anisotropic).",
+    "input": "Wafer có pattern resist",
+    "output": "Cấu trúc đúng CD, sạch residue",
+    "typicalDefect": "Over-etch / Under-etch",
+    "chain": [
+     "Over-etch: mất mask, ăn vào lớp dưới",
+     "Đường mạch mỏng, CD nhỏ",
+     "Interconnect điện trở tăng, dễ đứt",
+     "Hở mạch / lỗi điện",
+     "Yield giảm"
+    ]
+   },
+   {
+    "step": "Doping",
+    "goal": "Cấy ion tạp chất để tạo vùng N-type (P, As) và P-type (B) cho source/drain/kênh; sau đó anneal để kích hoạt.",
+    "input": "Wafer có mask che vùng không cấy",
+    "output": "Vùng pha tạp đúng vị trí, liều, độ sâu",
+    "typicalDefect": "Sai liều / lệch vùng cấy / anneal thiếu",
+    "chain": [
+     "Liều sai hoặc lệch vùng",
+     "Ngưỡng Vt transistor lệch",
+     "Sheet resistance ngoài spec",
+     "Transistor không đóng/mở đúng",
+     "Chip lỗi chức năng"
+    ]
+   },
+   {
+    "step": "CMP",
+    "goal": "Mài cơ – hóa làm phẳng bề mặt sau nhiều lớp lắng đọng để lớp quang khắc sau lấy nét chính xác.",
+    "input": "Bề mặt gồ ghề sau deposition",
+    "output": "Bề mặt phẳng, đồng đều",
+    "typicalDefect": "Không phẳng / scratch / dishing",
+    "chain": [
+     "CMP không đồng đều",
+     "Litho lớp sau mất focus",
+     "Pattern mờ, CD sai",
+     "Dây kim loại hẹp/hở",
+     "Lỗi điện"
+    ]
+   },
+   {
+    "step": "Interconnect",
+    "goal": "Lắng đọng kim loại (Cu, Al) và tạo hình dây dẫn nhiều lớp nối các transistor thành mạch hoàn chỉnh.",
+    "input": "Linh kiện đã hình thành, via mở",
+    "output": "Mạng dây dẫn nhiều lớp đúng điện trở",
+    "typicalDefect": "Via hở / bridge giữa dây",
+    "chain": [
+     "Residue trong via hoặc overlay lệch",
+     "Tiếp xúc kém, điện trở tăng",
+     "Hở mạch hoặc chập",
+     "Fail ở wafer sort",
+     "Yield giảm"
+    ]
+   }
+  ],
+  "backEnd": [
+   {
+    "step": "Backgrinding",
+    "goal": "Mài mỏng mặt sau wafer trước khi cắt: thiết bị nhỏ gọn, tản nhiệt tốt, hợp stack nhiều die.",
+    "input": "Wafer đã Wafer Sort (có wafer map)",
+    "output": "Wafer mỏng, độ dày đồng đều",
+    "typicalDefect": "Wafer crack / warpage",
+    "chain": [
+     "Wafer cong vênh, ứng suất dư",
+     "Dicing dễ vỡ, chipping",
+     "Die nứt khi die attach",
+     "Fail điện hoặc nứt khi burn-in"
+    ]
+   },
+   {
+    "step": "Dicing",
+    "goal": "Cắt wafer theo scribe line thành từng die riêng (blade hoặc laser).",
+    "input": "Wafer đã mài mỏng, dán băng",
+    "output": "Die rời, cạnh sạch",
+    "typicalDefect": "Chipping / micro-crack",
+    "chain": [
+     "Micro-crack ở cạnh die",
+     "Molding/burn-in tạo ứng suất nhiệt",
+     "Vết nứt lan vào vùng mạch",
+     "Hở mạch, fail Final Test hoặc hỏng ở khách hàng"
+    ]
+   },
+   {
+    "step": "Die Attach",
+    "goal": "Gắn die lên leadframe/substrate bằng Epoxy, Solder hoặc DAF; cố định cơ học và tản nhiệt.",
+    "input": "Die tốt + leadframe/substrate",
+    "output": "Die đúng vị trí, bond line đều, không void",
+    "typicalDefect": "Void / Die Tilt (phát hiện bằng X-ray, SAM)",
+    "chain": [
+     "Epoxy dispensing không đều → void",
+     "Tản nhiệt kém, bám dính yếu",
+     "Wire bonding kém chắc (die tilt)",
+     "Burn-in / thermal test: quá nhiệt cục bộ",
+     "Chip cháy hoặc fail reliability"
+    ]
+   },
+   {
+    "step": "Wire Bonding",
+    "goal": "Nối bond pad trên die với leadframe/substrate bằng dây vàng, đồng hoặc nhôm (15–50 µm).",
+    "input": "Die đã gắn chắc, pad sạch",
+    "output": "Dây đúng vị trí, loop height đạt, mối nối đủ lực kéo",
+    "typicalDefect": "Bond lift / weak bond",
+    "chain": [
+     "Pad bẩn hoặc bond force yếu",
+     "Mối nối yếu nhưng vẫn qua test ban đầu",
+     "Rung/nhiệt ở reliability test",
+     "Bond lift ở first bond",
+     "Open circuit"
+    ]
+   },
+   {
+    "step": "Molding",
+    "goal": "Bọc Mold Compound (Epoxy) bảo vệ chip khỏi tác động cơ – hóa.",
+    "input": "Die + dây đã bond",
+    "output": "Package kín, không void, dây đúng vị trí",
+    "typicalDefect": "Wire Sweep / mold void / delamination",
+    "chain": [
+     "Loop dây quá cao, áp suất mold lớn",
+     "Dòng mold đẩy lệch dây",
+     "Dây chạm nhau (wire short)",
+     "Short ở Final Test",
+     "Chip bị loại"
+    ]
+   },
+   {
+    "step": "Final Test / Burn-in",
+    "goal": "Functional, parametric, speed, power/leakage test bằng handler + ATE; burn-in stress nhiệt/điện áp cao để loại chip lỗi sớm.",
+    "input": "Chip đã đóng gói",
+    "output": "Chip đạt spec, phân bin, xuất xưởng",
+    "typicalDefect": "Retest tăng do socket",
+    "chain": [
+     "Socket tiếp xúc kém trên 1 tester",
+     "Chip tốt bị đánh fail (overkill)",
+     "Retest rate tăng",
+     "Tốn công suất, nguy cơ trộn lô"
+    ]
+   }
+  ]
+ },
+ "confusablePairs": [
+  {
+   "pair": "QA vs QC",
+   "sides": [
+    {
+     "term": "QA",
+     "text": "Hệ thống: SOP, tiêu chuẩn, theo dõi xu hướng, CAPA. Phòng ngừa."
+    },
+    {
+     "term": "QC",
+     "text": "Kiểm tra sản phẩm: ngoại quan, đo đạc, kiểm thử. Phát hiện."
+    }
+   ]
+  },
+  {
+   "pair": "Foundry vs OSAT",
+   "sides": [
+    {
+     "term": "Foundry",
+     "text": "Sản xuất wafer (Front-end) theo thiết kế của khách. TSMC."
+    },
+    {
+     "term": "OSAT",
+     "text": "Đóng gói & kiểm thử thuê (Back-end). ASE, Amkor, JCET."
+    }
+   ]
+  },
+  {
+   "pair": "IDM vs Fabless",
+   "sides": [
+    {
+     "term": "IDM",
+     "text": "Tự làm cả chuỗi: thiết kế + fab + đóng gói. Intel, Samsung."
+    },
+    {
+     "term": "Fabless",
+     "text": "Chỉ thiết kế, không fab. NVIDIA, Qualcomm, AMD."
+    }
+   ]
+  },
+  {
+   "pair": "Wet vs Dry etch",
+   "sides": [
+    {
+     "term": "Wet",
+     "text": "Hóa chất lỏng, đẳng hướng, undercut, rẻ, selectivity cao, xử lý mẻ."
+    },
+    {
+     "term": "Dry",
+     "text": "Plasma/RIE, dị hướng, vách đứng, đắt, có plasma damage. Bắt buộc cho node nhỏ."
+    }
+   ]
+  },
+  {
+   "pair": "Over-etch vs Under-etch",
+   "sides": [
+    {
+     "term": "Over-etch",
+     "text": "Khắc quá: mất mask, mỏng đường mạch, ăn lớp dưới, CD nhỏ."
+    },
+    {
+     "term": "Under-etch",
+     "text": "Khắc thiếu: còn Etch Residue → leakage, short, hở tiếp xúc."
+    }
+   ]
+  },
+  {
+   "pair": "N-type vs P-type",
+   "sides": [
+    {
+     "term": "N-type",
+     "text": "Phosphor (P), Arsenic (As): thêm electron."
+    },
+    {
+     "term": "P-type",
+     "text": "Boron (B): tạo lỗ trống."
+    }
+   ]
+  },
+  {
+   "pair": "PVD vs CVD",
+   "sides": [
+    {
+     "term": "PVD",
+     "text": "Vật lý (sputtering, bay hơi). Kim loại, barrier, seed. Phủ rãnh sâu kém."
+    },
+    {
+     "term": "CVD",
+     "text": "Hóa học từ khí. Điện môi, poly-Si, W. Phủ đều (conformal). ALD là biến thể từng lớp nguyên tử."
+    }
+   ]
+  },
+  {
+   "pair": "Positive vs Negative resist",
+   "sides": [
+    {
+     "term": "Positive",
+     "text": "Vùng chiếu sáng tan khi development. Độ phân giải cao, phổ biến."
+    },
+    {
+     "term": "Negative",
+     "text": "Vùng chiếu sáng cứng lại, vùng tối tan. MEMS, packaging."
+    }
+   ]
+  },
+  {
+   "pair": "DUV vs EUV",
+   "sides": [
+    {
+     "term": "DUV",
+     "text": "193 nm (ArF), immersion, multi-patterning, rẻ hơn."
+    },
+    {
+     "term": "EUV",
+     "text": "13,5 nm, chỉ ASML, cho lớp critical, ~180–380 triệu USD/máy."
+    }
+   ]
+  },
+  {
+   "pair": "SC-1 vs SC-2",
+   "sides": [
+    {
+     "term": "SC-1",
+     "text": "APM: NH₄OH/H₂O₂/H₂O. Hữu cơ + particle. Chạy trước."
+    },
+    {
+     "term": "SC-2",
+     "text": "HPM: HCl/H₂O₂/H₂O. Ion kim loại. Chạy sau."
+    }
+   ]
+  },
+  {
+   "pair": "Inspection vs Metrology",
+   "sides": [
+    {
+     "term": "Inspection",
+     "text": "Có lỗi không, ở đâu? → Defect map."
+    },
+    {
+     "term": "Metrology",
+     "text": "Giá trị bao nhiêu? → CD, thickness, overlay."
+    }
+   ]
+  },
+  {
+   "pair": "Bright-field vs Dark-field",
+   "sides": [
+    {
+     "term": "Bright-field",
+     "text": "Thu ánh sáng phản xạ. Pattern defect."
+    },
+    {
+     "term": "Dark-field",
+     "text": "Thu ánh sáng tán xạ. Nhạy particle, nền tối."
+    }
+   ]
+  },
+  {
+   "pair": "Random vs Systematic",
+   "sides": [
+    {
+     "term": "Random",
+     "text": "Rải rác, không quy luật. Particle môi trường."
+    },
+    {
+     "term": "Systematic",
+     "text": "Lặp theo vùng/die/hướng. Thiết bị, mask, recipe."
+    }
+   ]
+  },
+  {
+   "pair": "Killer vs Nuisance",
+   "sides": [
+    {
+     "term": "Killer",
+     "text": "Gây hỏng chức năng: bridge, open."
+    },
+    {
+     "term": "Nuisance",
+     "text": "Báo giả (false positive), không ảnh hưởng điện."
+    }
+   ]
+  },
+  {
+   "pair": "Corrective vs Preventive",
+   "sides": [
+    {
+     "term": "Corrective",
+     "text": "Sửa lỗi đang xảy ra."
+    },
+    {
+     "term": "Preventive",
+     "text": "Ngăn lỗi tái phát."
+    }
+   ]
+  },
+  {
+   "pair": "Wire Bonding vs Flip Chip",
+   "sides": [
+    {
+     "term": "Wire Bonding",
+     "text": "Dây kim loại từ pad ra leadframe. Rẻ, I/O ở chu vi die. MCU, sensor, LED."
+    },
+    {
+     "term": "Flip Chip",
+     "text": "Lật die, nối bằng solder bump + underfill. Đắt, I/O toàn bề mặt, nhanh. CPU, GPU, FPGA."
+    }
+   ]
+  },
+  {
+   "pair": "Wafer Sort vs Final Test",
+   "sides": [
+    {
+     "term": "Wafer Sort",
+     "text": "Die còn trên wafer, trước khi cắt. Loại die lỗi, tạo wafer map."
+    },
+    {
+     "term": "Final Test",
+     "text": "Sau đóng gói (sau Singulation). Kiểm chức năng, điện, tốc độ, công suất."
+    }
+   ]
+  },
+  {
+   "pair": "Burn-in vs Reliability test",
+   "sides": [
+    {
+     "term": "Burn-in",
+     "text": "Stress nhiệt + điện áp cao để loại lỗi sớm (infant mortality)."
+    },
+    {
+     "term": "Reliability",
+     "text": "Chứng minh độ bền lâu dài: HTOL, temp cycling, 85/85, HAST, drop."
+    }
+   ]
+  },
+  {
+   "pair": "X-ray vs SAM",
+   "sides": [
+    {
+     "term": "X-ray",
+     "text": "Nhìn xuyên package: void, solder joint, vị trí dây."
+    },
+    {
+     "term": "SAM",
+     "text": "Sóng âm: delamination và void bên trong mà X-ray thường khó thấy."
+    }
+   ]
+  },
+  {
+   "pair": "2.5D vs 3D packaging",
+   "sides": [
+    {
+     "term": "2.5D",
+     "text": "Die đặt cạnh nhau trên interposer (GPU + HBM)."
+    },
+    {
+     "term": "3D",
+     "text": "Die chồng dọc, nối bằng TSV/micro-bump."
+    }
+   ]
+  },
+  {
+   "pair": "Front-end vs Back-end",
+   "sides": [
+    {
+     "term": "Front-end",
+     "text": "Wafer nguyên vẹn, tạo linh kiện/mạch, phòng sạch nghiêm ngặt."
+    },
+    {
+     "term": "Back-end",
+     "text": "Die/chip rời, đóng gói & kiểm thử, kiểm soát tùy công đoạn."
+    }
+   ]
+  }
+ ],
+ "glossary": [
+  {
+   "chapter": 1,
+   "term": "IDM",
+   "definition": "Integrated Device Manufacturer: tự thiết kế, sản xuất, đóng gói. Intel, Samsung."
+  },
+  {
+   "chapter": 1,
+   "term": "Fabless",
+   "definition": "Chỉ thiết kế chip, thuê Foundry sản xuất. NVIDIA, Qualcomm, AMD."
+  },
+  {
+   "chapter": 1,
+   "term": "Foundry",
+   "definition": "Nhà máy sản xuất wafer cho công ty khác. TSMC dẫn đầu."
+  },
+  {
+   "chapter": 1,
+   "term": "OSAT",
+   "definition": "Outsourced Semiconductor Assembly and Test: đóng gói & kiểm thử thuê."
+  },
+  {
+   "chapter": 1,
+   "term": "Yield",
+   "definition": "Tỷ lệ die tốt / tổng die. KPI sống còn của fab."
+  },
+  {
+   "chapter": 1,
+   "term": "Yield Engineer",
+   "definition": "Phân tích sụt giảm yield, tìm liên hệ giữa defect và yield loss."
+  },
+  {
+   "chapter": 1,
+   "term": "Định luật Moore",
+   "definition": "Số transistor trên chip tăng gấp đôi mỗi 18–24 tháng (Gordon Moore, 1965)."
+  },
+  {
+   "chapter": 1,
+   "term": "Chiplet",
+   "definition": "Ghép nhiều chip nhỏ chuyên biệt thành một package thay cho chip nguyên khối."
+  },
+  {
+   "chapter": 2,
+   "term": "Front-end",
+   "definition": "Giai đoạn tạo transistor và cấu trúc vi mạch trực tiếp trên wafer silicon."
+  },
+  {
+   "chapter": 2,
+   "term": "Czochralski",
+   "definition": "Phương pháp kéo ingot silicon đơn tinh thể từ silicon nóng chảy bằng tinh thể mầm."
+  },
+  {
+   "chapter": 2,
+   "term": "CVD",
+   "definition": "Chemical Vapor Deposition: lắng đọng màng bằng phản ứng hóa học của khí tiền chất."
+  },
+  {
+   "chapter": 2,
+   "term": "PVD",
+   "definition": "Physical Vapor Deposition: sputtering/bay hơi vật liệu, chủ yếu cho kim loại."
+  },
+  {
+   "chapter": 2,
+   "term": "ALD",
+   "definition": "Atomic Layer Deposition: biến thể CVD, kiểm soát độ dày từng lớp nguyên tử."
+  },
+  {
+   "chapter": 2,
+   "term": "Photoresist",
+   "definition": "Polymer nhạy sáng làm khuôn tạm thời trong quang khắc."
+  },
+  {
+   "chapter": 2,
+   "term": "Mask / Reticle",
+   "definition": "Tấm thạch anh phủ chrome chứa pattern một lớp mạch. Lỗi mask lặp trên mọi chip."
+  },
+  {
+   "chapter": 2,
+   "term": "Overlay",
+   "definition": "Độ lệch giữa pattern lớp hiện tại và lớp trước."
+  },
+  {
+   "chapter": 2,
+   "term": "Critical Dimension (CD)",
+   "definition": "Kích thước then chốt của pattern, ví dụ bề rộng đường line."
+  },
+  {
+   "chapter": 2,
+   "term": "DUV",
+   "definition": "Deep UV 193 nm (ArF), dùng immersion và multi-patterning."
+  },
+  {
+   "chapter": 2,
+   "term": "EUV",
+   "definition": "Extreme UV 13,5 nm, chỉ ASML sản xuất, cho lớp critical."
+  },
+  {
+   "chapter": 2,
+   "term": "Anisotropic",
+   "definition": "Khắc theo một hướng (thẳng đứng), vách đứng. Đặc trưng Dry etch."
+  },
+  {
+   "chapter": 2,
+   "term": "Isotropic",
+   "definition": "Khắc đều mọi hướng, gây undercut. Đặc trưng Wet etch."
+  },
+  {
+   "chapter": 2,
+   "term": "Selectivity",
+   "definition": "Tỷ lệ tốc độ khắc vật liệu mục tiêu so với mask/lớp dưới."
+  },
+  {
+   "chapter": 2,
+   "term": "Over-etch",
+   "definition": "Khắc quá mức: mất mask, mỏng đường mạch, ăn vào lớp dưới."
+  },
+  {
+   "chapter": 2,
+   "term": "Under-etch",
+   "definition": "Khắc chưa đủ: còn Etch Residue, gây leakage/short/hở tiếp xúc."
+  },
+  {
+   "chapter": 2,
+   "term": "Endpoint Detection",
+   "definition": "Phát hiện thời điểm etch xong để dừng đúng lúc (OES, interferometry)."
+  },
+  {
+   "chapter": 2,
+   "term": "RIE",
+   "definition": "Reactive Ion Etching: hóa học (radical) + vật lý (ion bắn phá)."
+  },
+  {
+   "chapter": 2,
+   "term": "Ion Implantation",
+   "definition": "Bắn ion tạp chất vào wafer để tạo vùng N/P."
+  },
+  {
+   "chapter": 2,
+   "term": "N-type",
+   "definition": "Pha Phosphor (P) hoặc Arsenic (As)."
+  },
+  {
+   "chapter": 2,
+   "term": "P-type",
+   "definition": "Pha Boron (B)."
+  },
+  {
+   "chapter": 2,
+   "term": "Annealing",
+   "definition": "Xử lý nhiệt sau cấy ion: kích hoạt tạp chất, sửa hư hại tinh thể."
+  },
+  {
+   "chapter": 2,
+   "term": "CMP",
+   "definition": "Chemical Mechanical Planarization: mài cơ + hóa làm phẳng wafer."
+  },
+  {
+   "chapter": 2,
+   "term": "Metallization",
+   "definition": "Tạo dây dẫn kim loại (Cu, Al) nhiều lớp nối transistor."
+  },
+  {
+   "chapter": 2,
+   "term": "SC-1",
+   "definition": "RCA bước 1: loại hữu cơ và particle."
+  },
+  {
+   "chapter": 2,
+   "term": "SC-2",
+   "definition": "RCA bước 2: loại ion kim loại."
+  },
+  {
+   "chapter": 2,
+   "term": "Native Oxide",
+   "definition": "Lớp SiO₂ mỏng tự hình thành khi Si tiếp xúc không khí."
+  },
+  {
+   "chapter": 2,
+   "term": "Watermark",
+   "definition": "Vết nước dạng vòng do rinse/drying không đạt → phủ resist không đều."
+  },
+  {
+   "chapter": 2,
+   "term": "Dark-field",
+   "definition": "Inspection thu ánh sáng tán xạ; nhạy với particle."
+  },
+  {
+   "chapter": 2,
+   "term": "Killer defect",
+   "definition": "Lỗi gây hỏng chức năng: bridge, open."
+  },
+  {
+   "chapter": 3,
+   "term": "Back-end",
+   "definition": "Đóng gói & kiểm thử sau Front-end: vỏ bảo vệ + chân liên kết."
+  },
+  {
+   "chapter": 3,
+   "term": "Backgrinding",
+   "definition": "Mài mỏng mặt sau wafer."
+  },
+  {
+   "chapter": 3,
+   "term": "Dicing",
+   "definition": "Cắt wafer thành các die riêng."
+  },
+  {
+   "chapter": 3,
+   "term": "Die Attach",
+   "definition": "Gắn die lên leadframe/substrate bằng Epoxy, Solder hoặc DAF."
+  },
+  {
+   "chapter": 3,
+   "term": "Die Tilt",
+   "definition": "Die bị nghiêng sau die attach."
+  },
+  {
+   "chapter": 3,
+   "term": "Void (die attach)",
+   "definition": "Bọt rỗng trong lớp keo → tản nhiệt kém → quá nhiệt khi burn-in."
+  },
+  {
+   "chapter": 3,
+   "term": "Wire Bonding",
+   "definition": "Nối bond pad với leadframe bằng dây vàng/đồng."
+  },
+  {
+   "chapter": 3,
+   "term": "Wire Sweep",
+   "definition": "Dây bond bị dòng mold đẩy lệch khi Molding → chạm nhau."
+  },
+  {
+   "chapter": 3,
+   "term": "Molding",
+   "definition": "Bọc Epoxy Mold Compound bảo vệ chip khỏi tác động cơ – hóa."
+  },
+  {
+   "chapter": 3,
+   "term": "Burn-in",
+   "definition": "Stress nhiệt/điện áp cao để loại bỏ chip lỗi sớm (infant mortality)."
+  },
+  {
+   "chapter": 3,
+   "term": "Wafer Sort / Probe Test",
+   "definition": "Kiểm tra điện die khi còn trên wafer, trước khi cắt; tạo wafer map và bin."
+  },
+  {
+   "chapter": 3,
+   "term": "Bin Sorting",
+   "definition": "Phân loại chip theo kết quả test/hiệu năng: Bin 1 cao cấp, Bin 2 phổ thông…"
+  },
+  {
+   "chapter": 3,
+   "term": "Known Good Die (KGD)",
+   "definition": "Die đã kiểm đủ tin cậy để dùng trong module/package phức tạp."
+  },
+  {
+   "chapter": 3,
+   "term": "Scribe line",
+   "definition": "Đường cắt giữa các die mà dicing đi theo."
+  },
+  {
+   "chapter": 3,
+   "term": "Blade vs Laser dicing",
+   "definition": "Blade: lưỡi kim cương, rẻ, phổ biến. Laser: chính xác, ít chipping, hợp wafer mỏng."
+  },
+  {
+   "chapter": 3,
+   "term": "Bond lift",
+   "definition": "Mối nối wire bond bật khỏi pad do lực yếu hoặc pad bẩn → open circuit."
+  },
+  {
+   "chapter": 3,
+   "term": "Flip Chip",
+   "definition": "Lật die, nối trực tiếp với substrate bằng solder bump."
+  },
+  {
+   "chapter": 3,
+   "term": "Underfill",
+   "definition": "Epoxy bơm vào khe die–substrate trong flip chip, giảm stress lên bump."
+  },
+  {
+   "chapter": 3,
+   "term": "Singulation",
+   "definition": "Tách package khỏi strip/panel bằng blade hoặc laser."
+  },
+  {
+   "chapter": 3,
+   "term": "Laser Marking",
+   "definition": "In part number, lot number, mã truy xuất lên package."
+  },
+  {
+   "chapter": 3,
+   "term": "ATE / Test Handler",
+   "definition": "ATE gửi tín hiệu test và so spec; Handler là robot gắp chip vào socket và phân khay."
+  },
+  {
+   "chapter": 3,
+   "term": "SAM",
+   "definition": "Scanning Acoustic Microscopy: sóng âm phát hiện delamination, void bên trong package."
+  },
+  {
+   "chapter": 3,
+   "term": "Pull / Shear test",
+   "definition": "Kéo hoặc cắt để đo độ bám của wire bond, solder bump."
+  },
+  {
+   "chapter": 3,
+   "term": "HTOL / HAST / 85/85",
+   "definition": "Reliability test: vận hành nhiệt cao lâu dài / ẩm tăng tốc / 85°C–85%RH."
+  },
+  {
+   "chapter": 3,
+   "term": "MSL",
+   "definition": "Moisture Sensitivity Level: mức nhạy ẩm của package, cần baking và dry cabinet."
+  },
+  {
+   "chapter": 3,
+   "term": "TSV",
+   "definition": "Through-Silicon Via: lỗ dẫn xuyên silicon nối die chồng dọc trong 3D stacking."
+  },
+  {
+   "chapter": 3,
+   "term": "Total Yield",
+   "definition": "Front-end Yield × Back-end Yield."
+  },
+  {
+   "chapter": 3,
+   "term": "ESD control",
+   "definition": "Chống phóng tĩnh điện: wrist strap, ionizer, vật liệu chống tĩnh điện."
+  },
+  {
+   "chapter": 4,
+   "term": "HOLD",
+   "definition": "Giữ lô khi lỗi ngoại quan, sai nhãn, lệch số lượng; xác minh traceability."
+  },
+  {
+   "chapter": 4,
+   "term": "5-Why",
+   "definition": "Hỏi “tại sao” liên tiếp để tìm nguyên nhân gốc."
+  },
+  {
+   "chapter": 4,
+   "term": "4M",
+   "definition": "Equipment, Process, Material, Human: 4 nhóm nguyên nhân."
+  },
+  {
+   "chapter": 4,
+   "term": "Retest 1 tester",
+   "definition": "Retest tăng chỉ ở 1 tester → lỗi hệ thống test (socket, nhiễu)."
+  },
+  {
+   "chapter": 4,
+   "term": "Systematic defect",
+   "definition": "Lỗi lặp theo vùng/die/hướng; do thiết bị, mask, recipe."
+  },
+  {
+   "chapter": 4,
+   "term": "SPC",
+   "definition": "Statistical Process Control: control chart cảnh báo thông số lệch."
+  },
+  {
+   "chapter": 4,
+   "term": "Traceability",
+   "definition": "Khả năng truy xuất nguồn gốc lô: vật liệu, máy, ca, công đoạn."
+  }
+ ],
+ "quiz": [
+  {
+   "chapter": 1,
+   "question": "Mô hình kinh doanh nào chỉ thiết kế chip và thuê ngoài sản xuất?",
+   "options": [
+    "IDM",
+    "Fabless",
+    "Foundry",
+    "OSAT"
+   ],
+   "answer": 1,
+   "explanation": "Fabless không sở hữu nhà máy, thuê Foundry sản xuất (NVIDIA, Qualcomm, AMD).",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "TSMC là đại diện tiêu biểu của mô hình nào?",
+   "options": [
+    "Fabless",
+    "IDM",
+    "Foundry",
+    "OSAT"
+   ],
+   "answer": 2,
+   "explanation": "TSMC nhận thiết kế của khách và sản xuất wafer, chiếm hơn 50% thị phần Foundry.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "OSAT là viết tắt của?",
+   "options": [
+    "Outsourced Semiconductor Assembly and Test",
+    "Optical Semiconductor Alignment Tool",
+    "Overlay Statistical Analysis Test",
+    "Outsourced Silicon Annealing Treatment"
+   ],
+   "answer": 0,
+   "explanation": "OSAT chuyên đóng gói và kiểm thử chip thuê.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Công ty tự thiết kế, sản xuất, đóng gói, kiểm thử từ A đến Z thuộc mô hình?",
+   "options": [
+    "Fabless",
+    "IDM",
+    "OSAT",
+    "Foundry"
+   ],
+   "answer": 1,
+   "explanation": "IDM (Integrated Device Manufacturer): Intel, Samsung, Texas Instruments, Micron.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Vật liệu nền phổ biến nhất để chế tạo wafer là?",
+   "options": [
+    "Gallium Nitride (GaN)",
+    "Germanium (Ge)",
+    "Silicon (Si)",
+    "Silicon Carbide (SiC)"
+   ],
+   "answer": 2,
+   "explanation": "Silicon chiếm ưu thế nhờ dồi dào, doping được và có lớp oxide nhiệt SiO₂ chất lượng cao.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Vai trò chính của Yield Engineer là?",
+   "options": [
+    "Cập nhật SOP cho dây chuyền",
+    "Phân tích sụt giảm yield, tìm liên hệ giữa lỗi và yield loss",
+    "Vận hành máy dicing",
+    "Thiết kế mạch RTL"
+   ],
+   "answer": 1,
+   "explanation": "Yield Engineer phân tích dữ liệu defect để giải thích và cải thiện yield.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Hoạt động nào thuộc QA?",
+   "options": [
+    "Đo kích thước die",
+    "Kiểm tra ngoại quan lô hàng",
+    "Cập nhật SOP, quản lý hệ thống chất lượng",
+    "Chạy test chức năng IC"
+   ],
+   "answer": 2,
+   "explanation": "QA xây dựng và duy trì hệ thống. Ba đáp án còn lại là công việc QC.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Hoạt động nào thuộc QC?",
+   "options": [
+    "Định nghĩa tiêu chí chấp nhận",
+    "Kiểm tra ngoại quan, đo đạc, kiểm thử",
+    "Quản lý CAPA",
+    "Ban hành SOP mới"
+   ],
+   "answer": 1,
+   "explanation": "QC kiểm tra trực tiếp sản phẩm.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Wafer có 400 die, 340 die đạt. Yield là?",
+   "options": [
+    "60%",
+    "75%",
+    "85%",
+    "90%"
+   ],
+   "answer": 2,
+   "explanation": "340/400 = 0,85 = 85%.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Theo định luật Moore, số transistor trên chip tăng gấp đôi sau khoảng?",
+   "options": [
+    "6 tháng",
+    "18–24 tháng",
+    "5 năm",
+    "10 năm"
+   ],
+   "answer": 1,
+   "explanation": "Gordon Moore (1965), chu kỳ 18–24 tháng tùy giai đoạn.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Công ty duy nhất sản xuất máy quang khắc EUV là?",
+   "options": [
+    "Applied Materials",
+    "Lam Research",
+    "ASML",
+    "KLA"
+   ],
+   "answer": 2,
+   "explanation": "ASML độc quyền EUV.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Ngành bán dẫn Việt Nam hiện tập trung chủ yếu ở khâu?",
+   "options": [
+    "Fab tiên tiến",
+    "OSAT (đóng gói & kiểm thử)",
+    "Sản xuất máy EUV",
+    "Sản xuất polysilicon"
+   ],
+   "answer": 1,
+   "explanation": "Intel HCM, Amkor Bắc Ninh là các cơ sở OSAT.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Ngoài Si, power chip thế hệ mới thường dùng vật liệu nào?",
+   "options": [
+    "SiC và GaN",
+    "Cu và Al",
+    "SiO₂ và Si₃N₄",
+    "Au và Ag"
+   ],
+   "answer": 0,
+   "explanation": "SiC, GaN chịu điện áp và nhiệt cao, dùng cho EV, sạc nhanh.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "Yield thấp ảnh hưởng thế nào đến giá thành mỗi chip?",
+   "options": [
+    "Giảm",
+    "Không đổi",
+    "Tăng",
+    "Bằng 0"
+   ],
+   "answer": 2,
+   "explanation": "Chi phí cố định chia cho ít chip tốt hơn nên giá thành/chip tăng.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 1,
+   "question": "ASE, Amkor, JCET thuộc nhóm?",
+   "options": [
+    "Foundry",
+    "Fabless",
+    "OSAT",
+    "EDA"
+   ],
+   "answer": 2,
+   "explanation": "Đây là các công ty đóng gói và kiểm thử lớn.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Front-end là giai đoạn?",
+   "options": [
+    "Đóng gói và kiểm thử chip",
+    "Tạo transistor và cấu trúc vi mạch trực tiếp trên wafer",
+    "Thiết kế mạch bằng EDA",
+    "Phân phối chip"
+   ],
+   "answer": 1,
+   "explanation": "Front-end hình thành linh kiện và mạch điện trên wafer silicon.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Wafer Cleaning xuất hiện ở đâu trong quy trình?",
+   "options": [
+    "Chỉ ở đầu quy trình",
+    "Chỉ ở cuối quy trình",
+    "Trước, giữa và sau nhiều công đoạn",
+    "Chỉ trước Photolithography"
+   ],
+   "answer": 2,
+   "explanation": "Cleaning lặp lại nhiều lần để chuẩn bị bề mặt và loại residue.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "CVD là viết tắt của?",
+   "options": [
+    "Chemical Vapor Deposition",
+    "Critical Voltage Detection",
+    "Chemical Vacuum Development",
+    "Controlled Via Drilling"
+   ],
+   "answer": 0,
+   "explanation": "Lắng đọng màng bằng phản ứng hóa học của khí tiền chất.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "PVD thường dùng để phủ loại lớp nào?",
+   "options": [
+    "Gate oxide nhiệt",
+    "Kim loại, barrier, seed layer",
+    "Photoresist",
+    "Mold compound"
+   ],
+   "answer": 1,
+   "explanation": "PVD (sputtering) phù hợp kim loại như Al, Ti, TiN, Cu seed.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Phương pháp phổ biến để kéo ingot silicon đơn tinh thể?",
+   "options": [
+    "Czochralski",
+    "CMP",
+    "RIE",
+    "Sputtering"
+   ],
+   "answer": 0,
+   "explanation": "Tinh thể mầm nhúng vào Si nóng chảy và kéo lên chậm.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Với positive photoresist, vùng được chiếu sáng sẽ?",
+   "options": [
+    "Cứng lại",
+    "Tan ra khi development",
+    "Không đổi",
+    "Bay hơi khi exposure"
+   ],
+   "answer": 1,
+   "explanation": "Positive: vùng chiếu sáng tan; negative: vùng chiếu sáng cứng lại.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "EUV sử dụng bước sóng bao nhiêu?",
+   "options": [
+    "365 nm",
+    "248 nm",
+    "193 nm",
+    "13,5 nm"
+   ],
+   "answer": 3,
+   "explanation": "EUV 13,5 nm; DUV ArF là 193 nm.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Overlay error là?",
+   "options": [
+    "Lỗi phủ resist không đều",
+    "Độ lệch giữa pattern lớp mới và lớp cũ",
+    "Liều chiếu sáng quá cao",
+    "Lỗi development"
+   ],
+   "answer": 1,
+   "explanation": "Overlay đo độ chồng khít giữa các tầng pattern.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Công nghệ quang khắc nào được nêu trong đề cương?",
+   "options": [
+    "DUV và EUV",
+    "X-ray và e-beam",
+    "IR và UV-A",
+    "Laser CO₂"
+   ],
+   "answer": 0,
+   "explanation": "Đề cương nêu DUV và EUV.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 2,
+   "question": "Điểm khác biệt chính của Dry etch so với Wet etch?",
+   "options": [
+    "Rẻ hơn",
+    "Kiểm soát hướng khắc (anisotropic) tốt hơn",
+    "Không cần mask",
+    "Không có phản ứng hóa học"
+   ],
+   "answer": 1,
+   "explanation": "Ion có hướng tạo vách đứng, phù hợp cấu trúc nhỏ.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Wet etch thường có đặc điểm nào?",
+   "options": [
+    "Dị hướng, vách đứng",
+    "Đẳng hướng, gây undercut",
+    "Cần buồng chân không",
+    "Dùng plasma RF"
+   ],
+   "answer": 1,
+   "explanation": "Dung dịch ăn mòn mọi hướng nên lẹm dưới mép mask.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Selectivity cao nghĩa là?",
+   "options": [
+    "Khắc mọi vật liệu như nhau",
+    "Khắc vật liệu mục tiêu nhanh hơn nhiều so với mask/lớp dưới",
+    "Etch rate luôn thấp",
+    "Uniformity luôn cao"
+   ],
+   "answer": 1,
+   "explanation": "Ví dụ 10:1 nghĩa là lớp mục tiêu bị khắc nhanh gấp 10 lần mask.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Hiện tượng over-etch gây ra?",
+   "options": [
+    "Còn etch residue",
+    "Mất mask, mỏng đường mạch, ăn vào lớp dưới",
+    "Mask dày hơn",
+    "Overlay tăng"
+   ],
+   "answer": 1,
+   "explanation": "Đề cương: over-etch → mất mask, mỏng đường mạch.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 2,
+   "question": "Hiện tượng under-etch gây ra?",
+   "options": [
+    "Mất mask",
+    "Dư thừa etch residue",
+    "Đường mạch mỏng",
+    "Wafer cong vênh"
+   ],
+   "answer": 1,
+   "explanation": "Còn sót vật liệu → leakage, short hoặc hở tiếp xúc.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Tạp chất nào tạo bán dẫn N-type?",
+   "options": [
+    "Boron",
+    "Phosphor và Arsenic",
+    "Gallium",
+    "Nhôm"
+   ],
+   "answer": 1,
+   "explanation": "P, As có 5 electron hóa trị, thêm electron tự do.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Tạp chất nào tạo bán dẫn P-type?",
+   "options": [
+    "Arsenic",
+    "Phosphor",
+    "Boron",
+    "Antimon"
+   ],
+   "answer": 2,
+   "explanation": "Boron tạo lỗ trống.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Mục đích của Annealing sau cấy ion?",
+   "options": [
+    "Làm phẳng bề mặt",
+    "Kích hoạt tạp chất và sửa hư hại mạng tinh thể",
+    "Loại bỏ photoresist",
+    "Lắng đọng kim loại"
+   ],
+   "answer": 1,
+   "explanation": "Ion bắn phá làm hỏng tinh thể; nhiệt giúp phục hồi và kích hoạt.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "CMP có chức năng?",
+   "options": [
+    "Cấy ion",
+    "Làm phẳng bề mặt wafer bằng cơ + hóa",
+    "In pattern",
+    "Tạo SiO₂"
+   ],
+   "answer": 1,
+   "explanation": "Chemical Mechanical Planarization dùng slurry và đệm mài.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "CMP không đồng đều ảnh hưởng trực tiếp đến bước nào sau đó?",
+   "options": [
+    "Photolithography lớp sau bị mất focus",
+    "Dicing",
+    "Burn-in",
+    "Doping"
+   ],
+   "answer": 0,
+   "explanation": "Bề mặt không phẳng làm sai lệch lấy nét khi phơi sáng.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "SC-1 trong RCA cleaning chủ yếu loại bỏ?",
+   "options": [
+    "Ion kim loại",
+    "Chất hữu cơ và particle",
+    "Native oxide",
+    "Photoresist đã cứng"
+   ],
+   "answer": 1,
+   "explanation": "SC-1 (APM) cho hữu cơ + hạt; SC-2 cho kim loại.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "SC-2 trong RCA cleaning chủ yếu loại bỏ?",
+   "options": [
+    "Particle",
+    "Hữu cơ",
+    "Ion kim loại",
+    "Watermark"
+   ],
+   "answer": 2,
+   "explanation": "SC-2 (HPM: HCl/H₂O₂/H₂O).",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Watermark (vết nước dạng vòng) chủ yếu do?",
+   "options": [
+    "Nhiệt độ oxidation quá cao",
+    "Rinse và drying không phù hợp",
+    "Thiếu SC-2",
+    "Overlay lệch"
+   ],
+   "answer": 1,
+   "explanation": "Nước đọng lại khi sấy tạo vết, làm resist phủ không đều.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Khác biệt cơ bản giữa Inspection và Metrology?",
+   "options": [
+    "Inspection dùng điện, Metrology dùng ánh sáng",
+    "Inspection phát hiện bất thường, Metrology đo giá trị định lượng",
+    "Chỉ Metrology tạo defect map",
+    "Như nhau"
+   ],
+   "answer": 1,
+   "explanation": "Inspection: có lỗi ở đâu. Metrology: CD, thickness, overlay bao nhiêu.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Dark-field inspection thu loại tín hiệu nào?",
+   "options": [
+    "Ánh sáng phản xạ trực tiếp",
+    "Ánh sáng tán xạ",
+    "Tia X",
+    "Dòng điện"
+   ],
+   "answer": 1,
+   "explanation": "Nền tối, particle tán xạ nổi bật.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Defect map rải rác ngẫu nhiên toàn wafer gợi ý nguyên nhân?",
+   "options": [
+    "Mask lỗi",
+    "Particle môi trường (random)",
+    "Robot cào xước",
+    "Recipe sai"
+   ],
+   "answer": 1,
+   "explanation": "Phân bố không quy luật là random defect.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Lỗi lặp lại ở cùng vị trí trên từng die gợi ý nguyên nhân?",
+   "options": [
+    "Particle không khí",
+    "Mask hoặc recipe (systematic)",
+    "Độ ẩm",
+    "Nhân viên"
+   ],
+   "answer": 1,
+   "explanation": "Lặp theo chu kỳ die là dấu hiệu systematic từ mask/recipe.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Ví dụ của killer defect?",
+   "options": [
+    "Nuisance defect",
+    "Bridge hoặc open",
+    "Hạt nhỏ ở vùng trống",
+    "False positive"
+   ],
+   "answer": 1,
+   "explanation": "Bridge gây chập, open gây hở mạch.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Hai đường dẫn điện bị nối nhau gọi là?",
+   "options": [
+    "Open",
+    "Bridge",
+    "Residue",
+    "Pattern collapse"
+   ],
+   "answer": 1,
+   "explanation": "Bridge dẫn đến short circuit.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Mask/Reticle có cấu tạo?",
+   "options": [
+    "Tấm silicon phủ resist",
+    "Tấm thạch anh phủ chrome",
+    "Tấm nhôm",
+    "Màng polymer"
+   ],
+   "answer": 1,
+   "explanation": "Ánh sáng đi qua vùng trong suốt, bị chặn ở vùng chrome.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Endpoint Detection trong etching dùng để?",
+   "options": [
+    "Đo overlay",
+    "Dừng etch đúng thời điểm",
+    "Làm sạch buồng",
+    "Đo CD"
+   ],
+   "answer": 1,
+   "explanation": "OES hoặc interferometry phát hiện lúc khắc hết lớp mục tiêu.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Reactive Ion Etching (RIE) kết hợp?",
+   "options": [
+    "Hai loại hóa chất lỏng",
+    "Phản ứng hóa học (radical) và bắn phá vật lý (ion)",
+    "Nhiệt và áp suất",
+    "Cơ học và điện"
+   ],
+   "answer": 1,
+   "explanation": "Hóa học cho selectivity, vật lý cho anisotropy.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Metallization/Interconnect có mục đích?",
+   "options": [
+    "Tạo vùng N/P",
+    "Tạo dây dẫn kim loại nối các transistor",
+    "Làm sạch wafer",
+    "Đóng gói"
+   ],
+   "answer": 1,
+   "explanation": "Đồng hoặc nhôm, nhiều lớp chồng nhau.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 2,
+   "question": "Cấu trúc tinh thể của silicon là?",
+   "options": [
+    "Lập phương tâm diện",
+    "Diamond cubic (kim cương lập phương)",
+    "Lục giác",
+    "Vô định hình"
+   ],
+   "answer": 1,
+   "explanation": "Mỗi nguyên tử liên kết cộng hóa trị với 4 nguyên tử lân cận.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Back-end bắt đầu khi nào?",
+   "options": [
+    "Trước Photolithography",
+    "Sau khi hoàn thành Front-end",
+    "Song song với Oxidation",
+    "Sau khi xuất hàng"
+   ],
+   "answer": 1,
+   "explanation": "Back-end tạo vỏ bảo vệ và chân liên kết cho chip.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Backgrinding là?",
+   "options": [
+    "Mài mỏng mặt sau wafer",
+    "Mài phẳng mặt trước wafer",
+    "Cắt wafer",
+    "Làm sạch mặt sau"
+   ],
+   "answer": 0,
+   "explanation": "Đề cương nhấn mạnh mặt sau (back side).",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Thứ tự Back-end đúng?",
+   "options": [
+    "Dicing → Backgrinding → Molding → Die Attach",
+    "Backgrinding → Dicing → Die Attach → Wire Bonding → Molding → Final Test",
+    "Die Attach → Dicing → Molding → Wire Bonding",
+    "Molding → Wire Bonding → Dicing → Test"
+   ],
+   "answer": 1,
+   "explanation": "Mài mỏng, cắt, gắn die, nối dây, bọc khuôn, test.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Dicing có chức năng?",
+   "options": [
+    "Gắn die",
+    "Cắt wafer thành từng die",
+    "Nối dây",
+    "Bọc epoxy"
+   ],
+   "answer": 1,
+   "explanation": "Tách wafer thành die riêng biệt.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Vật liệu dùng trong Die Attach?",
+   "options": [
+    "Photoresist",
+    "Epoxy, Solder hoặc DAF",
+    "SiO₂",
+    "Slurry CMP"
+   ],
+   "answer": 1,
+   "explanation": "DAF là Die Attach Film.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Die Tilt là?",
+   "options": [
+    "Độ nghiêng của die sau khi gắn",
+    "Die bị nứt",
+    "Dây bị lệch",
+    "Lớp mold bong"
+   ],
+   "answer": 0,
+   "explanation": "Hiện tượng đề cương nêu ở Die Attach.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Wire bonding nối thành phần nào?",
+   "options": [
+    "Bond pad trên die với leadframe",
+    "Hai wafer với nhau",
+    "Die với mold",
+    "Socket với tester"
+   ],
+   "answer": 0,
+   "explanation": "Dùng dây vàng hoặc đồng.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Molding dùng vật liệu gì?",
+   "options": [
+    "Photoresist",
+    "Mold Compound (Epoxy)",
+    "Silicon",
+    "Đồng"
+   ],
+   "answer": 1,
+   "explanation": "Bảo vệ chip khỏi tác động cơ – hóa.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Wire Sweep thường xảy ra ở công đoạn?",
+   "options": [
+    "Dicing",
+    "Die Attach",
+    "Molding",
+    "Backgrinding"
+   ],
+   "answer": 2,
+   "explanation": "Dòng mold đẩy lệch dây bond.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Void ở Die Attach có thể dẫn đến hậu quả nào trong Burn-in?",
+   "options": [
+    "Chip quá nhiệt và cháy do tản nhiệt kém",
+    "Overlay lệch",
+    "Under-etch",
+    "Native oxide"
+   ],
+   "answer": 0,
+   "explanation": "Ví dụ trong đề cương.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Micro-crack đặc trưng ở công đoạn?",
+   "options": [
+    "Dicing",
+    "Wire bonding",
+    "Final Test",
+    "Molding"
+   ],
+   "answer": 0,
+   "explanation": "Lưỡi cắt tạo vết nứt nhỏ ở cạnh die.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Mục đích của Burn-in test?",
+   "options": [
+    "Làm sạch chip",
+    "Stress nhiệt/điện áp cao để loại chip lỗi sớm",
+    "Đo kích thước package",
+    "Đánh dấu laser"
+   ],
+   "answer": 1,
+   "explanation": "Kích hoạt các lỗi tiềm ẩn trước khi xuất xưởng.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Final Test kiểm tra?",
+   "options": [
+    "Độ dày màng",
+    "Điện áp, dòng, tốc độ, chức năng IC",
+    "Overlay",
+    "Particle trên wafer"
+   ],
+   "answer": 1,
+   "explanation": "Kiểm tra điện và chức năng của chip đã đóng gói.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Wafer-level test (wafer sort) được làm khi nào và để làm gì?",
+   "options": [
+    "Sau Molding, để đo nhiệt",
+    "Trước khi cắt, để loại die lỗi sớm và tiết kiệm chi phí đóng gói",
+    "Sau Burn-in",
+    "Trước Oxidation"
+   ],
+   "answer": 1,
+   "explanation": "Không đóng gói die đã biết là lỗi.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Back-end bắt đầu với bước nào theo flow trong slide b8?",
+   "options": [
+    "Backgrinding",
+    "Wafer Sort (Probe Test)",
+    "Dicing",
+    "Molding"
+   ],
+   "answer": 1,
+   "explanation": "Flow b8: Wafer Sort → Backgrinding → Dicing → Die Attach → Wire Bonding → Molding → Marking & Singulation → Final Test → Packing.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Wafer map sau Wafer Sort dùng để?",
+   "options": [
+    "Đo độ dày wafer",
+    "Hiển thị kết quả kiểm tra của từng die trên wafer",
+    "Cắt wafer",
+    "Đóng gói chip"
+   ],
+   "answer": 1,
+   "explanation": "Đánh dấu Good, Fail và Edge die.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Bin Sorting có vai trò gì?",
+   "options": [
+    "Làm sạch wafer",
+    "Phân loại die/chip theo kết quả và đặc tính kiểm tra",
+    "Làm mỏng wafer",
+    "Nối dây"
+   ],
+   "answer": 1,
+   "explanation": "Một wafer có thể cho chip nhiều dòng sản phẩm.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Một lợi ích của Backgrinding là?",
+   "options": [
+    "Làm chip dày hơn",
+    "Giúp thiết bị nhỏ gọn hơn và tản nhiệt tốt hơn",
+    "Tăng số wire bond",
+    "Thay thế Final Test"
+   ],
+   "answer": 1,
+   "explanation": "Chip mỏng hợp smartphone, wearable và stack nhiều die.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Rủi ro chính của Backgrinding?",
+   "options": [
+    "Wire sweep",
+    "Wafer crack, warpage",
+    "Bond lift",
+    "Overlay error"
+   ],
+   "answer": 1,
+   "explanation": "Wafer mỏng dễ nứt và cong vênh.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Dicing cắt wafer dọc theo?",
+   "options": [
+    "Bond pad",
+    "Scribe line (dicing lane)",
+    "Leadframe",
+    "Solder bump"
+   ],
+   "answer": 1,
+   "explanation": "Đường phân cách giữa các die.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Ưu điểm của Laser dicing so với Blade dicing?",
+   "options": [
+    "Rẻ hơn",
+    "Chính xác hơn, ít chipping, hợp wafer mỏng",
+    "Không cần máy",
+    "Cắt được mold compound dày"
+   ],
+   "answer": 1,
+   "explanation": "Blade phổ biến và rẻ; laser cho wafer mỏng.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Void dưới die sau Die Attach được phát hiện bằng?",
+   "options": [
+    "Mắt thường",
+    "X-ray hoặc SAM",
+    "Wafer map",
+    "4-point probe"
+   ],
+   "answer": 1,
+   "explanation": "Void nằm bên trong, không nhìn thấy bằng mắt.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Đường kính dây wire bond thường là?",
+   "options": [
+    "1–5 nm",
+    "15–50 µm",
+    "1–2 mm",
+    "0,5 mm"
+   ],
+   "answer": 1,
+   "explanation": "Theo slide b8.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Bond lift gây ra hậu quả gì?",
+   "options": [
+    "Short circuit",
+    "Open circuit",
+    "Tăng tốc độ chip",
+    "Giảm nhiệt độ"
+   ],
+   "answer": 1,
+   "explanation": "Mối nối bật khỏi pad nên hở mạch.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Flip Chip khác Wire Bonding ở điểm chính nào?",
+   "options": [
+    "Dùng dây vàng dài hơn",
+    "Lật die và kết nối bằng solder bump",
+    "Không cần substrate",
+    "Rẻ hơn"
+   ],
+   "answer": 1,
+   "explanation": "Flip chip đắt hơn nhưng nhanh, I/O mật độ cao.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Underfill dùng trong công nghệ nào và để làm gì?",
+   "options": [
+    "Wire bonding, để làm sạch pad",
+    "Flip chip, giảm stress cơ học lên solder bump",
+    "Dicing, để làm mát",
+    "Marking, để in chữ"
+   ],
+   "answer": 1,
+   "explanation": "Bơm epoxy vào khe giữa die và substrate sau reflow.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Loop dây quá cao dễ gây lỗi nào khi Molding?",
+   "options": [
+    "Bond lift",
+    "Wire sweep",
+    "Die tilt",
+    "Chipping"
+   ],
+   "answer": 1,
+   "explanation": "Loop thấp dễ chạm dây; loop cao dễ bị dòng mold đẩy lệch.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Final Test được thực hiện ở thời điểm nào?",
+   "options": [
+    "Trước Die Attach",
+    "Sau Dicing",
+    "Sau Singulation, khi chip đã đóng gói hoàn chỉnh",
+    "Trong Molding"
+   ],
+   "answer": 2,
+   "explanation": "Đáp án theo quiz slide b8.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 3,
+   "question": "Thiết bị gửi tín hiệu test vào chip và so sánh với spec là?",
+   "options": [
+    "Test Handler",
+    "ATE (Automated Test Equipment)",
+    "Wire bonder",
+    "SAM"
+   ],
+   "answer": 1,
+   "explanation": "Handler chỉ gắp, đặt và phân loại chip.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Burn-in phát hiện loại lỗi nào?",
+   "options": [
+    "Lỗi thẩm mỹ package",
+    "Lỗi tiềm ẩn sớm (infant mortality)",
+    "Lỗi marking",
+    "Lỗi độ dày wafer"
+   ],
+   "answer": 1,
+   "explanation": "Stress nhiệt và điện áp cao kích hoạt lỗi tiềm ẩn.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Công cụ nào dùng sóng âm để phát hiện delamination bên trong package?",
+   "options": [
+    "AOI",
+    "SAM (Scanning Acoustic Microscopy)",
+    "CD-SEM",
+    "Ellipsometry"
+   ],
+   "answer": 1,
+   "explanation": "X-ray thấy void; SAM nhạy với tách lớp.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Total Yield được tính như thế nào?",
+   "options": [
+    "Front-end Yield + Back-end Yield",
+    "Front-end Yield × Back-end Yield",
+    "Chỉ Back-end Yield",
+    "Front-end Yield − Back-end Yield"
+   ],
+   "answer": 1,
+   "explanation": "Die tốt vẫn có thể hỏng ở Back-end.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Package có solder ball dạng lưới dưới đáy, dùng cho CPU, GPU, DRAM là?",
+   "options": [
+    "DIP",
+    "QFN",
+    "BGA",
+    "SOP"
+   ],
+   "answer": 2,
+   "explanation": "Ball Grid Array cho I/O mật độ cao.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Trong 3D stacking, kết nối theo chiều dọc dùng?",
+   "options": [
+    "TSV (Through-Silicon Via)",
+    "AOI",
+    "SPC",
+    "Dicing blade"
+   ],
+   "answer": 0,
+   "explanation": "2.5D đặt die cạnh nhau trên interposer; 3D chồng die.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 3,
+   "question": "Delamination sau HAST trong case b8 có nguyên nhân gốc là?",
+   "options": [
+    "Lưỡi dicing cùn",
+    "Kiểm soát ẩm kém trước molding, substrate bẩn",
+    "Overlay lệch",
+    "Tester hỏng"
+   ],
+   "answer": 1,
+   "explanation": "Bài học: baking, kiểm soát MSL, dry cabinet.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Bước đầu tiên trong RCA Back-end theo slide b8?",
+   "options": [
+    "Corrective action",
+    "Containment: cách ly lot/thiết bị nghi ngờ",
+    "Đào tạo operator",
+    "Xuất hàng"
+   ],
+   "answer": 1,
+   "explanation": "Containment → Data check → Root cause → Corrective action.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Case b8: fail thermal test tăng, X-ray thấy void lớn. Nguyên nhân gốc được xác định là?",
+   "options": [
+    "Wire sweep",
+    "Máy dispensing lệch calibration, volume epoxy không ổn định",
+    "Particle trong cleanroom",
+    "Reticle lỗi"
+   ],
+   "answer": 1,
+   "explanation": "Biện pháp: X-ray định kỳ sau die attach, kiểm soát volume epoxy.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Ở Final Test, SPC theo dõi chỉ số nào giúp phát hiện tester lỗi?",
+   "options": [
+    "Loop height",
+    "Tester correlation, fail bin trend",
+    "Epoxy volume",
+    "Mold pressure"
+   ],
+   "answer": 1,
+   "explanation": "So kết quả giữa các tester giúp lộ ra tester bất thường.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Lỗi Back-end phát sinh từ đâu?",
+   "options": [
+    "Chỉ ở Molding",
+    "Chỉ ở Final Test",
+    "Tất cả các công đoạn Back-end",
+    "Chỉ ở Dicing"
+   ],
+   "answer": 2,
+   "explanation": "Đề cương: dicing, die attach, bonding, molding, test…",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Retest rate tăng bất thường nhưng chỉ ở 1 tester, các tester khác bình thường. Nguyên nhân khả năng cao nhất?",
+   "options": [
+    "Lô wafer lỗi",
+    "Lỗi hệ thống test (socket tiếp xúc kém, nhiễu thiết bị)",
+    "Lỗi thiết kế chip",
+    "Molding sai"
+   ],
+   "answer": 1,
+   "explanation": "Nếu do chip, mọi tester đều thấy fail.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Lô hàng sai nhãn hoặc lệch số lượng. Quyết định đúng?",
+   "options": [
+    "Xuất hàng rồi xử lý sau",
+    "HOLD lô để xác minh traceability và nguyên nhân",
+    "Hủy toàn bộ lô",
+    "Đổi nhãn rồi xuất"
+   ],
+   "answer": 1,
+   "explanation": "Nguyên tắc chất lượng trong đề cương.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Trình tự xử lý sự cố bất thường đúng?",
+   "options": [
+    "Khắc phục → Hold → 5 Why",
+    "Hold/khoanh vùng → Root cause (5 Why) → Khắc phục & phòng ngừa",
+    "5 Why → Xuất hàng → Hold",
+    "Phòng ngừa → Hold → Xuất"
+   ],
+   "answer": 1,
+   "explanation": "Khoanh vùng trước để chặn lỗi lan truyền.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "5-Why analysis là?",
+   "options": [
+    "Kiểm tra 5 wafer",
+    "Hỏi “tại sao” liên tiếp để tìm nguyên nhân gốc",
+    "5 bước làm sạch",
+    "Đo 5 điểm uniformity"
+   ],
+   "answer": 1,
+   "explanation": "Dừng khi đến nguyên nhân có thể hành động được.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Khung 4M trong slide gồm?",
+   "options": [
+    "Equipment, Process, Material, Human",
+    "Mask, Metal, Mold, Market",
+    "Moore, Memory, Module, Metric",
+    "Money, Machine, Market, Media"
+   ],
+   "answer": 0,
+   "explanation": "Bốn nhóm nguyên nhân để phân tích.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Pareto analysis dựa trên nguyên tắc?",
+   "options": [
+    "50/50",
+    "80/20: phần lớn lỗi đến từ số ít nguyên nhân",
+    "100% kiểm tra",
+    "Ngẫu nhiên"
+   ],
+   "answer": 1,
+   "explanation": "Ưu tiên xử lý nguyên nhân lớn nhất trước.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "SPC dùng để?",
+   "options": [
+    "Đóng gói chip",
+    "Theo dõi thông số bằng control chart và cảnh báo sớm",
+    "Cắt wafer",
+    "Thiết kế mask"
+   ],
+   "answer": 1,
+   "explanation": "Statistical Process Control.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Corrective Action khác Preventive Action ở điểm?",
+   "options": [
+    "Như nhau",
+    "Corrective sửa lỗi đang xảy ra; Preventive ngăn tái phát",
+    "Preventive làm trước khi có lỗi lần đầu, Corrective không bao giờ dùng",
+    "Corrective chỉ cho Front-end"
+   ],
+   "answer": 1,
+   "explanation": "Cả hai thuộc CAPA.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Sau khi bảo trì (PM) thiết bị etch, nên làm gì trước khi chạy wafer sản xuất?",
+   "options": [
+    "Chạy ngay production",
+    "Chạy qualification wafer kiểm tra uniformity",
+    "Bỏ qua kiểm tra",
+    "Tăng etch rate"
+   ],
+   "answer": 1,
+   "explanation": "Case slide b4: uniformity xấu sau PM làm yield rìa wafer giảm.",
+   "courseSpecific": true
+  },
+  {
+   "chapter": 4,
+   "question": "Scratch dạng đường thẳng cùng hướng trên nhiều wafer liên tiếp là?",
+   "options": [
+    "Random defect do bụi",
+    "Systematic defect, nghi robot/cassette/chuck",
+    "Nuisance defect",
+    "Lỗi thiết kế"
+   ],
+   "answer": 1,
+   "explanation": "Lặp lại và có hướng là lỗi hệ thống.",
+   "courseSpecific": false
+  },
+  {
+   "chapter": 4,
+   "question": "Overlay error tăng đột ngột sau khi thay reticle mới. Hành động đầu tiên?",
+   "options": [
+    "Cho lô chạy tiếp",
+    "Cách ly (hold) lô bị ảnh hưởng rồi kiểm tra reticle, scanner, alignment mark",
+    "Tăng liều chiếu",
+    "Bỏ bước inspection"
+   ],
+   "answer": 1,
+   "explanation": "Chặn lan truyền trước, điều tra sau.",
+   "courseSpecific": false
+  }
+ ],
+ "incidentCases": [
+  {
+   "symptom": "Chip fail sau Vibration Test, SEM thấy bond lift ở first bond",
+   "resolution": "Gốc: bonding force không ổn định, pad nhiễm bẩn do bảo quản sai. Containment lô; pull/shear test theo lô; kiểm tra bề mặt pad và điều kiện lưu trữ; SPC bond force, bond lift rate."
+  },
+  {
+   "symptom": "Delamination giữa mold và substrate sau HAST",
+   "resolution": "Phát hiện bằng SAM. Gốc: kiểm soát ẩm kém trước molding, substrate bẩn hoặc lưu kho sai. Khắc phục: baking đúng quy định, kiểm soát MSL, dry cabinet, kiểm tra vật liệu đầu vào."
+  },
+  {
+   "symptom": "Retest rate tăng chỉ ở Tester #3",
+   "resolution": "Lỗi hệ thống test, không phải lỗi chip. Dừng Tester #3, kiểm tra/vệ sinh/thay socket, kiểm tra nhiễu và hiệu chuẩn, chạy golden unit; test lại chip fail trên tester khác; theo dõi retest rate sau sửa."
+  },
+  {
+   "symptom": "Lô hàng sai nhãn, lệch số lượng",
+   "resolution": "HOLD lô. Đối chiếu traceability (lot ID, máy, ca), đếm lại, xác định điểm phát sinh, sửa nhãn có kiểm soát, cập nhật SOP đóng gói/dán nhãn trước khi release."
+  },
+  {
+   "symptom": "Defect tập trung vòng rìa wafer trên nhiều wafer",
+   "resolution": "Systematic. Kiểm tra edge handling, spin coating, edge bead removal, robot tiếp xúc buồng; so sánh defect map các wafer cùng lot."
+  },
+  {
+   "symptom": "Fail rate tăng ở rìa wafer sau PM máy dry etch",
+   "resolution": "Lỗi thiết bị sau PM (uniformity xấu). Hold lô, kiểm tra ESC, phân bố khí, RF matching; chạy qualification wafer trước khi production."
+  },
+  {
+   "symptom": "Yield giảm dần 3 tháng, particle count tăng 3×",
+   "resolution": "Random defect do môi trường. Kiểm tra HEPA filter, cleanroom; thay filter, vệ sinh thiết bị; lắp cảm biến particle theo dõi liên tục."
+  }
+ ]
+}
