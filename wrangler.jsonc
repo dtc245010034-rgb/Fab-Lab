@@ -1,0 +1,12 @@
+{
+  // Static site on Cloudflare Workers static assets: no Worker script, no backend (Phase 4).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker's name on the Cloudflare dashboard (Workers Builds checks it).
+  "name": "fab-lab",
+  "compatibility_date": "2026-10-08",
+  "assets": {
+    "directory": "./dist",
+    // Unknown paths get index.html (single-page app).
+    "not_found_handling": "single-page-application",
+  },
+}

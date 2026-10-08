@@ -10,3 +10,7 @@ test-results/
 .claude/settings.local.json
 .DS_Store
 Thumbs.db
+
+# Cloudflare Wrangler: local state and local variables (never commit tokens)
+.wrangler/
+.dev.vars*
