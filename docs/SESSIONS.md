@@ -37,7 +37,7 @@ Không làm UI. Đo thời gian tính lại và ghi vào PROGRESS.md.
 ```
 Đọc CLAUDE.md, docs/DESIGN.md. Viết src/render/canvas2d/crossSection.ts vẽ grid (pixel sắc nét, không làm mịn),
 chú giải vật liệu, thước đo 500 nm, đường kích thước đỉnh/đáy. Gắn vào Viewer với dữ liệu mặc định từ S0.2.
-Thêm cấu hình build cho Cloudflare Pages và hướng dẫn deploy ngắn trong README.md.
+Thêm cấu hình Cloudflare Workers static assets (wrangler.jsonc) và hướng dẫn deploy ngắn trong README.md.
 ```
 
 ### S0.4 — Web Worker + CI + e2e

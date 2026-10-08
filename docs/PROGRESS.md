@@ -12,7 +12,7 @@
 - Tách token màu trạng thái (quyết định 2026-10-08): `--ok #2f7d4c`, `--warn #9a5c00` (đổi từ `#b9700d`), `--bad #b3261e` cho viền/chấm/icon;
   `--ok-ink #1f5c37`, `--warn-ink #844c00` cho chữ (chữ "bad" dùng `--bad`). Quy tắc ghi trong `docs/DESIGN.md`;
   `tests/ui/tokens.test.ts` kiểm tra tương phản và cấm dùng `--ok`/`--warn` làm màu chữ trong `src/`.
-- S0.2 Port mô hình khắc từ prototype (nhánh `s0.2-etch-port`, chưa merge vào `main`)
+- S0.2 Port mô hình khắc từ prototype (nhánh `s0.2-etch-port`, đã merge vào `main`)
   - `src/physics/constants.ts`: mọi hằng số mức C, gom nhóm `litho.*`, `etch.wet.*`, `etch.rie.*`, `geometry.*`. Mỗi entry có `kind`:
     `physical-quantity` (đại lượng vật lý, sách kiểm chứng được) hoặc `model-shape` (hệ số hình dạng mô hình, chỉ xu hướng có nghĩa).
     Kích thước lưới 260×150 và 10 nm/ô nằm ở `src/sim/defaults.ts`, không gắn mức (là cấu hình mô phỏng, không phải phát biểu vật lý).
@@ -34,14 +34,32 @@
     Ô không khí không đi qua heap (thời gian 0, relax thẳng sang lân cận), heap có cận trên chặt 16 ô/ô rắn và có chốt chặn tràn. Kết quả ≤ `maxTimeMin` trùng bản không giới hạn (test trên 10 công thức, 5 mốc thời gian mỗi công thức).
     Kiểm bằng Dijkstra quét mảng O(n²) độc lập trên lưới ngẫu nhiên có seed. Bài học đo được: tách phần relax thành closure làm vòng lặp chậm 15–60%, nên giữ một vòng lặp, relax viết thẳng trong thân.
   - Sau review (commit riêng): `arrivalTime` kiểm tra đầu vào và ném `RangeError`: tốc độ đứng phải hữu hạn và > 0, tốc độ ngang hữu hạn và ≥ 0, độ chọn lọc > 0 (cho phép `Infinity`), không NaN; mã vật liệu lạ trong lưới (kiểm trong vòng đếm ô rắn, không thêm vòng quét). Kiểm đột biến cho phần này: 10/10 bị bắt.
+- S0.3 Renderer mặt cắt + deploy (nhánh `s0.3-renderer`, chưa merge vào `main`, chờ review)
+  - `src/sim/recipe.ts`: `runRecipe(recipe, spec)` chạy litho → lưới → tốc độ → arrival-time → chỉ số, truyền `maxTimeMin` = mức tối đa của thanh trượt (BOE 8, HF 49% 0,5, RIE 14 phút; bảng `ETCH_TIME_MAX_MIN` trong `defaults.ts`),
+    và trả `timingsMs` (`arrival`, `total`) cho `?debug=1`. `DEFAULT_RECIPE` = ca B (RIE 200 W, 30 mTorr, 4,6 phút, cửa sổ 800 nm; 3000 rpm, i-line, liều ×1). Test so với glue của test (`tests/sim/helpers.ts`) trên cả trường arrival và với bảng ca B.
+  - `src/render/canvas2d/`, tách phần thuần (có unit test) khỏi phần gọi canvas:
+    `pixels.ts` (grid → RGBA với cùng điều kiện "bị khắc" như `measureEtch`, kiểm ở ca A và B rằng độ rộng cửa sổ trên ảnh = `topNm`/`bottomNm`; `chooseScale`/`planCanvas`: số nguyên pixel thiết bị trên mỗi ô; `formatApproxNm`: làm tròn theo `cellNm` và có "≈"),
+    `overlay.ts` (hình học đường kích thước đỉnh/đáy, thước 500 nm, chip nhãn, tính bằng pixel thiết bị),
+    `palette.ts` (màu đọc từ token lúc vẽ; token không parse được thành hex → `RangeError` nêu tên token; font stack luôn kết thúc bằng `monospace`),
+    `crossSection.ts` (lời gọi canvas: `imageSmoothingEnabled=false`, `drawImage` ở bội số nguyên, chip nhãn đo bằng `measureText` sau `document.fonts.load` rồi vẽ lại khi font về).
+  - ESLint có thêm khối luật cho `src/render/**` (cấm import `ui`, `workers`, `modules`, `content` và React; đã thử chèn import sai để chắc luật bắt được). `tests/render/architecture.test.ts` quét import và màu rời (hex, `rgb()`) trong `src/render`.
+  - Viewer nhận `recipe` + kết quả qua props; `App` tính `runRecipe(DEFAULT_RECIPE)` một lần trên main thread (worker ở S0.4). Có: dòng công thức và "1 ô = 10 nm", chú giải vật liệu bằng HTML (ô màu dùng `var(--token)`), dòng nhãn "mô hình hình học đơn giản, số liệu minh họa" (quy tắc 1), `aria-label` dựng từ chỉ số, và `?debug=1` hiện thời gian `runRecipe` và riêng `arrivalTime`.
+    Ba ô chỉ số vẫn là chỗ trống (UI chỉ số thuộc S1.x).
+  - Deploy: `wrangler.jsonc` (Worker `fab-lab`, chỉ có assets: `./dist`, `single-page-application`; không `main`, không binding), `wrangler` ghim đúng `4.148.0`, `npm run deploy` (phương án phụ), `.gitignore` thêm `.wrangler/` và `.dev.vars*`, `README.md` với Workers Builds là đường chính (build `npm ci && npm test && npm run build`, deploy `npx wrangler deploy`) và ghi rõ Actions ở S0.4 không deploy. `tests/deploy/config.test.ts` khóa các điểm này.
+    Đã kiểm `npx wrangler deploy --dry-run` (đọc 52 tệp từ `dist/`); **chưa deploy thật** (cần nối Workers Builds trên dashboard, xem README). "Cloudflare Pages" trong `CLAUDE.md`, `docs/PLAN.md`, `docs/SESSIONS.md` đã đổi thành Workers static assets.
+  - Kiểm tra: `npm test` (391 test), `npm run build`, `npm run lint` xanh. JS 54,0 KB gzip (S0.1: 46,7 KB; ngân sách 300 KB). Trong Chrome 154 (dpr 1,25 → ×3 ở 1536 px; iframe 380 px → ×1): dòng quét chỉ chứa đúng màu token, độ dài mọi đoạn là bội của hệ số phóng, không có màu pha; không cuộn ngang ở 380 px; không thấy lỗi nào do trang phát ra trong console (chỉ có lỗi của một extension Chrome, lọc theo từ khóa `React|Warning|canvas|font|RangeError`).
+  - Điều quan sát được khi kiểm tra:
+    - Trên ảnh ca B, resist chỉ còn ≈ 410 nm chứ không phải 500 nm: RIE ăn cả resist (độ chọn lọc resist ≈ 3,6 ở 200 W), đúng mô hình, không phải lỗi vẽ.
+    - Điện thoại: hệ số phóng là số nguyên nên ảnh rộng ≈ 260 css px trong khung ≈ 317 px (dpr 2 và 3), hai bên có dải nền `--screen`; ở dpr 1,25 là ×1 (208 css px). Nhãn chiếm khá nhiều chỗ trên ảnh nhỏ; chưa chỉnh.
+    - `npm audit`: 3 cảnh báo mức cao, cả ba qua chuỗi `wrangler → miniflare → sharp` (chỉ dev, không vào `dist/`; dependency production: 0). `npm audit fix --force` sẽ hạ wrangler xuống 4.15.2 nên không chạy.
 
 ## Next
-- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này.
-- Đo thời gian tính lại trên điện thoại thật sau khi deploy ở S0.3, rồi mới tick "< 50 ms trên điện thoại" trong `m04-etch.md`.
+- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu "lạnh" của `runRecipe` đo được ≈ 30 ms (27–70 ms) trên Chrome desktop (xem "Lần chạy lạnh" bên dưới); đưa nó ra worker để không chặn luồng UI.
+- Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?debug=1` trên điện thoại thật, ghi `runRecipe` và `arrivalTime` (lần tải đầu và các lần tải lại), rồi mới tick "< 50 ms trên điện thoại" trong `m04-etch.md`.
 - Còn lại của M04 (ngoài S0.2): KOH, Bosch, Endpoint (S1.3), UI và chấm điểm (S1.2).
 - Khi port UI từ prototype: prototype tô chữ chỉ số bằng `--ok`/`--warn` (`.m.g b`, `.grade.g b`…); phải đổi sang `--ok-ink`/`--warn-ink`.
-- Khi bắt đầu có công thức/ký hiệu vật lý trong UI: kiểm tra glyph `λ`, `₂`, `°`, `×` có hiển thị đúng trong 3 font (hiện chỉ nạp subset latin, latin-ext, vietnamese; thêm `greek` cho JetBrains Mono nếu cần).
-- S0.3 renderer + README/Cloudflare Pages; S0.4 Worker + Playwright (`npm run e2e`) + GitHub Actions.
+- Glyph: `≈` (U+2248) và `₂` (U+2082) không nằm trong subset nào của 3 font đã nạp (subset latin của JetBrains Mono chỉ có `↑ ↓ − ∕` trong dải ký hiệu), nên trình duyệt lấy chúng từ font hệ thống (Consolas/Menlo/ui-monospace). Đã thấy `≈` trên canvas và `₂` trong chú giải DOM hiển thị đúng, đọc được trong Chrome trên Windows; chưa kiểm trên Android/iOS/macOS. Khi bắt đầu có công thức/ký hiệu vật lý trong UI, kiểm tra thêm `λ`, `°`, `×`, `→` (thêm `greek` cho JetBrains Mono nếu cần).
+- S0.4: Worker + Playwright (`npm run e2e`) + GitHub Actions chạy lint, test, build, e2e (không deploy; deploy do Workers Builds).
 
 ## Values to verify
 | Hằng số | Giá trị hiện tại | Mức | Cần đối chiếu ở |
@@ -115,6 +133,18 @@ Node: trung bình của 2 lần `npm run bench`. Chrome: trung vị 40 lần sau
 
 Không truyền `maxTimeMin` (đường không giới hạn) thì bản (b) tương đương bản (a): Node 3,5 / 11,8 / 11,9 ms, Chrome 4× 18,1 / 53,7 / 53,9 ms cho A / B / C.
 Cả ba ca đều dưới 50 ms ở CPU 4× khi có giới hạn; ca RIE nhanh gấp 2,5–3 lần so với bản (a). Mục "< 50 ms trên điện thoại" vẫn chưa tick cho tới khi đo trên máy thật.
+
+### Lần chạy lạnh (S0.3, `?debug=1`)
+Các bảng trên là số đo **nóng** (sau 8 lần chạy nóng). Trong ứng dụng, người học gặp trước hết lần chạy **lạnh**: `runRecipe(DEFAULT_RECIPE)` ngay sau khi tải trang, khi V8 chưa tối ưu vòng Dijkstra. Đọc từ dòng `?debug=1` của Viewer.
+Máy đo như trên (Ryzen 5 PRO 4650G, Windows 10, Chrome 154, bản `vite build` chạy qua `vite preview`, dpr 1,25), ca B, `maxTimeMin` = 14:
+
+| Phép đo | `runRecipe` | `arrivalTime` |
+|---|---|---|
+| Tải trang, 2 lần (tab chính; iframe 380 px) | 33,3 / 33,4 | 30,5 / 30,6 |
+| Iframe nạp nối tiếp, 5 lần | 63,2 / 69,8 / 28,5 / 30,6 / 29,2 | 61,3 / 64,3 / 26,9 / 27,2 / 27,4 |
+| Tham chiếu: nóng, Chrome 1× (bảng (b) ở trên) | 3,9 | 3,7 |
+
+Lần chạy lạnh chậm hơn lần nóng khoảng 8 lần (≈ 30 ms so với ≈ 4 ms), hai lần đầu ở chuỗi iframe còn tới 63–70 ms (chưa rõ do JIT hay do trang cha đang bận). Trên điện thoại tầm trung chậm hơn máy này vài lần, nên lần chạy đầu có thể vượt 50 ms; tiêu chí "< 50 ms" chưa tick và phải đo lại lần tải đầu trên máy thật. Worker (S0.4) đưa phép tính ra khỏi luồng UI nhưng không làm nó nhanh hơn.
 
 ## Science review
 (chưa có)

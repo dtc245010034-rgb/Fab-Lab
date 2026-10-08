@@ -16,7 +16,7 @@ Audience: students and curious non-experts. Accuracy matters more than spectacle
 Vite + TypeScript (strict) + React 18 for the UI shell. Canvas 2D for cross-sections,
 Three.js only for 3D scenes (wafer, equipment). Physics/sim run in a **Web Worker** (Comlink);
 the UI thread only sends parameters and draws results. Learner text in **MDX + KaTeX**.
-Vitest (unit) + Playwright (e2e smoke). GitHub Actions CI. Static deploy to Cloudflare Pages.
+Vitest (unit) + Playwright (e2e smoke). GitHub Actions CI. Static deploy on Cloudflare Workers static assets (`wrangler.jsonc`), built and deployed by Workers Builds.
 No backend until Phase 4 (see docs/PLAN.md). No external asset files: geometry is generated in code.
 
 ## Architecture (dependency direction: ui → sim → physics; never the reverse)

@@ -31,7 +31,7 @@ thay đổi theo đúng cơ chế vật lý. Cuối mỗi module có chấm đi�
 - Port mô hình khắc của `reference/prototype-m04-etch.html` sang `src/physics/etch.ts` + `src/sim/grid.ts`, kèm test.
 - Chạy physics/sim trong Web Worker (Comlink); UI không bị giật khi kéo thanh trượt.
 - CI GitHub Actions (lint, test, build, e2e); Playwright smoke test đầu tiên.
-- Deploy bản rỗng lên Cloudflare Pages, bật Cloudflare Web Analytics (không cookie).
+- Deploy bản rỗng lên Cloudflare Workers (static assets, build bằng Workers Builds), bật Cloudflare Web Analytics (không cookie).
 **Xong khi:** `npm test` và `npm run build` xanh; trang khung chạy trên điện thoại; test khắc tái tạo
 được 3 ca chuẩn (xem `docs/modules/m04-etch.md`).
 
@@ -81,6 +81,6 @@ thay đổi theo đúng cơ chế vật lý. Cuối mỗi module có chấm đi�
 | Bản quyền nội dung | Tự viết lại, trích nguồn, không chép hình hay đoạn văn từ sách |
 
 ## 6. Triển khai
-Cloudflare Pages (build `npm run build`, thư mục `dist/`), gắn tên miền riêng.
+Cloudflare Workers static assets (`wrangler.jsonc`, thư mục `dist/`; Workers Builds nối GitHub chạy `npm ci && npm test && npm run build` rồi `npx wrangler deploy`), gắn tên miền riêng.
 Không có backend tới Giai đoạn 4 nên không cần Tunnel. Tiến độ người học lưu bằng localStorage (try/catch),
 kèm nút xuất/nhập file "traveler" JSON để không mất tiến độ khi xóa dữ liệu trình duyệt.
