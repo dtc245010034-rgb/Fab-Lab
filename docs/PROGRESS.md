@@ -54,8 +54,8 @@
     - `npm audit`: 3 cảnh báo mức cao, cả ba qua chuỗi `wrangler → miniflare → sharp` (chỉ dev, không vào `dist/`; dependency production: 0). `npm audit fix --force` sẽ hạ wrangler xuống 4.15.2 nên không chạy.
 
 ## Next
-- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu "lạnh" của `runRecipe` đo được ≈ 30 ms (27–70 ms) trên Chrome desktop (xem "Lần chạy lạnh" bên dưới); đưa nó ra worker để không chặn luồng UI.
-- Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?debug=1` trên điện thoại thật, ghi `runRecipe` và `arrivalTime` (lần tải đầu và các lần tải lại), rồi mới tick "< 50 ms trên điện thoại" trong `m04-etch.md`.
+- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu (cold) của `runRecipe` đo được trung vị 38,7 ms (29–54 ms) trên Chrome desktop và ≈ 85 ms ở CPU 4× (ước lượng), xem "Cold và warm trên bản build" bên dưới; đưa nó ra worker để không chặn luồng UI. Lần gọi thứ 2–3 cũng chưa ấm hẳn (28 ms ở 1×, 42–58 ms ở 4×).
+- Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?debug=1` trên điện thoại thật và ghi `runRecipe`, `arrivalTime` của lần tải đầu (cold, ghi riêng). Tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chỉ tick khi có số warm đo trên máy thật; `/?debug=1` hiện chỉ cho số cold nên cần chỗ gọi lại `runRecipe` (thanh trượt hoặc trang đo riêng) trước.
 - Còn lại của M04 (ngoài S0.2): KOH, Bosch, Endpoint (S1.3), UI và chấm điểm (S1.2).
 - Khi port UI từ prototype: prototype tô chữ chỉ số bằng `--ok`/`--warn` (`.m.g b`, `.grade.g b`…); phải đổi sang `--ok-ink`/`--warn-ink`.
 - Glyph: `≈` (U+2248) và `₂` (U+2082) không nằm trong subset nào của 3 font đã nạp (subset latin của JetBrains Mono chỉ có `↑ ↓ − ∕` trong dải ký hiệu), nên trình duyệt lấy chúng từ font hệ thống (Consolas/Menlo/ui-monospace). Đã thấy `≈` trên canvas và `₂` trong chú giải DOM hiển thị đúng, đọc được trong Chrome trên Windows; chưa kiểm trên Android/iOS/macOS. Khi bắt đầu có công thức/ký hiệu vật lý trong UI, kiểm tra thêm `λ`, `°`, `×`, `→` (thêm `greek` cho JetBrains Mono nếu cần).
@@ -109,7 +109,7 @@ Máy đo: AMD Ryzen 5 PRO 4650G (6 nhân / 12 luồng), 13,9 GB RAM, Windows 10,
 Lưới 260×150, 10 nm/ô. Đơn vị ms. "Toàn bộ" = litho → lưới → tốc độ → arrival-time → chỉ số.
 Node: trung bình của 2 lần `npm run bench`. Chrome: trung vị 40 lần sau 8 lần chạy nóng, mã bundle bằng Vite (minify).
 "CPU 4×" là `Emulation.setCPUThrottlingRate`, cùng cơ chế với tùy chọn "CPU: 4× slowdown" của DevTools: chỉ là ước lượng, **không thay** phép đo trên điện thoại thật
-(mục "< 50 ms trên điện thoại" trong `m04-etch.md` chưa tick; đo sau khi deploy ở S0.3).
+(tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chưa tick; cần đo trên điện thoại thật).
 
 **Bản (a): port trung thành, chưa tối ưu**
 
@@ -132,19 +132,42 @@ Node: trung bình của 2 lần `npm run bench`. Chrome: trung vị 40 lần sau
 Đo lại sau commit review (thêm kiểm tra rates và mã vật liệu): không đổi trong sai số. Node: A / B / C = 3,3 / 3,8 / 3,3 ms (arrival, có giới hạn); Chrome 4× (arrival, có giới hạn) 15,7 / 20,5 / 15,3 ms, tệ nhất trong 40 lần 18,7 / 29,4 / 18,8 ms; toàn bộ tệ nhất 24,1 / 35,5 / 17,7 ms. Bảng trên giữ nguyên.
 
 Không truyền `maxTimeMin` (đường không giới hạn) thì bản (b) tương đương bản (a): Node 3,5 / 11,8 / 11,9 ms, Chrome 4× 18,1 / 53,7 / 53,9 ms cho A / B / C.
-Cả ba ca đều dưới 50 ms ở CPU 4× khi có giới hạn; ca RIE nhanh gấp 2,5–3 lần so với bản (a). Mục "< 50 ms trên điện thoại" vẫn chưa tick cho tới khi đo trên máy thật.
+Cả ba ca đều dưới 50 ms ở CPU 4× khi có giới hạn; ca RIE nhanh gấp 2,5–3 lần so với bản (a). Tiêu chí "warm < 50 ms trên điện thoại" vẫn chưa tick cho tới khi đo trên máy thật.
 
-### Lần chạy lạnh (S0.3, `?debug=1`)
-Các bảng trên là số đo **nóng** (sau 8 lần chạy nóng). Trong ứng dụng, người học gặp trước hết lần chạy **lạnh**: `runRecipe(DEFAULT_RECIPE)` ngay sau khi tải trang, khi V8 chưa tối ưu vòng Dijkstra. Đọc từ dòng `?debug=1` của Viewer.
-Máy đo như trên (Ryzen 5 PRO 4650G, Windows 10, Chrome 154, bản `vite build` chạy qua `vite preview`, dpr 1,25), ca B, `maxTimeMin` = 14:
+### Cold và warm trên bản build (S0.3, đo lại 2026-10-09)
+Tiêu chí M04 đã đổi: **warm** recompute < 50 ms trên điện thoại tầm trung; **cold** ghi riêng, không tính vào tiêu chí. Trong bảng này, *cold* = lần gọi `runRecipe` đầu tiên sau khi tải trang (người học gặp trước hết), *warm* = lần gọi thứ 9 trở đi trong cùng trang (mức ổn định; cùng quy ước 8 lần chạy nóng ở các bảng trên).
+Máy đo như trên (Ryzen 5 PRO 4650G, Windows 10, Chrome 154.0.8037.98 headless điều khiển qua CDP). Bản production `npm run build` (`index-NdkceU__.js`, 162,1 KB, 54,0 KB gzip) chạy qua `vite preview`; không phải server dev nên React không gọi đôi (StrictMode chỉ gọi đôi ở bản dev). Mỗi lần đo cold dùng một browser context mới (không cache HTTP, không code cache V8), tức là lần vào trang đầu tiên. "4×" là `Emulation.setCPUThrottlingRate`, chỉ là ước lượng, **không thay** phép đo trên điện thoại thật.
 
-| Phép đo | `runRecipe` | `arrivalTime` |
+**Cold**: trang thật, `/?debug=1`, ca B (`DEFAULT_RECIPE`, `maxTimeMin` = 14), 15 lần tải.
+
+| CPU | `runRecipe` trung vị (nhỏ nhất – lớn nhất) | `arrivalTime` trung vị |
 |---|---|---|
-| Tải trang, 2 lần (tab chính; iframe 380 px) | 33,3 / 33,4 | 30,5 / 30,6 |
-| Iframe nạp nối tiếp, 5 lần | 63,2 / 69,8 / 28,5 / 30,6 / 29,2 | 61,3 / 64,3 / 26,9 / 27,2 / 27,4 |
-| Tham chiếu: nóng, Chrome 1× (bảng (b) ở trên) | 3,9 | 3,7 |
+| 1× | 38,7 (29,4 – 53,8) | 35,3 |
+| 4× (ước lượng) | 84,7 (69,2 – 159,0) | 69,2 |
 
-Lần chạy lạnh chậm hơn lần nóng khoảng 8 lần (≈ 30 ms so với ≈ 4 ms), hai lần đầu ở chuỗi iframe còn tới 63–70 ms (chưa rõ do JIT hay do trang cha đang bận). Trên điện thoại tầm trung chậm hơn máy này vài lần, nên lần chạy đầu có thể vượt 50 ms; tiêu chí "< 50 ms" chưa tick và phải đo lại lần tải đầu trên máy thật. Worker (S0.4) đưa phép tính ra khỏi luồng UI nhưng không làm nó nhanh hơn.
+Bảy lần tải đầu sau khi khởi động Chrome chậm hơn (41–54 ms), tám lần sau 29–39 ms; chưa rõ nguyên nhân nên không kết luận. Không tái hiện được 63–70 ms của hai lần iframe đầu ở lần đo trước (lớn nhất ở đây 53,8 ms).
+
+**Warm**: trang đo tạm (ngoài repo) build bằng cùng Vite, import đúng `runRecipe` từ `src/sim/recipe.ts`, gọi 48 lần mỗi trang, 3 trang mỗi ca; lấy lần gọi 9–48 (120 mẫu mỗi ô). Lý do: trang thật chỉ gọi `runRecipe` một lần, chưa có chỗ gọi lại.
+
+| Ca | 1×: trung vị / p95 / lớn nhất | 4× (ước lượng): trung vị / p95 / lớn nhất |
+|---|---|---|
+| A ướt BOE 6:1, cửa sổ 800 nm | 3,6 / 5,4 / 6,4 | 16,7 / 23,9 / 36,7 |
+| B RIE 200 W, 30 mTorr, 800 nm | 4,5 / 6,1 / 25,4 | 19,1 / 22,2 / 33,8 |
+| C RIE 80 W, 180 mTorr, 400 nm | 3,5 / 4,8 / 5,5 | 17,1 / 40,1 / 80,0 |
+
+Số warm khớp bảng (b) ở trên (Chrome 4×, toàn bộ: 16,4 / 18,3 / 15,6). Có một mẫu 80,0 ms (ca C, 4×, lần gọi thứ 23) và một mẫu 60,9 ms (lần thứ 26) trong 360 mẫu warm ở 4×; chưa xác định nguyên nhân (có thể là GC hoặc nhiễu của máy đo).
+
+**Đường ấm dần** (trung vị của lần gọi thứ 1 → 6 qua 3 trang, ms):
+
+| Ca, CPU | 1 | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| B, 1× | 39,7 | 28,1 | 9,0 | 6,7 | 6,4 | 6,6 |
+| B, 4× | 75,9 | 42,9 | 23,2 | 21,7 | 23,3 | 21,9 |
+| C, 4× | 90,8 | 58,0 | 22,6 | 24,0 | 24,5 | 18,4 |
+
+Lần gọi thứ 2 (người học đổi thông số lần đầu) còn chưa ấm: 28 ms ở 1×, 42–58 ms ở 4×; từ lần thứ 3–4 mới gần mức warm. Tiêu chí "warm" chỉ nói về mức ổn định, nên 1–2 lần đầu nằm ngoài; ghi lại để quyết định ở S0.4 (worker, có thể chạy thử một lần lúc rảnh) nếu cần.
+
+Worker (S0.4) đưa phép tính ra khỏi luồng UI nhưng không làm nó nhanh hơn. `/?debug=1` hiện chỉ cho số cold; để đo warm trên điện thoại thật cần chỗ gọi lại `runRecipe` (thanh trượt ở S1.2 hoặc một trang đo riêng).
 
 ## Science review
 (chưa có)

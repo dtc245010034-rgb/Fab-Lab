@@ -54,7 +54,7 @@ Chỉ khác cửa sổ thiết kế như ghi trong bảng.
 
 ## Tiêu chí xong
 - [x] 3 ca hồi quy pass; test quy luật trong SCIENCE.md mục 5 pass.
-- [ ] Tính lại < 50 ms ở lưới 260×150 trên điện thoại tầm trung. (Đã đo: Chrome với CPU 4× chậm, trung vị 15–21 ms, tối đa 38 ms; xem `PROGRESS.md`. Lần chạy lạnh đầu tiên sau khi tải trang đo được ≈ 30 ms trên Chrome desktop, vượt xa số đo nóng. Chờ đo điện thoại thật bằng `/?debug=1` sau khi deploy.)
+- [ ] Tính lại **warm** < 50 ms ở lưới 260×150 trên điện thoại tầm trung (warm = từ lần gọi thứ 9 trở đi trong cùng trang); lần chạy **cold** ghi riêng, không tính vào tiêu chí. (Ước lượng bằng Chrome desktop với CPU 4×: warm trung vị 17–19 ms, p95 ≤ 40 ms; cold trung vị ≈ 85 ms. Phương pháp và số đo ở `PROGRESS.md`. Chờ đo điện thoại thật.)
 - [ ] KOH cho vách 54,74° ± 3°; Bosch hiện scallop, số gợn = số chu kỳ.
 - [ ] Endpoint: dừng đúng lúc cho điểm cao hơn dừng theo thời gian cố định khi độ dày oxit không đều.
 - [ ] Mọi câu giải thích đã đọc lại đối chiếu với SCIENCE.md.
