@@ -47,6 +47,13 @@ describe('wrangler.jsonc', () => {
     expect(wrangler.compatibility_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
+  it('has a previews block, or `wrangler preview` (branch builds) refuses to run', () => {
+    // Workers Builds runs `npx wrangler preview` on branches other than production; wrangler
+    // 4.148.0 fails that command with "missing a `previews` block" unless the key is present.
+    // The block can be empty: assets and compatibility settings stay at the top level.
+    expect(wrangler.previews).toEqual({});
+  });
+
   it('points at the folder Vite builds into', () => {
     // vite.config.ts sets no outDir, so Vite's default `dist` applies
     expect(read('vite.config.ts')).not.toMatch(/outDir/);
@@ -92,6 +99,11 @@ describe('README.md deploy section', () => {
   it('gives the exact build and deploy commands', () => {
     expect(readme).toContain('npm ci && npm test && npm run build');
     expect(readme).toContain('npx wrangler deploy');
+  });
+
+  it('names the deploy command of branch builds and the previews block it needs', () => {
+    expect(readme).toContain('npx wrangler preview');
+    expect(readme).toContain('"previews": {}');
   });
 
   it('says the GitHub Actions of S0.4 do not deploy', () => {

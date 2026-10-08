@@ -60,6 +60,7 @@
   - Số test: 426 (trước đó 391). `npm run build`, `npm run lint` xanh. JS 54,5 KB gzip.
   - Cần review mắt: chọn `--navy` vì là token tối khác hẳn `--screen` mà không trùng vật liệu nào (`--ink` quá gần `--screen`, `--muted` gần `--si`); tương phản `--navy`/`--screen` chỉ ≈ 1,4:1 nên phần việc phân biệt chủ yếu do đường zigzag sáng. Nếu muốn dải ngoài sáng hơn, đổi `SURROUND_TOKEN` và token của `.screen` (một dòng mỗi nơi).
   - Ghi chú về `CLAUDE.md`: `npm run e2e` chưa tồn tại (thuộc S0.4), nên chưa chạy được trước khi merge.
+  - Workers Builds chạy lần đầu trên nhánh này (build #94d8a808, 46 s): `npm ci`, 426 test và `npm run build` đều xanh trên Cloudflare (Node 24.18, JS 54,51 KB gzip, trùng bản local). Đỏ ở bước deploy: lệnh deploy của nhánh khác `main` trên dashboard là `npx wrangler preview`, và wrangler 4.148.0 từ chối nếu `wrangler.jsonc` thiếu khối `"previews"`. Đã thêm `"previews": {}` (test khóa, README ghi lại); `wrangler deploy --dry-run` cho kết quả như cũ. Chưa chạy được `wrangler preview` ở máy vì cần token Cloudflare: bằng chứng cuối là lần build kế tiếp trên Cloudflare, cần xem xanh trước khi merge.
 
 ## Next
 - S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu (cold) của `runRecipe` đo được trung vị 38,7 ms (29–54 ms) trên Chrome desktop và ≈ 85 ms ở CPU 4× (ước lượng), xem "Cold và warm trên bản build" bên dưới; đưa nó ra worker để không chặn luồng UI. Lần gọi thứ 2–3 cũng chưa ấm hẳn (28 ms ở 1×, 42–58 ms ở 4×).

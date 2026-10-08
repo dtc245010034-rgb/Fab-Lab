@@ -39,6 +39,10 @@ Trang là các tệp tĩnh trong `dist/`, phục vụ bằng Workers static asse
    | Deploy command    | `npx wrangler deploy`                 |
    | Root directory    | (để trống)                            |
 
+   Nhánh khác `main` cũng được build; lệnh deploy của các nhánh đó trên dashboard là
+   `npx wrangler preview`. Lệnh này từ chối chạy nếu `wrangler.jsonc` không có khối
+   `"previews": {}` (đã có sẵn, để trống là đủ), nên đừng xóa khối đó.
+
 4. Mỗi lần push vào `main`, Cloudflare chạy build command rồi deploy command; test đỏ thì
    không deploy. Workers Builds dùng đúng phiên bản wrangler ghi trong `package.json`
    (`4.148.0`, ghim chính xác, không dùng `^`).

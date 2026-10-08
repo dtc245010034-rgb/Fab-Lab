@@ -9,4 +9,7 @@
     // Unknown paths get index.html (single-page app).
     "not_found_handling": "single-page-application",
   },
+  // Workers Builds runs `npx wrangler preview` on branches other than main; that command refuses
+  // a config without this key. Empty is enough: assets and settings stay at the top level.
+  "previews": {},
 }
