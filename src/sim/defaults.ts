@@ -24,6 +24,17 @@ export const DEFAULT_GRID_SPEC: GridSpec = {
 export const ETCH_TIME_MAX_MIN = { boe: 8, hf49: 0.5, dry: 14 } as const;
 
 /**
+ * Tooling settings for the worker, not statements about the real process (no tier, like the grid).
+ * The first calls of `runRecipe` in a fresh page are slower than the steady state, so the worker
+ * runs each of cases A, B, C this many times at idle before the learner's first changes arrive.
+ * Measured in docs/PROGRESS.md: by the 3rd or 4th call the cost has settled.
+ */
+export const WARMUP_RUNS_PER_CASE = 3;
+
+/** How many times `?bench=1` runs each of cases A, B, C. */
+export const BENCH_RUNS_PER_CASE = 30;
+
+/**
  * Case B of docs/modules/m04-etch.md: RIE 200 W, 30 mTorr, 4.6 min through an 800 nm window, on
  * 3000 rpm resist (500 nm), i-line, dose ×1. Recipe inputs from the spec, not physical constants.
  */

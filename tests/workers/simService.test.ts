@@ -10,15 +10,7 @@ import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import { runRecipe, type Recipe, type RecipeResult } from '../../src/sim/recipe';
 import { SimService, type SimApi } from '../../src/workers/simService';
 import { BASE_LITHO, rie, wet } from '../sim/helpers';
-
-/** A yield the test releases by hand, so requests can pile up "while the worker is busy". */
-function manualYield() {
-  const waiters: (() => void)[] = [];
-  return {
-    yieldToEventLoop: () => new Promise<void>((resolve) => waiters.push(resolve)),
-    release: () => waiters.splice(0).forEach((resolve) => resolve()),
-  };
-}
+import { manualYield } from './helpers';
 
 const caseA: Recipe = { litho: BASE_LITHO, etch: wet('boe6', 3.3) };
 

@@ -1,4 +1,4 @@
-import { DEFAULT_RECIPE } from './defaults';
+import { DEFAULT_RECIPE, WARMUP_RUNS_PER_CASE } from './defaults';
 import type { Recipe } from './recipe';
 
 /**
@@ -25,3 +25,11 @@ export const M04_CASES: readonly M04Case[] = [
     },
   },
 ];
+
+/**
+ * What the worker runs at idle after it starts: A, B, C, A, B, C, ... Round-robin, so every
+ * round exercises the wet path and both RIE paths before any of them is repeated.
+ */
+export function warmUpRecipes(runsPerCase: number = WARMUP_RUNS_PER_CASE): Recipe[] {
+  return Array.from({ length: runsPerCase }, () => M04_CASES.map((c) => c.recipe)).flat();
+}

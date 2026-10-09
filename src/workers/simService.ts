@@ -26,6 +26,8 @@ export interface SimServiceOptions {
   yieldToEventLoop?: () => Promise<void>;
   /** The computation. Default: `runRecipe`. Replaced in tests to count or capture runs. */
   compute?: (recipe: Recipe) => RecipeResult;
+  /** Recipes to run, in order and at idle, once `startWarmUp()` is called. Default: none. */
+  warmUp?: readonly Recipe[];
 }
 
 /**
@@ -72,41 +74,84 @@ interface Job {
 export class SimService implements SimApi {
   private readonly yieldToEventLoop: () => Promise<void>;
   private readonly compute: (recipe: Recipe) => RecipeResult;
+  private readonly warmUp: readonly Recipe[];
   private pending: Job | null = null;
-  private draining = false;
+  private warmQueue: Recipe[] = [];
+  private pumping = false;
+  private finishWarmUp: () => void = () => {};
+
+  /**
+   * Settles when the warm-up has run its last recipe (at once if there is nothing to run). `?bench=1`
+   * waits for it so that its samples are all steady-state ones.
+   */
+  readonly warmedUp: Promise<void>;
 
   constructor(options: SimServiceOptions = {}) {
     this.yieldToEventLoop = options.yieldToEventLoop ?? yieldViaMessageChannel;
     this.compute = options.compute ?? runRecipe;
+    this.warmUp = options.warmUp ?? [];
+    this.warmedUp = new Promise((resolve) => {
+      this.finishWarmUp = resolve;
+    });
+    if (this.warmUp.length === 0) this.finishWarmUp();
   }
 
   run(id: number, recipe: Recipe): Promise<RunOutcome> {
     return new Promise((resolve, reject) => {
       this.pending?.resolve({ status: 'superseded', id: this.pending.id });
       this.pending = { id, recipe, resolve, reject };
-      if (!this.draining) {
-        this.draining = true;
-        void this.drain();
-      }
+      this.pump();
     });
   }
 
-  /** Takes the newest waiting request after each yield until none is left. Never rejects. */
-  private async drain(): Promise<void> {
+  /**
+   * Queues the warm-up recipes; they run one per turn of the event loop while no real request
+   * is waiting. A computation cannot be interrupted, so a real request that arrives during one
+   * waits for that single run and is served before the next warm-up recipe.
+   */
+  startWarmUp(): void {
+    this.warmQueue = [...this.warmUp];
+    this.pump();
+  }
+
+  /** Starts the loop below unless it is already running. */
+  private pump(): void {
+    if (this.pumping) return;
+    this.pumping = true;
+    void this.work();
+  }
+
+  /**
+   * One computation per turn of the event loop: the newest real request if there is one, else the
+   * next warm-up recipe, else stop. Yielding first is what lets messages that were already queued
+   * replace the one that was waiting. Never rejects.
+   */
+  private async work(): Promise<void> {
     try {
-      while (this.pending) {
+      while (this.pending || this.warmQueue.length > 0) {
         await this.yieldToEventLoop();
         const job = this.pending;
-        if (!job) break;
-        this.pending = null;
-        try {
-          job.resolve(okOutcome(job.id, this.compute(job.recipe)));
-        } catch (error) {
-          job.reject(error);
+        if (job) {
+          this.pending = null;
+          try {
+            job.resolve(okOutcome(job.id, this.compute(job.recipe)));
+          } catch (error) {
+            job.reject(error);
+          }
+          continue;
         }
+        const recipe = this.warmQueue.shift();
+        if (!recipe) continue;
+        try {
+          this.compute(recipe); // the result is dropped; only the warmed-up code stays
+        } catch {
+          // Warm-up is best effort. The recipes are the tested cases, so a failure here would
+          // already show in their own tests; it must not stop the queue or reach the page.
+        }
+        if (this.warmQueue.length === 0) this.finishWarmUp();
       }
     } finally {
-      this.draining = false;
+      this.pumping = false;
     }
   }
 }
