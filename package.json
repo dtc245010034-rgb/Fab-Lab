@@ -10,6 +10,7 @@
     "test": "vitest run",
     "bench": "vitest bench --run",
     "lint": "eslint . && prettier --check .",
+    "e2e": "npm run build && playwright test",
     "format": "prettier --write .",
     "deploy": "npm run build && wrangler deploy"
   },

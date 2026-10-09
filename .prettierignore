@@ -6,3 +6,5 @@ CLAUDE.md
 docs/
 content-source/
 reference/
+playwright-report/
+test-results/

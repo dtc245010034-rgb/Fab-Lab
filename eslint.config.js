@@ -32,7 +32,18 @@ const noReact = {
 };
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'node_modules', 'docs', 'content-source', 'reference'] },
+  {
+    ignores: [
+      'dist',
+      'coverage',
+      'node_modules',
+      'docs',
+      'content-source',
+      'reference',
+      'playwright-report',
+      'test-results',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],
