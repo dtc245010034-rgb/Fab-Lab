@@ -1,23 +1,12 @@
-// Test-only glue: runs litho → grid → etch rates → arrival time → metrics the way a caller would.
-import {
-  arrivalTime,
-  Material,
-  rieRates,
-  wetEtchRates,
-  type ArrivalOptions,
-} from '../../src/physics/etch';
-import { printLitho, type LithoInput } from '../../src/physics/litho';
+// Test helpers: recipe constructors and a thin wrapper over the production `runRecipe`.
+// There is deliberately no second copy of the litho → grid → arrival → metrics pipeline here.
+import { arrivalTime, Material } from '../../src/physics/etch';
+import type { LithoInput } from '../../src/physics/litho';
 import { DEFAULT_GRID_SPEC } from '../../src/sim/defaults';
-import { buildGrid, measureEtch, type GridSpec } from '../../src/sim/grid';
+import type { GridSpec } from '../../src/sim/grid';
+import { runRecipe, type EtchStep, type Recipe } from '../../src/sim/recipe';
 
-export type EtchStep =
-  | { mode: 'wet'; etchant: 'boe10' | 'boe6' | 'hf49'; timeMin: number }
-  | { mode: 'dry'; powerW: number; pressureMTorr: number; timeMin: number };
-
-export interface Recipe {
-  litho: LithoInput;
-  etch: EtchStep;
-}
+export type { EtchStep, Recipe };
 
 /** Start condition of M04: 3000 rpm (500 nm resist), i-line, 800 nm window, dose ×1. */
 export const BASE_LITHO: LithoInput = { spinRpm: 3000, source: 'i', designNm: 800, dose: 1 };
@@ -35,36 +24,21 @@ export const rie = (powerW: number, pressureMTorr: number, timeMin: number): Etc
 });
 
 /**
- * Largest time the prototype's time slider offers for a recipe: 8 min (BOE), 0.5 min (HF 49 %),
- * 14 min (RIE). A caller passes this as `maxTimeMin` so that dragging the time never recomputes.
+ * `runRecipe` plus the two fields the tests read most. The arrival field is the one production
+ * gets: searched up to the largest time the time control offers (`etchTimeMaxMin`), so a recipe
+ * whose time is beyond that throws RangeError, as it does in the app.
  */
-export function sliderMaxMin(step: EtchStep): number {
-  if (step.mode === 'dry') return 14;
-  return step.etchant === 'hf49' ? 0.5 : 8;
+export function simulate(recipe: Recipe, spec: GridSpec = DEFAULT_GRID_SPEC) {
+  const result = runRecipe(recipe, spec);
+  return { ...result, arrival: result.field.arrival, timeMin: recipe.etch.timeMin };
 }
 
-export function simulate(
-  recipe: Recipe,
-  spec: GridSpec = DEFAULT_GRID_SPEC,
-  options?: ArrivalOptions,
-) {
-  const litho = printLitho(recipe.litho);
-  const section = buildGrid(spec, litho, 'developed');
-  const rates =
-    recipe.etch.mode === 'wet'
-      ? wetEtchRates(recipe.etch.etchant)
-      : rieRates({ powerW: recipe.etch.powerW, pressureMTorr: recipe.etch.pressureMTorr });
-  const field = arrivalTime(section, rates, options);
-  const metrics = measureEtch(section, field, recipe.etch.timeMin);
-  return {
-    litho,
-    section,
-    rates,
-    field,
-    arrival: field.arrival,
-    metrics,
-    timeMin: recipe.etch.timeMin,
-  };
+/**
+ * The plain search over the whole grid, with no `maxTimeMin`. Production never does this; it is
+ * the reference the prototype parity checks compare against.
+ */
+export function unboundedArrival(sim: ReturnType<typeof simulate>): Float64Array {
+  return arrivalTime(sim.section, sim.rates).arrival;
 }
 
 /** Depth etched into the oxide straight below the window centre, nm (a whole number of cells). */

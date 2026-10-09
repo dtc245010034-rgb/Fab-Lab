@@ -1,12 +1,13 @@
 /**
- * `runRecipe` is the glue the Viewer (and, from S0.4, the worker) calls: litho → grid → etch rates →
- * arrival time → metrics. It must agree with the test-only glue in helpers.ts, which the S0.2
- * regression tests are written against, and with the case-B row of docs/modules/m04-etch.md.
+ * `runRecipe` is the glue the worker calls: litho → grid → etch rates → arrival time → metrics.
+ * The S0.2 regression and parity tests run through it too (tests/sim/helpers.ts wraps it), so this
+ * file only pins what is specific to it: the case-B row of docs/modules/m04-etch.md, the field's
+ * range, and that the same recipe always gives the same result.
  */
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import { etchTimeMaxMin, runRecipe, type EtchStep } from '../../src/sim/recipe';
-import { BASE_LITHO, rie, simulate, wet } from './helpers';
+import { BASE_LITHO, rie, wet } from './helpers';
 
 describe('DEFAULT_RECIPE (case B of m04-etch.md)', () => {
   it('is RIE 200 W, 30 mTorr, 4.6 min on the base litho with an 800 nm window', () => {
@@ -29,14 +30,13 @@ describe('runRecipe', () => {
     expect(Math.abs(m.sidewallAngleDeg - 88)).toBeLessThanOrEqual(2);
   });
 
-  it('gives exactly what the test-only glue gives, field and metrics', () => {
-    const recipe = { litho: BASE_LITHO, etch: rie(200, 30, 4.6) };
-    const prod = runRecipe(recipe);
-    const test = simulate(recipe, undefined, { maxTimeMin: 14 });
-    expect(prod.metrics).toEqual(test.metrics);
-    expect(prod.field.maxTimeMin).toBe(test.field.maxTimeMin);
-    expect(prod.field.arrival).toEqual(test.field.arrival);
-    expect(prod.section.materials).toEqual(test.section.materials);
+  it('gives the same field, grid and metrics every time for the same recipe', () => {
+    const a = runRecipe(DEFAULT_RECIPE);
+    const b = runRecipe(DEFAULT_RECIPE);
+    expect(b.field.arrival).toEqual(a.field.arrival);
+    expect(b.field.maxTimeMin).toBe(a.field.maxTimeMin);
+    expect(b.section.materials).toEqual(a.section.materials);
+    expect(b.metrics).toEqual(a.metrics);
   });
 
   it('computes the field up to the slider maximum, not the chosen time', () => {

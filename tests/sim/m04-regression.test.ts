@@ -116,7 +116,9 @@ describe('SCIENCE.md §5: wet etch is isotropic, undercut ≈ depth', () => {
       [23, 171],
       [88, 262],
       [131, 284],
-      [233, 417], // across break-through of the oxide
+      // Across break-through of the 300 nm oxide. 395 nm of BOE 10:1 is 7.9 min: the pair used to
+      // end at 417 nm (8.34 min), beyond the 8 min the time control offers, which the app refuses.
+      [233, 395],
     ] as const;
     for (const [etchant, rate] of etchants) {
       for (const [d1, d2] of pairs) {

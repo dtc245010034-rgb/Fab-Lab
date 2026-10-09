@@ -5,7 +5,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { printLitho } from '../../src/physics/litho';
-import { simulate, sliderMaxMin } from './helpers';
+import { measureEtch } from '../../src/sim/grid';
+import { etchTimeMaxMin } from '../../src/sim/recipe';
+import { simulate, unboundedArrival } from './helpers';
 import { GOLDEN_ETCH, GOLDEN_LITHO } from './prototype-golden';
 
 const close = (label: string, actual: number, expected: number) =>
@@ -55,10 +57,12 @@ describe('etch parity with the prototype', () => {
     close('resistLeftNm', m.resistLeftNm, g.metrics.resistLeftNm);
     close('sidewallAngleDeg', m.sidewallAngleDeg, g.metrics.sidewallAngleDeg);
 
-    // Fingerprint of the whole arrival-time field, not only the cells the metrics look at.
+    // Fingerprint of the whole arrival-time field, not only the cells the metrics look at. The
+    // prototype searched the whole grid, so the reference is the search with no `maxTimeMin`;
+    // `simulate` (like the app) stops at the time control's maximum and leaves later cells at Infinity.
     let finiteCount = 0;
     let sumFinite = 0;
-    for (const t of s.arrival) {
+    for (const t of unboundedArrival(s)) {
       if (Number.isFinite(t)) {
         finiteCount++;
         sumFinite += t;
@@ -80,20 +84,19 @@ describe('stopping the search at the slider maximum changes nothing the learner 
       },
       etch: g.recipe,
     };
-    const maxTimeMin = sliderMaxMin(g.recipe);
+    const maxTimeMin = etchTimeMaxMin(g.recipe);
     expect(g.recipe.timeMin).toBeLessThanOrEqual(maxTimeMin);
 
-    const full = simulate(recipe);
-    const bounded = simulate(recipe, undefined, { maxTimeMin });
-    expect(bounded.metrics).toEqual(full.metrics);
+    // `bounded` is what the app computes; `full` is the same grid read from the unbounded search.
+    const bounded = simulate(recipe);
+    expect(bounded.field.maxTimeMin).toBe(maxTimeMin);
+    const full = { arrival: unboundedArrival(bounded), maxTimeMin: Infinity };
+    expect(bounded.metrics).toEqual(measureEtch(bounded.section, full, g.recipe.timeMin));
 
     // Every time the slider can reach gives the same picture, not only the chosen one.
     for (const t of [0, 0.25 * maxTimeMin, 0.5 * maxTimeMin, 0.75 * maxTimeMin, maxTimeMin]) {
-      const b = simulate({ ...recipe, etch: { ...recipe.etch, timeMin: t } }, undefined, {
-        maxTimeMin,
-      });
-      const f = simulate({ ...recipe, etch: { ...recipe.etch, timeMin: t } });
-      expect(b.metrics, `t = ${t} min`).toEqual(f.metrics);
+      const b = simulate({ ...recipe, etch: { ...recipe.etch, timeMin: t } });
+      expect(b.metrics, `t = ${t} min`).toEqual(measureEtch(b.section, full, t));
     }
     bounded.arrival.forEach((t, i) => {
       if (full.arrival[i]! <= maxTimeMin) expect(t).toBeCloseTo(full.arrival[i]!, 12);

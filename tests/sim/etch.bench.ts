@@ -3,33 +3,27 @@
  * mid-range phone). Run with `npm run bench`. Not part of `npm test`: timings are machine-bound,
  * so they are reported in docs/PROGRESS.md rather than asserted.
  *
- * "limit" runs pass maxTimeMin = the largest time the slider offers, which is how the UI will call
- * it; "no limit" is the plain search over the whole grid.
+ * `arrivalTime` is timed with and without `maxTimeMin` (= the largest time the time control
+ * offers, which is how the app calls it). The full recompute is `runRecipe`, which always passes it.
  */
 import { describe, test } from 'vitest';
 import { arrivalTime } from '../../src/physics/etch';
-import { printLitho } from '../../src/physics/litho';
-import { DEFAULT_GRID_SPEC } from '../../src/sim/defaults';
-import { buildGrid } from '../../src/sim/grid';
-import { BASE_LITHO, rie, simulate, sliderMaxMin, wet, type Recipe } from './helpers';
+import { M04_CASES } from '../../src/sim/cases';
+import { etchTimeMaxMin, runRecipe } from '../../src/sim/recipe';
 
-const cases: [string, Recipe][] = [
-  ['A  wet BOE 6:1, 800 nm window', { litho: BASE_LITHO, etch: wet('boe6', 3.3) }],
-  ['B  RIE 200 W / 30 mTorr, 800 nm', { litho: BASE_LITHO, etch: rie(200, 30, 4.6) }],
-  [
-    'C  RIE 80 W / 180 mTorr, 400 nm',
-    { litho: { ...BASE_LITHO, designNm: 400 }, etch: rie(80, 180, 9) },
-  ],
-];
+const NAMES = {
+  A: 'A  wet BOE 6:1, 800 nm window',
+  B: 'B  RIE 200 W / 30 mTorr, 800 nm',
+  C: 'C  RIE 80 W / 180 mTorr, 400 nm',
+} as const;
 
 describe('arrivalTime only', () => {
-  for (const [name, recipe] of cases) {
+  for (const { id, recipe } of M04_CASES) {
     for (const limited of [false, true]) {
-      test(`${name} ${limited ? 'limit' : 'no limit'}`, async ({ bench }) => {
-        const section = buildGrid(DEFAULT_GRID_SPEC, printLitho(recipe.litho), 'developed');
-        const { rates } = simulate(recipe);
-        const options = limited ? { maxTimeMin: sliderMaxMin(recipe.etch) } : undefined;
-        await bench(`arrivalTime  ${name}  ${limited ? 'limit   ' : 'no limit'}`, () => {
+      test(`${NAMES[id]} ${limited ? 'limit' : 'no limit'}`, async ({ bench }) => {
+        const { section, rates } = runRecipe(recipe);
+        const options = limited ? { maxTimeMin: etchTimeMaxMin(recipe.etch) } : undefined;
+        await bench(`arrivalTime  ${NAMES[id]}  ${limited ? 'limit   ' : 'no limit'}`, () => {
           arrivalTime(section, rates, options);
         }).run();
       });
@@ -37,15 +31,12 @@ describe('arrivalTime only', () => {
   }
 });
 
-describe('full recompute (litho → grid → rates → arrival → metrics)', () => {
-  for (const [name, recipe] of cases) {
-    for (const limited of [false, true]) {
-      test(`${name} ${limited ? 'limit' : 'no limit'}`, async ({ bench }) => {
-        const options = limited ? { maxTimeMin: sliderMaxMin(recipe.etch) } : undefined;
-        await bench(`full         ${name}  ${limited ? 'limit   ' : 'no limit'}`, () => {
-          simulate(recipe, undefined, options);
-        }).run();
-      });
-    }
+describe('full recompute (runRecipe: litho → grid → rates → arrival → metrics)', () => {
+  for (const { id, recipe } of M04_CASES) {
+    test(NAMES[id], async ({ bench }) => {
+      await bench(`full         ${NAMES[id]}  limit   `, () => {
+        runRecipe(recipe);
+      }).run();
+    });
   }
 });
