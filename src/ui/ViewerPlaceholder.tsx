@@ -4,7 +4,7 @@ import { DEFAULT_GRID_SPEC } from '../sim/defaults';
 export function ComputeFailedNotice() {
   return (
     <p className="notice" role="alert">
-      Không tính được mặt cắt. Hãy tải lại trang để thử lại.
+      Không tính được mặt cắt. Tải lại trang để thử lại.
     </p>
   );
 }

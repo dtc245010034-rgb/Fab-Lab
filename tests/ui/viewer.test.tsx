@@ -130,7 +130,9 @@ describe('Viewer while a newer result is being computed', () => {
 
   it('says a computation failed, as an alert, and still shows the last picture', () => {
     render(<Viewer recipe={DEFAULT_RECIPE} result={result} failed />);
-    expect(screen.getByRole('alert')).toHaveTextContent(/không tính được mặt cắt/i);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Không tính được mặt cắt. Tải lại trang để thử lại.',
+    );
     expect(screen.getByRole('img', { name: /mặt cắt wafer/i })).toBeInTheDocument();
   });
 });
@@ -164,7 +166,9 @@ describe('App with the simulation worker', () => {
     render(<App createClient={() => client} />);
     await waitFor(() => expect(runs).toHaveLength(1));
     await act(async () => runs[0]!.reject(new Error('worker failed to start')));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/không tính được mặt cắt/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Không tính được mặt cắt. Tải lại trang để thử lại.',
+    );
     expect(screen.queryByRole('img', { name: /mặt cắt wafer/i })).not.toBeInTheDocument();
     expect(log).toHaveBeenCalledWith(
       expect.objectContaining({ message: 'worker failed to start' }),
