@@ -11,7 +11,7 @@
  * Units: nm, minutes, W, mTorr.
  */
 import { constants, type WetEtchantId } from './constants';
-import { Material } from './materials';
+import { Material, MATERIAL_COUNT } from './materials';
 
 // Local copies: the hot loops below must not go through the `Material` object on every cell.
 const { AIR, SI, OX, PR } = Material;
@@ -99,7 +99,7 @@ export function rieRates({ powerW, pressureMTorr }: RieInput): EtchRates {
  * The 16 steps the front may take: the 8 neighbours plus the 8 knight moves. Fewer directions
  * would make the front diamond- or square-shaped; with 16 it is round to within a few percent.
  */
-const STENCIL: readonly (readonly [dx: number, dy: number])[] = (() => {
+export const STENCIL: readonly (readonly [dx: number, dy: number])[] = (() => {
   const steps: [number, number][] = [];
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {
@@ -120,6 +120,7 @@ const STENCIL: readonly (readonly [dx: number, dy: number])[] = (() => {
 // several times slower than the rest (measured in docs/PROGRESS.md, "Worker, làm ấm và GC").
 const STENCIL_DX = Int8Array.from(STENCIL, ([dx]) => dx);
 const STENCIL_DY = Int8Array.from(STENCIL, ([, dy]) => dy);
+const STEP_COUNT = STENCIL.length;
 
 export interface ArrivalOptions {
   /**
@@ -167,6 +168,50 @@ function assertRates(rates: EtchRates): void {
 }
 
 /**
+ * What it costs the front, in minutes, to step into a cell of each material for each step of the
+ * stencil: `cell · √((dx/lateral_m)² + (dy/vertical_m)²)` with rate_m = rate / selectivity_m, and
+ * `vertical_m` the lateral rate for upward steps. Computed once per `arrivalTime` call so that the
+ * search loop only looks it up: `table[material * STENCIL.length + step]`.
+ *
+ * Infinity means the step cannot be taken. That is decided per step, not per material: air (the
+ * front is already there); a material that is not attacked; a step with a vertical part when the
+ * rate for it is 0 (upward steps use the lateral rate); a step with a sideways part when the
+ * lateral rate is 0. With a lateral rate of 0 the straight-down step is therefore still open.
+ *
+ * `rates` and `cellNm` must already be valid (`assertRates`, `assertPositive`); a NaN in the table
+ * would silently corrupt the field, so one throws. Exported for tests.
+ */
+export function stepCostTable(rates: EtchRates, cellNm: number): Float64Array {
+  const selectivity: number[] = [];
+  selectivity[AIR] = Infinity;
+  selectivity[SI] = rates.siSelectivity;
+  selectivity[OX] = 1;
+  selectivity[PR] = rates.resistSelectivity;
+
+  const table = new Float64Array(MATERIAL_COUNT * STEP_COUNT).fill(Infinity);
+  for (let material = 0; material < MATERIAL_COUNT; material++) {
+    const s = selectivity[material]!;
+    if (s === Infinity) continue; // air, or a material that is not attacked
+    for (let step = 0; step < STEP_COUNT; step++) {
+      const dx = STENCIL_DX[step]!;
+      const dy = STENCIL_DY[step]!;
+      const vertical = (dy > 0 ? rates.verticalNmPerMin : rates.lateralNmPerMin) / s;
+      const lateral = rates.lateralNmPerMin / s;
+      if ((dy !== 0 && vertical <= 0) || (dx !== 0 && lateral <= 0)) continue;
+      table[material * STEP_COUNT + step] =
+        cellNm *
+        Math.sqrt((dx !== 0 ? (dx / lateral) ** 2 : 0) + (dy !== 0 ? (dy / vertical) ** 2 : 0));
+    }
+  }
+  if (table.some(Number.isNaN)) {
+    throw new RangeError(
+      'the step cost table has a NaN: the rates or the cell size are not numbers',
+    );
+  }
+  return table;
+}
+
+/**
  * Time at which the etch front reaches each cell. A cell is etched after time T when its arrival
  * time is ≤ T, so one result serves every etch time up to `maxTimeMin`; `measureEtch` throws if
  * asked for a later T, because the cells that arrive after the limit are stored as Infinity and
@@ -203,11 +248,6 @@ export function arrivalTime(
   const n = w * h;
 
   const arrival = new Float64Array(n).fill(Infinity);
-  const selectivity: number[] = [];
-  selectivity[AIR] = Infinity;
-  selectivity[SI] = rates.siSelectivity;
-  selectivity[OX] = 1;
-  selectivity[PR] = rates.resistSelectivity;
 
   // Binary min-heap of solid cells with lazy deletion (a cell may be pushed several times; stale
   // entries are skipped when popped). A cell is pushed only when its time strictly improves, once
@@ -216,12 +256,13 @@ export function arrivalTime(
   for (let i = 0; i < n; i++) {
     const code = materials[i]!;
     if (code === AIR) continue;
-    // A code outside the table would make a step cost NaN and silently corrupt the field.
-    if (selectivity[code] === undefined) {
+    // A code outside the table would read past it and silently corrupt the field.
+    if (code >= MATERIAL_COUNT) {
       throw new RangeError(`unknown material code ${code} at cell ${i}`);
     }
     solidCells++;
   }
+  const costs = stepCostTable(rates, cellNm);
   const capacity = Math.max(1, solidCells * STENCIL.length);
   const heapCell = new Int32Array(capacity);
   const heapTime = new Float64Array(capacity);
@@ -291,23 +332,15 @@ export function arrivalTime(
 
     const x = cell % w;
     const y = (cell / w) | 0;
-    for (let step = 0; step < STENCIL_DX.length; step++) {
+    for (let step = 0; step < STEP_COUNT; step++) {
       const dx = STENCIL_DX[step]!;
       const dy = STENCIL_DY[step]!;
       const nx = x + dx;
       const ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
       const next = ny * w + nx;
-      const material = materials[next]!;
-      if (material === AIR) continue;
-      const s = selectivity[material]!;
-      if (s === Infinity) continue;
-      const vertical = (dy > 0 ? rates.verticalNmPerMin : rates.lateralNmPerMin) / s;
-      const lateral = rates.lateralNmPerMin / s;
-      if ((dy !== 0 && vertical <= 0) || (dx !== 0 && lateral <= 0)) continue;
-      const cost =
-        cellNm *
-        Math.sqrt((dx !== 0 ? (dx / lateral) ** 2 : 0) + (dy !== 0 ? (dy / vertical) ** 2 : 0));
+      const cost = costs[materials[next]! * STEP_COUNT + step]!;
+      if (cost === Infinity) continue; // air, not attacked, or no rate in that direction
       const arrives = time + cost;
       if (arrives > limit) continue;
       if (arrives < arrival[next]!) {

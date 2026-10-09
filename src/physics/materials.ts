@@ -9,3 +9,6 @@
  */
 export const Material = { AIR: 0, SI: 1, OX: 2, PR: 3 } as const;
 export type MaterialCode = (typeof Material)[keyof typeof Material];
+
+/** How many codes there are; they are 0 … MATERIAL_COUNT − 1, so a table can be indexed by code. */
+export const MATERIAL_COUNT = Object.keys(Material).length;
