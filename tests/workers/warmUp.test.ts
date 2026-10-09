@@ -1,16 +1,19 @@
 /**
- * Warm-up: after the worker has started it runs cases A, B, C three times each, at idle, so the
- * learner's first changes do not pay for the JIT. It must never delay a real request by more than
- * the computation already running, and it must say nothing to the page.
+ * Warm-up: once the first real request has been answered the worker runs cases A, B, C three times
+ * each, at idle, so the learner's next changes do not pay for the JIT. It must never delay a real
+ * request by more than the computation already running, and it must say nothing to the page.
+ *
+ * It waits for the first real request on purpose: the page's first message is not yet delivered at
+ * the worker's first turn of the event loop, so a warm-up that started at once would run a cold
+ * case in front of the request the learner is waiting for (measured: +28 ms on a desktop).
  */
 import * as Comlink from 'comlink';
 import { afterEach, describe, expect, it } from 'vitest';
-import { M04_CASES } from '../../src/sim/cases';
+import { M04_CASES, warmUpRecipes } from '../../src/sim/cases';
 import { WARMUP_RUNS_PER_CASE } from '../../src/sim/defaults';
-import { warmUpRecipes } from '../../src/sim/cases';
 import { runRecipe, type Recipe } from '../../src/sim/recipe';
 import { SimService, type SimApi } from '../../src/workers/simService';
-import { manualYield, settle } from './helpers';
+import { drive, manualYield, settle } from './helpers';
 
 describe('warmUpRecipes', () => {
   it('is A, B, C repeated round-robin, WARMUP_RUNS_PER_CASE times: 9 runs', () => {
@@ -27,6 +30,8 @@ describe('warmUpRecipes', () => {
   });
 });
 
+const first = M04_CASES[1]!.recipe; // what the Lab asks for at load: the default recipe, case B
+
 function warmService(warmUp: Recipe[] = warmUpRecipes()) {
   const gate = manualYield();
   const computed: Recipe[] = [];
@@ -41,6 +46,14 @@ function warmService(warmUp: Recipe[] = warmUpRecipes()) {
   return { service, gate, computed };
 }
 
+/** Starts the warm-up and answers the first real request, as the page does at load. */
+async function startAndServeFirst(s: ReturnType<typeof warmService>) {
+  s.service.startWarmUp();
+  const outcome = await drive(s.gate, s.service.run(1, first));
+  expect(outcome.status).toBe('ok');
+  expect(s.computed).toEqual([first]);
+}
+
 describe('SimService warm-up', () => {
   it('does nothing until it is started', async () => {
     const { gate, computed } = warmService();
@@ -49,31 +62,46 @@ describe('SimService warm-up', () => {
     expect(computed).toHaveLength(0);
   });
 
-  it('runs the scheduled recipes in order, one computation per turn of the event loop', async () => {
+  it('waits for the first real request, however many idle turns the worker has had', async () => {
     const { service, gate, computed } = warmService();
     service.startWarmUp();
-    expect(computed).toHaveLength(0); // it yields before the first one
-    const schedule = warmUpRecipes();
-    for (let turn = 1; turn <= schedule.length; turn++) {
+    for (let turn = 0; turn < 5; turn++) {
       gate.release();
       await settle();
-      expect(computed, `after turn ${turn}`).toEqual(schedule.slice(0, turn));
+    }
+    expect(computed).toHaveLength(0); // nothing ran in front of the request that has not arrived yet
+
+    // the request arrives after those idle turns, as the page's first message does
+    const real = service.run(1, first);
+    gate.release();
+    await real;
+    expect(computed).toEqual([first]);
+  });
+
+  it('then runs the scheduled recipes in order, one computation per turn of the event loop', async () => {
+    const s = warmService();
+    await startAndServeFirst(s);
+    const schedule = warmUpRecipes();
+    for (let turn = 1; turn <= schedule.length; turn++) {
+      s.gate.release();
+      await settle();
+      expect(s.computed.slice(1), `after turn ${turn}`).toEqual(schedule.slice(0, turn));
     }
   });
 
   it('reports when it has finished, and only then', async () => {
-    const { service, gate } = warmService();
+    const s = warmService();
     let done = false;
-    void service.warmedUp.then(() => {
+    void s.service.warmedUp.then(() => {
       done = true;
     });
-    service.startWarmUp();
+    await startAndServeFirst(s);
     for (let turn = 1; turn < 9; turn++) {
-      gate.release();
+      s.gate.release();
       await settle();
     }
     expect(done).toBe(false);
-    gate.release();
+    s.gate.release();
     await settle();
     expect(done).toBe(true);
   });
@@ -85,40 +113,42 @@ describe('SimService warm-up', () => {
   });
 
   it('serves a real request on the very next turn, ahead of the rest of the warm-up', async () => {
-    const { service, gate, computed } = warmService();
-    service.startWarmUp();
-    gate.release(); // warm-up #1
+    const s = warmService();
+    await startAndServeFirst(s);
+    s.gate.release(); // warm-up #1
     await settle();
-    gate.release(); // warm-up #2
+    s.gate.release(); // warm-up #2
     await settle();
-    expect(computed).toHaveLength(2);
+    expect(s.computed).toHaveLength(3);
 
-    const real = service.run(1, M04_CASES[0]!.recipe);
+    const real = s.service.run(2, M04_CASES[0]!.recipe);
     let warmDone = false;
-    void service.warmedUp.then(() => {
+    void s.service.warmedUp.then(() => {
       warmDone = true;
     });
-    gate.release();
+    s.gate.release();
     const outcome = await real;
     expect(outcome.status).toBe('ok');
-    expect(computed).toHaveLength(3);
-    expect(computed[2]).toBe(M04_CASES[0]!.recipe); // the real one, not warm-up #3 (case C)
+    expect(s.computed).toHaveLength(4);
+    expect(s.computed[3]).toBe(M04_CASES[0]!.recipe); // the real one, not warm-up #3 (case C)
     expect(warmDone).toBe(false);
 
     // and the warm-up picks up where it left off
-    gate.release();
+    s.gate.release();
     await settle();
-    expect(computed[3]).toBe(M04_CASES[2]!.recipe);
+    expect(s.computed[4]).toBe(M04_CASES[2]!.recipe);
   });
 
-  it('computes a request that is already waiting before any warm-up at all', async () => {
-    const { service, gate, computed } = warmService();
-    const real = service.run(1, M04_CASES[1]!.recipe);
-    service.startWarmUp();
-    gate.release();
-    await real;
-    expect(computed[0]).toBe(M04_CASES[1]!.recipe);
-    expect(computed).toHaveLength(1);
+  it('starts after a first request that fails, too', async () => {
+    const s = warmService();
+    s.service.startWarmUp();
+    const bad = s.service.run(1, { ...first, etch: { ...first.etch, timeMin: 15 } }); // beyond 14 min
+    const refused = expect(bad).rejects.toThrow(RangeError);
+    s.gate.release();
+    await refused;
+    s.gate.release();
+    await settle();
+    expect(s.computed.at(-1)).toBe(warmUpRecipes()[0]);
   });
 
   it('a warm-up that throws neither stops the rest nor reaches the page', async () => {
@@ -128,18 +158,15 @@ describe('SimService warm-up', () => {
       yieldToEventLoop: gate.yieldToEventLoop,
       compute: (recipe) => {
         calls++;
-        if (calls === 1) throw new RangeError('warm-up recipe refused');
+        if (calls === 2) throw new RangeError('warm-up recipe refused'); // the first warm-up run
         return runRecipe(recipe);
       },
       warmUp: warmUpRecipes(1),
     });
     service.startWarmUp();
-    for (let turn = 0; turn < 3; turn++) {
-      gate.release();
-      await settle();
-    }
-    await service.warmedUp;
-    expect(calls).toBe(3);
+    await drive(gate, service.run(1, first));
+    await drive(gate, service.warmedUp);
+    expect(calls).toBe(1 + 3);
   });
 });
 
@@ -159,7 +186,7 @@ describe('SimService warm-up over a Comlink channel', () => {
     port1.addEventListener('message', () => messages++);
 
     service.startWarmUp();
-    const outcome = await remote.run(1, M04_CASES[1]!.recipe);
+    const outcome = await remote.run(1, first);
     expect(outcome.status).toBe('ok');
     await service.warmedUp;
     await settle();

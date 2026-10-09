@@ -96,6 +96,8 @@ export class SimService implements SimApi {
   private readonly warmUp: readonly Recipe[];
   private pending: Job | null = null;
   private warmQueue: Recipe[] = [];
+  /** Warm-up may run once the first real request has been answered (or a benchmark asks for it). */
+  private warmReleased = false;
   private pumping = false;
   private finishWarmUp: () => void = () => {};
 
@@ -127,6 +129,8 @@ export class SimService implements SimApi {
     if (!Number.isInteger(runsPerCase) || runsPerCase < 1) {
       throw new RangeError(`runsPerCase must be a whole number ≥ 1, got ${runsPerCase}`);
     }
+    this.warmReleased = true; // a benchmark is not waiting for a first request
+    this.pump();
     await this.warmedUp; // so every sample is a steady-state one
     const cases: BenchCaseReport[] = [];
     for (const { id, recipe } of M04_CASES) {
@@ -144,9 +148,12 @@ export class SimService implements SimApi {
   }
 
   /**
-   * Queues the warm-up recipes; they run one per turn of the event loop while no real request
-   * is waiting. A computation cannot be interrupted, so a real request that arrives during one
-   * waits for that single run and is served before the next warm-up recipe.
+   * Queues the warm-up recipes. They begin after the first real request has been answered, and
+   * then run one per turn of the event loop while no real request is waiting. The wait matters:
+   * at the worker's first turn the page's first message has not been delivered yet, so a warm-up
+   * that started at once would put a cold computation in front of it. A computation cannot be
+   * interrupted, so a real request that arrives during one waits for that single run and is
+   * served before the next warm-up recipe.
    */
   startWarmUp(): void {
     this.warmQueue = [...this.warmUp];
@@ -167,7 +174,7 @@ export class SimService implements SimApi {
    */
   private async work(): Promise<void> {
     try {
-      while (this.pending || this.warmQueue.length > 0) {
+      while (this.pending || (this.warmReleased && this.warmQueue.length > 0)) {
         await this.yieldToEventLoop();
         const job = this.pending;
         if (job) {
@@ -177,6 +184,7 @@ export class SimService implements SimApi {
           } catch (error) {
             job.reject(error);
           }
+          this.warmReleased = true; // the learner has their first answer; now use the idle time
           continue;
         }
         const recipe = this.warmQueue.shift();
