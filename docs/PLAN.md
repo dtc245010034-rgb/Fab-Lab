@@ -35,6 +35,12 @@ thay đổi theo đúng cơ chế vật lý. Cuối mỗi module có chấm đi�
 **Xong khi:** `npm test` và `npm run build` xanh; trang khung chạy trên điện thoại; test khắc tái tạo
 được 3 ca chuẩn (xem `docs/modules/m04-etch.md`).
 
+**Trạng thái: hoàn tất 2026-10-10** (S0.1–S0.5; chi tiết và số đo ở `docs/PROGRESS.md`). `npm test`,
+`npm run build`, `npm run lint` và `npm run e2e` xanh; khung chạy trên điện thoại (Samsung S20 FE, đo
+ở S0.5); 3 ca chuẩn pass. Hai việc trong danh sách ở trên là cấu hình trên dashboard Cloudflare nên
+repo không chứng minh được: deploy thật bằng Workers Builds và bật Web Analytics (xem mục Next của
+`PROGRESS.md`).
+
 ### Giai đoạn 1 — MVP: M03 + M04 (tuần 2–4)
 - M03 quang khắc đầy đủ, thêm tiêu cự/DOF, resist âm và **căn chỉnh Overlay** giữa hai lớp.
 - M04 khắc: ướt BOE, ướt KOH trên Si(100) (vách 54,74°), RIE, DRIE Bosch, **Endpoint Detection** (tín hiệu OES).

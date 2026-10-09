@@ -48,6 +48,17 @@ Thêm Playwright với 1 smoke test (load trang, chạy công thức mặc đị
 Thêm GitHub Actions chạy lint, test, build, e2e. Ghi thời gian tính lại đo được vào PROGRESS.md.
 ```
 
+### S0.5 — Tối ưu `arrivalTime` cho điện thoại (đã đóng 2026-10-10)
+Phiên phát sinh sau S0.4, từ số đo thật trên Samsung S20 FE (`runRecipe` ≈ 70 ms trong Chrome, chênh ~18×
+so với desktop). Làm: bước 0 chẩn đoán `/?bench=1&thread=main` (worker và luồng chính cạnh nhau, tỉ số
+trung vị; giả thuyết "worker bị xếp lên lõi nhỏ" **sai**); bước 1 tách `Material` sang
+`src/physics/materials.ts` (gói chính về mức cũ) và bảng chi phí tính sẵn (−17% ở desktop, kết quả trùng
+từng bit với bản cũ); bước 2 (gập gương) **hủy** vì không còn vấn đề hiệu năng cần giải. Kết quả: ở
+trình duyệt Chromium có JIT trên S20 FE, `runRecipe` ≈ 6,5–7,7 ms; Chrome của máy thử chậm ≈ 10×, khớp
+với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PROGRESS.md`, mục S0.5.
+
+**Giai đoạn 0 hoàn tất (2026-10-10).** Phiên tiếp theo: S1.1.
+
 ### S1.1 — M03 quang khắc
 ```
 Đọc CLAUDE.md, docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md.

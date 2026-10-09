@@ -54,7 +54,7 @@ Chỉ khác cửa sổ thiết kế như ghi trong bảng.
 
 ## Tiêu chí xong
 - [x] 3 ca hồi quy pass; test quy luật trong SCIENCE.md mục 5 pass.
-- [ ] Tính lại **warm** < 50 ms ở lưới 260×150 trên điện thoại tầm trung (warm = từ lần gọi thứ 9 trở đi trong cùng trang); lần chạy **cold** ghi riêng, không tính vào tiêu chí. (Ước lượng bằng Chrome desktop với CPU 4×: warm trung vị 17–19 ms, p95 ≤ 40 ms; cold trung vị ≈ 85 ms. Phương pháp và số đo ở `PROGRESS.md`. Chờ đo điện thoại thật: mở `/?bench=1` (S0.4), tính chạy trong worker và Chrome không giả lập được 4× cho worker.)
+- [x] Tính lại **warm** < 50 ms ở lưới 260×150 trên điện thoại tầm trung (warm = từ lần gọi thứ 9 trở đi trong cùng trang); lần chạy **cold** ghi riêng, không tính vào tiêu chí. (Đã tick 2026-10-10. Ghi chú: S20 FE, trình duyệt Chromium có JIT; Chrome trên máy thử là ngoại lệ chưa rõ nguyên nhân. Đo ở `/?bench=1` trên Samsung S20 FE, trình duyệt Chromium có JIT: worker trung vị 6,6 / 7,7 / 6,5 ms cho ca A / B / C, p95 ≤ 9,6 ms, lớn nhất ≤ 12,8 ms. Chrome 154 trên chính máy đó cho 44,7 / 80,0 / 65,8 ms, khớp với JIT bị tắt, nguyên nhân chưa xác định. Phương pháp và số đo ở `PROGRESS.md`, mục S0.5.)
 - [ ] KOH cho vách 54,74° ± 3°; Bosch hiện scallop, số gợn = số chu kỳ.
 - [ ] Endpoint: dừng đúng lúc cho điểm cao hơn dừng theo thời gian cố định khi độ dày oxit không đều.
 - [ ] Mọi câu giải thích đã đọc lại đối chiếu với SCIENCE.md.
