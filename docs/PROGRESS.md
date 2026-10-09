@@ -59,16 +59,31 @@
   - Header Viewer: " · " giữa dòng công thức và "1 ô = 10 nm" (chuỗi nằm trong văn bản, không phải CSS; khi xuống dòng ở 380 px dấu chấm nằm cuối dòng trên).
   - Số test: 426 (trước đó 391). `npm run build`, `npm run lint` xanh. JS 54,5 KB gzip.
   - Cần review mắt: chọn `--navy` vì là token tối khác hẳn `--screen` mà không trùng vật liệu nào (`--ink` quá gần `--screen`, `--muted` gần `--si`); tương phản `--navy`/`--screen` chỉ ≈ 1,4:1 nên phần việc phân biệt chủ yếu do đường zigzag sáng. Nếu muốn dải ngoài sáng hơn, đổi `SURROUND_TOKEN` và token của `.screen` (một dòng mỗi nơi).
-  - Ghi chú về `CLAUDE.md`: `npm run e2e` chưa tồn tại (thuộc S0.4), nên chưa chạy được trước khi merge.
+  - Ghi chú về `CLAUDE.md`: `npm run e2e` chưa tồn tại (thuộc S0.4), nên chưa chạy được trước khi merge. (Đã có từ S0.4.)
   - Workers Builds chạy lần đầu trên nhánh này (build #94d8a808, 46 s): `npm ci`, 426 test và `npm run build` đều xanh trên Cloudflare (Node 24.18, JS 54,51 KB gzip, trùng bản local). Đỏ ở bước deploy: lệnh deploy của nhánh khác `main` trên dashboard là `npx wrangler preview`, và wrangler 4.148.0 từ chối nếu `wrangler.jsonc` thiếu khối `"previews"`. Đã thêm `"previews": {}` (test khóa, README ghi lại); `wrangler deploy --dry-run` cho kết quả như cũ. Chưa chạy được `wrangler preview` ở máy vì cần token Cloudflare: bằng chứng cuối là lần build kế tiếp trên Cloudflare, cần xem xanh trước khi merge.
+  - Đã review đạt và merge `--ff-only` vào `main` ở đầu S0.4 (`main` = `0acea3d`).
+- S0.4 Worker + CI + e2e (nhánh `s0.4-worker` từ `main`, đã push, chờ review)
+  - Worker, `src/workers/`: `simService.ts` (lớp mà worker expose qua Comlink, test được trong Node), `sim.worker.ts` (chỉ nối dây), `simClient.ts` (phía trang), `spawn.ts` (nơi duy nhất tạo `Worker`). Không có đường dự phòng trên luồng chính (CLAUDE.md: tính nặng luôn trong worker). Worker không tải được hoặc chết thì client `abort`, UI hiện thông báo lỗi và mọi `run` sau đó từ chối ngay, chứ không chờ mãi.
+  - Yêu cầu mới thay yêu cầu cũ ở hai nơi. Trong worker: hộp thư một ô, và worker nhường một lượt event loop trước khi tính, nên các tin nhắn đã xếp hàng được đọc trước và chỉ cái mới nhất được tính (kéo thanh trượt không tạo hàng đợi). Ở trang: client đánh số yêu cầu và trả `null` cho kết quả của yêu cầu đã bị thay, kể cả yêu cầu đang chạy dở (một lần tính không ngắt được).
+  - `field.arrival` gửi bằng `Comlink.transfer` (312 KB, chuyển chứ không sao chép; bên worker buffer bị detach, có test), luôn nằm trong một đối tượng `{ arrival, maxTimeMin }`. Client kiểm `maxTimeMin` và `arrival.length = w×h` trước khi giao cho UI. Nếu `arrival` là view vào một buffer lớn hơn thì sao chép trước, để không detach cả buffer (có test). Lỗi gửi qua Comlink mất `instanceof RangeError`, chỉ còn `name`.
+  - UI: `recipeStore` (+ `useRecipeResult` qua `useSyncExternalStore`) giữ kết quả cuối cùng **cùng công thức của nó**, nên tiêu đề Viewer luôn mô tả đúng hình đang hiện. `Viewer` nhận `pending` (`aria-busy`; chữ "Đang tính lại…" chỉ hiện sau 300 ms để một lần tính vài chục ms không nhấp nháy) và `failed`; `ViewerPlaceholder` là khung trước kết quả đầu. Worker được tạo khi có người subscribe đầu và dispose khi người cuối rời, nên StrictMode không để worker mồ côi (có test). `App` tách `Lab` (khóa học) và `BenchPanel`.
+  - Làm ấm: `warmUpRecipes()` = A,B,C ×3 (`WARMUP_RUNS_PER_CASE`), mỗi lượt event loop một lần chạy, mỗi ranh giới ưu tiên yêu cầu thật; kết quả bỏ, không gửi gì lên trang, lỗi trong làm ấm không dừng hàng đợi. **Chỉ bắt đầu sau khi yêu cầu thật đầu tiên đã được trả lời** (hoặc khi bench cần). Bản đầu cho chạy ngay và đo được lần gọi đầu 54,5 ms thay vì 31,9 ms: tin nhắn đầu của trang chưa được giao ở lượt đầu của worker, nên worker chạy một ca làm ấm lạnh (≈ 28 ms) trước nó. Test cũ không thấy vì đặt yêu cầu vào hộp thư trước `startWarmUp()`; test mới để worker có vài lượt rảnh trước khi yêu cầu đến, và đỏ trên mã cũ. Giới hạn còn lại của "không chặn": yêu cầu đến giữa một lần chạy phải chờ hết lần đó.
+  - `/?bench=1` (`BenchPanel`, `benchStore`): worker chờ làm ấm xong rồi chạy mỗi ca A/B/C `BENCH_RUNS_PER_CASE` = 30 lần bằng đúng `compute` của yêu cầu thật, chỉ gửi các con số về. Hiện hai bảng (`runRecipe`, riêng `arrivalTime`) với số lần / trung vị / p95 (hạng gần nhất) / lớn nhất, kèm trình duyệt, số luồng CPU, `devicePixelRatio` và nút "Chạy lại" (cùng worker). Đo phép tính trong worker, chưa gồm thời gian chuyển kết quả. Số cold của trang vẫn lấy ở `/?debug=1`.
+  - Test: `tests/sim/helpers.ts` giờ bọc thẳng `runRecipe` (hết bản glue thứ hai), kèm `unboundedArrival` cho các phép so với prototype (dấu vân tay toàn trường arrival là của tìm kiếm không giới hạn). `src/sim/cases.ts`: `M04_CASES` (A, B, C của `m04-etch.md`, B là `DEFAULT_RECIPE`) dùng chung cho làm ấm, bench và `etch.bench.ts`. Cặp BOE 10:1 `[233, 417]` nm đổi thành `[233, 395]` (417 nm = 8,34 phút, vượt thanh trượt BOE 8 phút nên `runRecipe` từ chối); dung sai không đổi. Test "so với glue của test" trong `recipe.test.ts` bỏ vì không còn hai bản để so.
+  - ESLint: `src/workers/**` cấm import `ui`, `render`, `modules`, `content` (đã thử chèn import sai). Kiểm đột biến (worker, client, làm ấm, bench, thống kê, workflow, và làm hỏng worker cho e2e): 24 lỗi cố ý, 23 bị bắt, 1 tương đương (dòng `generation++` thừa, đã bỏ).
+  - e2e: `e2e/smoke.spec.ts` mở bản build production (`vite preview`) và kiểm canvas, `aria-label` có "thủng", đúng 1 Worker đang chạy, không có `pageerror` hay `console.error`. Cố ý làm hỏng worker thì test đỏ. `npm run e2e` build trước (không bao giờ test `dist/` cũ); `playwright.config.ts` không dùng lại server đang chạy và không retry. Chromium của Playwright ở cả máy và CI.
+  - GitHub Actions `.github/workflows/ci.yml`: mỗi push chạy `npm ci`, lint, test, build, cài Chromium, `playwright test`. Quyền `contents: read`, không secret, không deploy, hủy lần chạy cũ, giữ report khi đỏ. `tests/deploy/ci.test.ts` khóa các điểm này (thêm bước wrangler, secret hay quyền write đều bị bắt). Đã chạy xanh trên GitHub cho `79daf98` (lint, test, build, e2e). Phiên bản action: `checkout`, `setup-node`, `upload-artifact` đều `v7` (tag chính mới nhất lúc làm); chưa ghim theo SHA.
+  - Không có hằng số vật lý mới, không dòng mới ở "Values to verify". `WARMUP_RUNS_PER_CASE` = 3 và `BENCH_RUNS_PER_CASE` = 30 là cấu hình công cụ (`src/sim/defaults.ts`, không mức), như kích thước lưới.
+  - Kiểm tra: `npm test` (558 test), `npm run build`, `npm run lint`, `npm run e2e` xanh. JS (gzip -9): chunk chính 54,8 KB + chunk worker 6,9 KB = 61,7 KB (ngân sách 300 KB).
+  - **Giả thuyết GC không được xác nhận, nên không đổi `arrivalTime`.** Số đo và thực nghiệm ở "Worker, làm ấm và GC" bên dưới. Có một nguyên nhân khác được chứng minh bằng thực nghiệm, chờ bạn quyết (xem Next).
 
 ## Next
-- S0.4 (Worker): truyền `maxTimeMin` = giá trị lớn nhất của thanh trượt thời gian cho công thức hiện tại; tính lại khi đổi công thức hoặc khi đổi mốc này. Lần chạy đầu (cold) của `runRecipe` đo được trung vị 38,7 ms (29–54 ms) trên Chrome desktop và ≈ 85 ms ở CPU 4× (ước lượng), xem "Cold và warm trên bản build" bên dưới; đưa nó ra worker để không chặn luồng UI. Lần gọi thứ 2–3 cũng chưa ấm hẳn (28 ms ở 1×, 42–58 ms ở 4×).
-- Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?debug=1` trên điện thoại thật và ghi `runRecipe`, `arrivalTime` của lần tải đầu (cold, ghi riêng). Tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chỉ tick khi có số warm đo trên máy thật; `/?debug=1` hiện chỉ cho số cold nên cần chỗ gọi lại `runRecipe` (thanh trượt hoặc trang đo riêng) trước.
+- **Chờ bạn quyết (từ phép đo S0.4):** mẫu vọt (gấp ~5 lần trung vị ở 1×, ~1,8 lần ở 4×) không do GC của bộ đệm heap mà do cấp phát đối tượng tạm trong vòng `for (const [dx, dy] of STENCIL)` của `arrivalTime`. Thay bằng vòng chỉ số trên hai `Int8Array` (6 dòng, không đổi kết quả) đã thử vứt đi: ở worker 1× mẫu lớn nhất từ 20,3 / 16,7 ms xuống ≤ 5,3 ms, không còn scavenge nào trong 900 lần chạy, trung vị giảm 6–9%; ở luồng chính 4× mẫu lớn nhất từ 26–28 ms xuống 19 ms. **Chưa áp dụng** vì ngoài phần bạn duyệt (bạn chỉ cho `scratch` nếu trace xác nhận GC) và vì S0.2 đã chỉnh vòng lặp này. Nếu đồng ý: một commit riêng, parity với prototype và Dijkstra tham chiếu giữ nguyên làm lưới an toàn. Số đo ở "Worker, làm ấm và GC".
+- Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?bench=1` trên điện thoại thật (đợi bảng hiện, bấm "Chạy lại" vài lần) và ghi trung vị / p95 / lớn nhất của `runRecipe` ở mục Hiệu năng; số cold lấy ở `/?debug=1` (tải lại trang, ghi riêng). Tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chỉ tick khi có số warm đo trên máy thật. Chrome DevTools/CDP không làm chậm được worker (xem dưới), nên không có "4× cho worker" trên máy này.
+- Chưa biết trên điện thoại: thời gian chuyển kết quả từ worker về trang (post + nhận 312 KB `arrival` và hai mảng 39 KB). Ở desktop 1× vòng khứ hồi của một yêu cầu thật chỉ hơn thời gian tính 0,3–0,5 ms (bảng lần gọi 1–6 bên dưới), nhưng `?bench=1` chỉ đo phép tính trong worker.
 - Còn lại của M04 (ngoài S0.2): KOH, Bosch, Endpoint (S1.3), UI và chấm điểm (S1.2).
 - Khi port UI từ prototype: prototype tô chữ chỉ số bằng `--ok`/`--warn` (`.m.g b`, `.grade.g b`…); phải đổi sang `--ok-ink`/`--warn-ink`.
 - Glyph: `≈` (U+2248) và `₂` (U+2082) không nằm trong subset nào của 3 font đã nạp (subset latin của JetBrains Mono chỉ có `↑ ↓ − ∕` trong dải ký hiệu), nên trình duyệt lấy chúng từ font hệ thống (Consolas/Menlo/ui-monospace). Đã thấy `≈` trên canvas và `₂` trong chú giải DOM hiển thị đúng, đọc được trong Chrome trên Windows; chưa kiểm trên Android/iOS/macOS. Khi bắt đầu có công thức/ký hiệu vật lý trong UI, kiểm tra thêm `λ`, `°`, `×`, `→` (thêm `greek` cho JetBrains Mono nếu cần).
-- S0.4: Worker + Playwright (`npm run e2e`) + GitHub Actions chạy lint, test, build, e2e (không deploy; deploy do Workers Builds).
 
 ## Values to verify
 | Hằng số | Giá trị hiện tại | Mức | Cần đối chiếu ở |
@@ -176,7 +191,55 @@ Số warm khớp bảng (b) ở trên (Chrome 4×, toàn bộ: 16,4 / 18,3 / 15,
 
 Lần gọi thứ 2 (người học đổi thông số lần đầu) còn chưa ấm: 28 ms ở 1×, 42–58 ms ở 4×; từ lần thứ 3–4 mới gần mức warm. Tiêu chí "warm" chỉ nói về mức ổn định, nên 1–2 lần đầu nằm ngoài; ghi lại để quyết định ở S0.4 (worker, có thể chạy thử một lần lúc rảnh) nếu cần.
 
-Worker (S0.4) đưa phép tính ra khỏi luồng UI nhưng không làm nó nhanh hơn. `/?debug=1` hiện chỉ cho số cold; để đo warm trên điện thoại thật cần chỗ gọi lại `runRecipe` (thanh trượt ở S1.2 hoặc một trang đo riêng).
+Worker (S0.4) đưa phép tính ra khỏi luồng UI nhưng không làm nó nhanh hơn. `/?debug=1` hiện chỉ cho số cold; số warm trên điện thoại thật lấy ở `/?bench=1` (S0.4).
+
+### Worker, làm ấm và GC (S0.4, đo 2026-10-09)
+Máy và trình duyệt như trên (Chrome 154.0.8037.98, headless, điều khiển bằng Playwright). Harness tạm ngoài repo: một bản build Vite import đúng `SimService` và `runRecipe` của repo (không sửa gì), chỉ bọc `compute` bằng `performance.mark` để căn thời gian với trace Chrome. Mỗi ô bảng = 4 lần tải × 30 lần chạy = 120 mẫu, sau khi làm ấm xong; ô ghi **trung vị / p95 (hạng gần nhất) / lớn nhất** của `runRecipe`, ms. Bản build production của harness, mỗi lần tải một browser context mới.
+
+**Giới hạn CPU 4× của Chrome không áp lên worker.** `Emulation.setCPUThrottlingRate` chỉ làm chậm luồng chính của trang: trong worker, "4×" vẫn cho trung vị 3,4–3,8 ms, y hệt 1×; gửi lệnh thẳng tới target của worker thì Chrome trả `Operation is only supported for pages, not workers`. Vì vậy cột 4× dưới đây là **cùng `SimService` chạy trên luồng chính** (nối tiếp các bảng cũ và khớp chúng: trung vị 14,5–16,8 ms so với 16,7 / 19,1 / 17,1 ở bảng "warm"), còn worker chỉ đo được ở 1×. Số trên điện thoại thật phải lấy bằng `/?bench=1`.
+
+| Cấu hình | A (BOE 6:1, 800 nm) | B (RIE 200 W, 800 nm) | C (RIE 80 W, 400 nm) |
+|---|---|---|---|
+| Worker, 1× | 3,3 / 3,6 / 3,8 | 3,8 / 4,2 / 20,3 | 3,3 / 3,7 / 16,7 |
+| Luồng chính, 1× | 3,3 / 3,7 / 4,1 | 3,8 / 4,0 / 4,2 | 3,3 / 3,6 / 17,5 |
+| Luồng chính, 4× | 14,9 / 16,1 / 26,2 | 16,8 / 18,5 / 28,5 | 14,5 / 15,8 / 26,3 |
+
+`arrivalTime` chiếm gần hết thời gian (worker 1×, trung vị: A 3,2 trong 3,3; B 3,6 trong 3,8; C 3,1 trong 3,3). Ở cả ba cấu hình có những mẫu hiếm lâu hơn hẳn: 16–20 ms ở 1× (gấp ~5 lần trung vị), 26–28 ms ở 4× (gấp ~1,8 lần); trong trace 900 lần chạy chỉ có 3 (worker 1×) và 4 (luồng chính 4×) mẫu lâu hơn 1,5× trung vị. Đó là các giá trị "lớn nhất" cần giải thích; p95 trên 120 mẫu gần như không thấy chúng.
+
+**Giả thuyết GC (`arrivalTime` cấp ~5,2 MB heap mỗi lần, Major GC trùng mẫu chậm): không được xác nhận.** Trace Chrome với category `devtools.timeline`, `v8`, `blink.user_timing`, `disabled-by-default-v8.gc`; 3 lần tải × 100 lần mỗi ca = 900 lần chạy mỗi cấu hình; "mẫu chậm" = lâu hơn 1,5× trung vị của ca. Căn từng lần chạy (cặp `performance.mark`) với sự kiện GC trên cùng luồng:
+
+| | Worker 1× | Luồng chính 4× |
+|---|---|---|
+| Sự kiện Major GC trong trace | 16 (15 "finalize incremental marking via task", 1 "via stack guard"; ≈ 1 ms mỗi lần), **không cái nào nằm trong một lần chạy** | 0 |
+| Mẫu chậm trùng Major GC | 0 / 3 | 0 / 4 |
+| Mẫu chậm trùng scavenge (Minor GC) | 2 / 3 | 3 / 4 |
+| Mẫu thường trùng scavenge | 0 / 897 | 129 / 896 |
+
+Hai mẫu vọt của worker (21,1 ms và 17,7 ms) mỗi mẫu chứa 21–23 lần scavenge liên tiếp, cách nhau ~0,6 ms, kích thước heap trước/sau gần như y hệt nhau (1,83 MB → 0,78 MB): tức là bộ nhớ trẻ của heap JS đầy lại sau mỗi ~1 MB, một tốc độ cấp phát cỡ GB/s, không phải bộ đệm 5,2 MB nằm ngoài heap. Ở luồng chính 4× một mẫu chậm (25 ms) không trùng GC nào.
+
+Hai thực nghiệm vứt đi (sửa tạm `src/physics/etch.ts`, đo rồi `git checkout`, không commit), cùng harness và cùng giao thức:
+
+| Cấu hình | A | B | C |
+|---|---|---|---|
+| X1 (đúng giả thuyết: bộ đệm heap tái dùng ở cấp module), luồng chính 4× | 15,3 / 18,5 / 29,8 | 17,2 / 19,2 / 31,7 | 15,1 / 17,1 / 18,1 |
+| X1, worker 1× | 3,4 / 3,6 / 4,0 | 3,8 / 3,9 / 4,1 | 3,3 / 3,6 / 17,0 |
+| X2 (vòng stencil theo chỉ số trên `Int8Array`, không cấp phát đối tượng tạm), luồng chính 4× | 13,6 / 15,4 / 19,4 | 15,4 / 17,0 / 18,9 | 13,5 / 16,0 / 19,2 |
+| X2, worker 1× | 3,1 / 4,0 / 5,3 | 3,5 / 3,9 / 4,7 | 3,0 / 3,3 / 3,6 |
+
+- X1 không loại được mẫu vọt: trace 900 lần chạy ở worker vẫn có 3 mẫu 10–12 ms chứa 15–22 lần scavenge, ở 4× p95 và lớn nhất không tốt hơn bản gốc (A 18,5 / 29,8 so với 16,1 / 26,2). Vì vậy **không thêm `scratch`** (đúng điều kiện bạn đặt ra: chỉ làm nếu trace xác nhận GC).
+- X2 làm mẫu vọt biến mất: trong trace 900 lần chạy ở worker 1×, **0 lần chạy trùng scavenge** (bản gốc: 2 mẫu có 21–23 scavenge), mẫu lớn nhất ≤ 5,4 ms; trung vị giảm 6–9% (3,3 → 3,1; 3,8 → 3,5; 3,3 → 3,0). Ở 4× mẫu lớn nhất còn 19 ms (so với 26–28 ms), nhưng còn 127 / 898 lần chạy trùng một scavenge ngắn, nên 4× chưa sạch hoàn toàn. Giải thích hợp lý nhất: `for (const [dx, dy] of STENCIL)` cấp phát đối tượng tạm mỗi lượt khi mã chưa được tối ưu hoàn toàn (khởi động, hoặc sau khi V8 hủy tối ưu); X2 chưa chứng minh cơ chế đó ở mức V8, chỉ chứng minh rằng bỏ nó thì mẫu vọt hết. Mẫu vọt thưa nên chỉ cột "lớn nhất" và trace thấy chúng.
+
+**Làm ấm.** Trung vị khứ hồi của lần gọi 1–6 (8 lần tải mỗi hàng; lần 1 = công thức mặc định B lúc tải trang, rồi nghỉ 3 giây, rồi B, C, B, C, B cách nhau 300 ms):
+
+| Cấu hình | #1 | #2 | #3 | #4 | #5 | #6 |
+|---|---|---|---|---|---|---|
+| Worker 1×, làm ấm bật (bản chốt) | 29,9 | 4,3 | 3,6 | 4,3 | 3,8 | 4,2 |
+| Worker 1×, làm ấm bật (bản đầu, lỗi) | 54,5 | 4,2 | 3,7 | 4,3 | 3,7 | 4,4 |
+| Worker 1×, làm ấm tắt | 31,9 | 31,5 | 5,3 | 4,7 | 4,1 | 4,5 |
+| Luồng chính 4×, làm ấm bật (bản chốt) | 70,3 | 20,4 | 16,1 | 19,0 | 17,0 | 18,4 |
+| Luồng chính 4×, làm ấm tắt | 71,8 | 41,1 | 21,2 | 21,8 | 18,9 | 19,8 |
+
+Làm ấm không làm lần gọi đầu nhanh hơn (cold ≈ 30 ms ở worker 1×, ≈ 70 ms ở 4×) nhưng đưa lần gọi thứ 2, thường là lần người học đổi thông số đầu tiên, về mức warm: 4,3 so với 31,5 ms ở worker 1×, 20 so với 41 ms ở 4×. Bản đầu (làm ấm chạy ngay) làm lần gọi đầu chậm thêm ~25 ms: xem mục S0.4 ở "Done". Bảng đo trên máy desktop; trên điện thoại một lần làm ấm chạy 9 lần có thể kéo dài vài trăm ms, và một yêu cầu thật đến giữa lúc đó phải chờ hết lần đang chạy.
 
 ## Science review
 (chưa có)

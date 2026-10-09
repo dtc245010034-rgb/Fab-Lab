@@ -12,11 +12,24 @@ npm run dev      # máy chủ Vite
 npm test         # Vitest, phải xanh trước mỗi commit
 npm run build    # kiểm kiểu + build vào dist/
 npm run lint     # ESLint + Prettier
+npm run e2e      # build rồi chạy Playwright (smoke test trên bản build production)
 ```
+
+`npm run e2e` cần Chromium của Playwright, tải một lần bằng `npx playwright install chromium`.
+Phép tính mô phỏng chạy trong Web Worker (`src/workers/`), không có đường dự phòng trên luồng chính.
 
 Thêm `?debug=1` vào địa chỉ (ví dụ `http://localhost:5173/?debug=1`) để Viewer hiện thời gian
 `runRecipe` và riêng `arrivalTime` (ms). Lần chạy đầu sau khi tải trang là lần "lạnh", chậm hơn
 các lần sau; dùng con số này khi đo trên điện thoại.
+
+Mở `?bench=1` (ví dụ `http://localhost:5173/?bench=1`) để đo tốc độ tính: worker chạy làm ấm,
+rồi chạy mỗi ca A/B/C của `docs/modules/m04-etch.md` 30 lần và trang hiện trung vị, p95, lớn
+nhất (ms) của `runRecipe` và của riêng `arrivalTime`, kèm trình duyệt và số luồng CPU. Đây là số
+"warm"; nút "Chạy lại" đo lại trên cùng worker. Dùng trên điện thoại thật cho tiêu chí
+"warm < 50 ms" của M04. Chỉ đo phép tính trong worker, chưa gồm thời gian chuyển kết quả.
+
+Kiểm tra tự động: mỗi lần push, GitHub Actions (`.github/workflows/ci.yml`) chạy `npm ci`, lint,
+test, build và e2e. Actions không deploy và không giữ token nào.
 
 ## Triển khai (Cloudflare Workers static assets)
 
