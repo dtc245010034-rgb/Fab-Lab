@@ -7,7 +7,10 @@ import {
   describeRecipe,
   describeSection,
   formatMs,
+  formatMsValue,
+  formatRatio,
   formatViNumber,
+  isBenchMainThreadRequested,
   isBenchRequested,
   isDebugRequested,
 } from '../../src/ui/describe';
@@ -116,4 +119,60 @@ describe('isBenchRequested', () => {
       expect(isBenchRequested(search)).toBe(false);
     },
   );
+});
+
+describe('formatMsValue (a table cell whose header names the unit)', () => {
+  it.each([
+    [6.14, '6,1'],
+    [69.25, '69,3'],
+    [0, '0,0'],
+    [120, '120,0'],
+  ])('%d → %s', (ms, text) => {
+    expect(formatMsValue(ms)).toBe(text);
+  });
+
+  it('is formatMs without the unit', () => {
+    for (const ms of [0.04, 6.15, 12, 69.25]) expect(formatMs(ms)).toBe(`${formatMsValue(ms)} ms`);
+  });
+});
+
+describe('formatRatio', () => {
+  it.each([
+    [2, '2,00×'],
+    [0.5, '0,50×'],
+    [1.234, '1,23×'],
+    [18.004, '18,00×'],
+  ])('%d → %s', (ratio, text) => {
+    expect(formatRatio(ratio)).toBe(text);
+  });
+
+  it.each([Infinity, -Infinity, Number.NaN])('%d has no ratio, so a dash', (ratio) => {
+    expect(formatRatio(ratio)).toBe('—');
+  });
+});
+
+describe('isBenchMainThreadRequested', () => {
+  it.each(['?bench=1&thread=main', '?thread=main&bench=1', '?a=b&bench=1&thread=main&c=d'])(
+    '%s → also time the main thread',
+    (search) => {
+      expect(isBenchMainThreadRequested(search)).toBe(true);
+    },
+  );
+
+  // thread=main only means something on the benchmark page; the lab never computes on the page thread
+  it.each([
+    '',
+    '?',
+    '?thread=main',
+    '?bench=1',
+    '?bench=1&thread',
+    '?bench=1&thread=',
+    '?bench=1&thread=worker',
+    '?bench=1&thread=Main',
+    '?bench=1&thread=mainx',
+    '?bench=0&thread=main',
+    '?bench=1&xthread=main',
+  ])('%j → worker only', (search) => {
+    expect(isBenchMainThreadRequested(search)).toBe(false);
+  });
 });

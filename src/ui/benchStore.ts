@@ -7,8 +7,14 @@
 import type { SimClient } from '../workers/simClient';
 import type { BenchReport } from '../workers/simService';
 
+/** Times cases A, B, C on the page's main thread (`?bench=1&thread=main`), `runsPerCase` runs each. */
+export type MainBench = (runsPerCase: number) => Promise<BenchReport>;
+
 export type BenchState =
-  { status: 'running' } | { status: 'done'; report: BenchReport } | { status: 'error' };
+  | { status: 'running' }
+  /** `main` is there only when the page asked to time the main thread as well. */
+  | { status: 'done'; report: BenchReport; main?: BenchReport }
+  | { status: 'error' };
 
 export interface BenchStore {
   subscribe(listener: () => void): () => void;
@@ -17,10 +23,21 @@ export interface BenchStore {
   rerun(): void;
 }
 
-export function createBenchStore(createClient: () => SimClient, runsPerCase: number): BenchStore {
+/**
+ * `createMainBench` is given only for `?bench=1&thread=main`. It is called when the worker's report
+ * is in, never earlier and never for a worker that was disposed, and what it returns is kept for
+ * the later runs of this store: the main thread warms up once per page, as the worker does. The two
+ * threads are timed one after the other so that they do not compete for the CPU.
+ */
+export function createBenchStore(
+  createClient: () => SimClient,
+  runsPerCase: number,
+  createMainBench?: () => Promise<MainBench>,
+): BenchStore {
   let state: BenchState = { status: 'running' };
   let client: SimClient | null = null;
   let generation = 0;
+  let mainBench: Promise<MainBench> | null = null;
   const listeners = new Set<() => void>();
 
   const set = (next: BenchState) => {
@@ -34,17 +51,30 @@ export function createBenchStore(createClient: () => SimClient, runsPerCase: num
     const run = ++generation;
     // a run is current until a newer one starts or its worker is disposed (client no longer `mine`)
     const current = () => run === generation && client === mine;
-    mine.bench(runsPerCase).then(
-      (report) => {
+    const runMain = async (create: () => Promise<MainBench>): Promise<BenchReport> => {
+      try {
+        mainBench ??= create();
+        const bench = await mainBench;
+        return await bench(runsPerCase);
+      } catch (error) {
+        mainBench = null; // a failed load (or a failed run) is tried afresh next time
+        throw error;
+      }
+    };
+    mine
+      .bench(runsPerCase)
+      .then(async (report) => {
         // null: the client was disposed meanwhile
-        if (report && current()) set({ status: 'done', report });
-      },
-      (error: unknown) => {
+        if (!report || !current()) return;
+        if (!createMainBench) return set({ status: 'done', report });
+        const main = await runMain(createMainBench);
+        if (current()) set({ status: 'done', report, main });
+      })
+      .catch((error: unknown) => {
         if (!current()) return;
         console.error(error);
         set({ status: 'error' });
-      },
-    );
+      });
   };
 
   return {

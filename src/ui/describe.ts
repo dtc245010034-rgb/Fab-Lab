@@ -11,9 +11,19 @@ export function formatViNumber(x: number): string {
   return String(x).replace('.', ',');
 }
 
+/** Milliseconds with one decimal and no unit, for a table cell whose header names it: "6,1". */
+export function formatMsValue(ms: number): string {
+  return ms.toFixed(1).replace('.', ',');
+}
+
 /** Milliseconds with one decimal, e.g. "6,1 ms". */
 export function formatMs(ms: number): string {
-  return `${ms.toFixed(1).replace('.', ',')} ms`;
+  return `${formatMsValue(ms)} ms`;
+}
+
+/** A ratio with two decimals, e.g. "0,93×"; a dash when there is none (division by zero). */
+export function formatRatio(ratio: number): string {
+  return Number.isFinite(ratio) ? `${ratio.toFixed(2).replace('.', ',')}×` : '—';
 }
 
 const WET_NAMES = { boe10: 'BOE 10:1', boe6: 'BOE 6:1', hf49: 'HF 49%' } as const;
@@ -41,4 +51,13 @@ export function isDebugRequested(search: string): boolean {
 /** True only for `?bench=1`. */
 export function isBenchRequested(search: string): boolean {
   return new URLSearchParams(search).get('bench') === '1';
+}
+
+/**
+ * True only for `?bench=1&thread=main`: the benchmark page also times the same computation on the
+ * page's main thread, to compare with the worker. It needs `bench=1`: the lab itself never
+ * computes on the main thread.
+ */
+export function isBenchMainThreadRequested(search: string): boolean {
+  return isBenchRequested(search) && new URLSearchParams(search).get('thread') === 'main';
 }

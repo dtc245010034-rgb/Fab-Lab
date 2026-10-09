@@ -28,6 +28,11 @@ nhất (ms) của `runRecipe` và của riêng `arrivalTime`, kèm trình duyệ
 "warm"; nút "Chạy lại" đo lại trên cùng worker. Dùng trên điện thoại thật cho tiêu chí
 "warm < 50 ms" của M04. Chỉ đo phép tính trong worker, chưa gồm thời gian chuyển kết quả.
 
+Thêm `&thread=main` (`?bench=1&thread=main`) để đo cả luồng chính của trang: sau khi worker đo
+xong, cùng phép tính chạy ngay trên luồng chính (đã làm ấm như worker) và trang hiện hai cột
+cạnh nhau cùng tỉ số trung vị luồng chính ÷ worker. Dùng để xem worker có chậm hơn luồng chính
+trên một máy không. Chỉ trang đo làm vậy; trang học luôn tính trong worker.
+
 Đo chi tiết trên Chrome desktop (worker 1×, luồng chính 4×, trace GC): xem
 [`scripts/perf/README.md`](scripts/perf/README.md). Không thuộc `npm run build`.
 

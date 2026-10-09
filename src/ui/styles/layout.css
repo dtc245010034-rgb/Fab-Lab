@@ -191,6 +191,41 @@
   text-align: left;
 }
 
+/* thread=main: worker and main thread side by side, and it must fit a 380 px screen unscrolled. */
+.bench-table--paired {
+  font-size: 12px;
+}
+
+.bench-table--paired th,
+.bench-table--paired td {
+  padding: 5px 3px;
+}
+
+.bench-table--paired thead th {
+  font-size: 11px;
+  font-weight: 600;
+  vertical-align: bottom;
+}
+
+.bench-table--paired thead th[scope='colgroup'] {
+  text-align: center;
+}
+
+/* the second header row starts with a "Worker" cell, which is a number column, not the case column */
+.bench-table--paired thead tr:nth-child(2) th[scope='col'] {
+  text-align: right;
+}
+
+.bench-cases {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 500 12px/1.3 var(--f-mono);
+  color: var(--muted);
+}
+
 .bench-env {
   display: grid;
   gap: 4px;

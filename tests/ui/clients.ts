@@ -20,6 +20,21 @@ export const CANNED_BENCH: BenchReport = {
   ],
 };
 
+/**
+ * What the main thread reports against CANNED_BENCH: case A twice as slow, B twice as fast, C the
+ * same, so that each case has a different median ratio (2, 0.5, 1) to check in the table.
+ */
+export const CANNED_BENCH_MAIN: BenchReport = {
+  cases: CANNED_BENCH.cases.map((c, i) => {
+    const k = [2, 0.5, 1][i]!;
+    return {
+      id: c.id,
+      totalMs: c.totalMs.map((ms) => ms * k),
+      arrivalMs: c.arrivalMs.map((ms) => ms * k),
+    };
+  }),
+};
+
 /** Answers at once with the real `runRecipe` result (no worker in jsdom). */
 export function inlineClient(bench: () => Promise<BenchReport | null> = async () => CANNED_BENCH) {
   const client: TestClient = {
