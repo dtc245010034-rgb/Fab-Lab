@@ -99,5 +99,10 @@ export default tseslint.config(
     files: ['*.config.{js,ts}', 'vite.config.ts'],
     languageOptions: { globals: globals.node },
   },
+  {
+    // Node scripts. scripts/perf/run.mjs also passes callbacks to page.evaluate, which run in the browser.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   prettier,
 );

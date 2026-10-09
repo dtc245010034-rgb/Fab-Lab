@@ -14,3 +14,6 @@ Thumbs.db
 # Cloudflare Wrangler: local state and local variables (never commit tokens)
 .wrangler/
 .dev.vars*
+
+# Perf harness output (scripts/perf): built page, raw samples, Chrome traces
+scripts/perf/out/
