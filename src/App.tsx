@@ -1,10 +1,6 @@
-import { useEffect } from 'react';
-import { DEFAULT_RECIPE } from './sim/defaults';
-import { isDebugRequested } from './ui/describe';
-import Traveler from './ui/Traveler';
-import { useRecipeResult } from './ui/useRecipeResult';
-import Viewer from './ui/Viewer';
-import ViewerPlaceholder from './ui/ViewerPlaceholder';
+import { isBenchRequested } from './ui/describe';
+import BenchPanel from './ui/BenchPanel';
+import Lab from './ui/Lab';
 import type { SimClient } from './workers/simClient';
 import { createWorkerClient } from './workers/spawn';
 
@@ -14,12 +10,7 @@ interface Props {
 }
 
 export default function App({ createClient = createWorkerClient }: Props) {
-  const { shown, pending, error } = useRecipeResult(DEFAULT_RECIPE, createClient);
-
-  useEffect(() => {
-    if (error) console.error(error);
-  }, [error]);
-
+  const bench = isBenchRequested(window.location.search);
   return (
     <div className="app">
       <header className="app-head">
@@ -30,20 +21,7 @@ export default function App({ createClient = createWorkerClient }: Props) {
           thay đổi.
         </p>
       </header>
-      <main className="lab">
-        {shown ? (
-          <Viewer
-            recipe={shown.recipe}
-            result={shown.result}
-            pending={pending}
-            failed={error !== null}
-            debug={isDebugRequested(window.location.search)}
-          />
-        ) : (
-          <ViewerPlaceholder failed={error !== null} />
-        )}
-        <Traveler />
-      </main>
+      {bench ? <BenchPanel createClient={createClient} /> : <Lab createClient={createClient} />}
     </div>
   );
 }

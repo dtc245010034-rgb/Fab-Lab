@@ -37,3 +37,8 @@ export function describeSection(metrics: EtchMetrics, cellNm: number): string {
 export function isDebugRequested(search: string): boolean {
   return new URLSearchParams(search).get('debug') === '1';
 }
+
+/** True only for `?bench=1`. */
+export function isBenchRequested(search: string): boolean {
+  return new URLSearchParams(search).get('bench') === '1';
+}

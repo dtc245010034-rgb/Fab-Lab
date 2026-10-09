@@ -11,14 +11,33 @@
  * dragged) are read first and only the newest of them is computed.
  */
 import * as Comlink from 'comlink';
+import { M04_CASES, type M04Case } from '../sim/cases';
 import { runRecipe, type Recipe, type RecipeResult } from '../sim/recipe';
 
 export type RunOutcome =
   { status: 'ok'; id: number; result: RecipeResult } | { status: 'superseded'; id: number };
 
+/** Times of one case in a benchmark, one entry per run, in the order they ran. Plain numbers. */
+export interface BenchCaseReport {
+  id: M04Case['id'];
+  /** `timingsMs.total` of each run: litho, grid, rates, arrival time and metrics. */
+  totalMs: number[];
+  /** `timingsMs.arrival` of each run: the shortest-path search alone. */
+  arrivalMs: number[];
+}
+
+export interface BenchReport {
+  cases: BenchCaseReport[];
+}
+
 /** The calls the main thread can make; `Comlink.Remote<SimApi>` is its view of the worker. */
 export interface SimApi {
   run(id: number, recipe: Recipe): Promise<RunOutcome>;
+  /**
+   * Times `runRecipe` on cases A, B, C, `runsPerCase` runs each, after the warm-up has finished.
+   * Only the numbers come back; the arrays stay in the worker.
+   */
+  bench(runsPerCase: number): Promise<BenchReport>;
 }
 
 export interface SimServiceOptions {
@@ -102,6 +121,26 @@ export class SimService implements SimApi {
       this.pending = { id, recipe, resolve, reject };
       this.pump();
     });
+  }
+
+  async bench(runsPerCase: number): Promise<BenchReport> {
+    if (!Number.isInteger(runsPerCase) || runsPerCase < 1) {
+      throw new RangeError(`runsPerCase must be a whole number ≥ 1, got ${runsPerCase}`);
+    }
+    await this.warmedUp; // so every sample is a steady-state one
+    const cases: BenchCaseReport[] = [];
+    for (const { id, recipe } of M04_CASES) {
+      const totalMs: number[] = [];
+      const arrivalMs: number[] = [];
+      for (let run = 0; run < runsPerCase; run++) {
+        await this.yieldToEventLoop();
+        const { timingsMs } = this.compute(recipe); // same computation as a real request
+        totalMs.push(timingsMs.total);
+        arrivalMs.push(timingsMs.arrival);
+      }
+      cases.push({ id, totalMs, arrivalMs });
+    }
+    return { cases };
   }
 
   /**

@@ -160,6 +160,57 @@
   color: var(--bad);
 }
 
+/* ── /?bench=1 ──────────────────────────────────────────── */
+
+.bench-page {
+  max-width: 760px;
+}
+
+.bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 500 13px/1.3 var(--f-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.bench-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.bench-table th,
+.bench-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+
+.bench-table th[scope='row'],
+.bench-table th[scope='col']:first-child {
+  text-align: left;
+}
+
+.bench-env {
+  display: grid;
+  gap: 4px;
+  font: 500 12px/1.3 var(--f-mono);
+  color: var(--muted);
+}
+
+.bench-env dt {
+  display: inline;
+}
+
+.bench-env dt::after {
+  content: ': ';
+}
+
+.bench-env dd {
+  display: inline;
+  overflow-wrap: anywhere;
+}
+
 .debug {
   display: flex;
   flex-wrap: wrap;

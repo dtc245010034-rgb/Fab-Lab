@@ -6,7 +6,7 @@
  */
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import { StrictMode } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from '../../src/App';
 import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import { runRecipe } from '../../src/sim/recipe';
@@ -158,13 +158,18 @@ describe('App with the simulation worker', () => {
     expect(client.asked).toEqual([DEFAULT_RECIPE]);
   });
 
-  it('shows an alert and no picture when the first computation fails', async () => {
+  it('shows an alert and no picture when the first computation fails, and logs why', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { client, runs } = manualClient();
     render(<App createClient={() => client} />);
     await waitFor(() => expect(runs).toHaveLength(1));
     await act(async () => runs[0]!.reject(new Error('worker failed to start')));
     expect(await screen.findByRole('alert')).toHaveTextContent(/không tính được mặt cắt/i);
     expect(screen.queryByRole('img', { name: /mặt cắt wafer/i })).not.toBeInTheDocument();
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'worker failed to start' }),
+    );
+    log.mockRestore();
   });
 
   it('under StrictMode leaves one live worker, and none after unmount', async () => {

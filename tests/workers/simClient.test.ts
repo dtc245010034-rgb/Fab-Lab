@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_RECIPE } from '../../src/sim/defaults';
 import { runRecipe, type RecipeResult } from '../../src/sim/recipe';
-import type { RunOutcome } from '../../src/workers/simService';
+import type { BenchReport, RunOutcome } from '../../src/workers/simService';
 import { createSimClient } from '../../src/workers/simClient';
 import { BASE_LITHO, wet } from '../sim/helpers';
 
@@ -21,12 +21,14 @@ function fakeRemote() {
     resolve: (o: RunOutcome) => void;
     reject: (e: unknown) => void;
   }[] = [];
+  const benches: { resolve: (r: BenchReport) => void; reject: (e: unknown) => void }[] = [];
   const remote = {
     run: (id: number) =>
       new Promise<RunOutcome>((resolve, reject) => calls.push({ id, resolve, reject })),
+    bench: () => new Promise<BenchReport>((resolve, reject) => benches.push({ resolve, reject })),
   };
   const ok = (id: number, result: RecipeResult): RunOutcome => ({ status: 'ok', id, result });
-  return { remote, calls, ok };
+  return { remote, calls, benches, ok };
 }
 
 describe('createSimClient.run', () => {
@@ -155,5 +157,54 @@ describe('createSimClient.abort / dispose', () => {
     const client = createSimClient(remote, () => {});
     client.dispose();
     expect(await client.run(DEFAULT_RECIPE)).toBeNull();
+  });
+});
+
+const REPORT: BenchReport = { cases: [{ id: 'A', totalMs: [1], arrivalMs: [0.5] }] };
+
+describe('createSimClient.bench', () => {
+  it('returns the report the worker sends back', async () => {
+    const { remote, benches } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    const pending = client.bench(30);
+    benches[0]!.resolve(REPORT);
+    expect(await pending).toBe(REPORT);
+  });
+
+  it('is independent of run(): neither makes the other obsolete', async () => {
+    const { remote, calls, benches, ok } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    const run = client.run(DEFAULT_RECIPE);
+    const bench = client.bench(30);
+    benches[0]!.resolve(REPORT);
+    calls[0]!.resolve(ok(calls[0]!.id, resultB));
+    expect(await bench).toBe(REPORT);
+    expect(await run).toBe(resultB);
+  });
+
+  it('settles as null when the client is disposed first, in flight or after', async () => {
+    const { remote } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    const inFlight = client.bench(30);
+    client.dispose();
+    expect(await inFlight).toBeNull();
+    expect(await client.bench(30)).toBeNull();
+  });
+
+  it('rejects when the worker dies, in flight or later', async () => {
+    const { remote } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    const inFlight = client.bench(30);
+    client.abort(new Error('worker crashed'));
+    await expect(inFlight).rejects.toThrow('worker crashed');
+    await expect(client.bench(30)).rejects.toThrow('worker crashed');
+  });
+
+  it('passes a failure of the benchmark itself on', async () => {
+    const { remote, benches } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    const pending = client.bench(0);
+    benches[0]!.reject(new RangeError('runsPerCase must be a whole number ≥ 1'));
+    await expect(pending).rejects.toThrow(/runsPerCase/);
   });
 });

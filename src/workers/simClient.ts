@@ -3,15 +3,20 @@
  * request a newer one has replaced, so the UI keeps showing the previous result until the newest
  * one lands and a late answer can never overwrite a newer picture.
  *
- * It only needs `run` from the worker, so tests give it a fake; `createWorkerClient` (spawn.ts)
+ * It only needs `run` and `bench` from the worker, so tests give it a fake; `createWorkerClient` (spawn.ts)
  * wires it to the real Worker.
  */
 import type { Recipe, RecipeResult } from '../sim/recipe';
-import type { RunOutcome } from './simService';
+import type { BenchReport, RunOutcome } from './simService';
 
 export interface SimClient {
   /** The result for `recipe`, or null if a newer `run` (or `dispose`) made this one obsolete. */
   run(recipe: Recipe): Promise<RecipeResult | null>;
+  /**
+   * Times the recompute on cases A, B, C in the worker (see `SimApi.bench`). Null if the client was
+   * disposed meanwhile. Independent of `run`: neither makes the other obsolete.
+   */
+  bench(runsPerCase: number): Promise<BenchReport | null>;
   /**
    * The worker is gone (failed to load, crashed): the newest request in flight rejects with
    * `error`, and so does every later `run`, because a dead worker would never answer it.
@@ -36,14 +41,17 @@ function checkResult(result: RecipeResult): void {
 }
 
 export function createSimClient(
-  remote: { run(id: number, recipe: Recipe): Promise<RunOutcome> },
+  remote: {
+    run(id: number, recipe: Recipe): Promise<RunOutcome>;
+    bench(runsPerCase: number): Promise<BenchReport>;
+  },
   onDispose: () => void,
 ): SimClient {
   let latest = 0;
   let disposed = false;
   /** Set once the worker is known to be dead; from then on every run fails at once. */
   let failure: Error | null = null;
-  const inFlight = new Map<number, (error: Error) => void>();
+  const inFlight = new Map<number | symbol, (error: Error) => void>();
 
   const rejectInFlight = (error: Error) => {
     for (const reject of [...inFlight.values()]) reject(error);
@@ -69,6 +77,22 @@ export function createSimClient(
       if (outcome.status !== 'ok' || outcome.id !== id || id !== latest) return null;
       checkResult(outcome.result);
       return outcome.result;
+    },
+    async bench(runsPerCase) {
+      if (disposed) return null;
+      if (failure) throw failure;
+      const key = Symbol('bench');
+      try {
+        return await new Promise<BenchReport>((resolve, reject) => {
+          inFlight.set(key, reject);
+          remote.bench(runsPerCase).then(resolve, reject);
+        });
+      } catch (error) {
+        if (disposed) return null;
+        throw error;
+      } finally {
+        inFlight.delete(key);
+      }
     },
     abort(error) {
       failure ??= error;

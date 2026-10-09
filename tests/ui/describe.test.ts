@@ -8,6 +8,7 @@ import {
   describeSection,
   formatMs,
   formatViNumber,
+  isBenchRequested,
   isDebugRequested,
 } from '../../src/ui/describe';
 import type { EtchMetrics } from '../../src/sim/grid';
@@ -100,6 +101,19 @@ describe('isDebugRequested', () => {
     '%j → no debug',
     (search) => {
       expect(isDebugRequested(search)).toBe(false);
+    },
+  );
+});
+
+describe('isBenchRequested', () => {
+  it.each(['?bench=1', '?a=b&bench=1', '?bench=1&debug=1'])('%s → bench', (search) => {
+    expect(isBenchRequested(search)).toBe(true);
+  });
+
+  it.each(['', '?', '?bench', '?bench=', '?bench=0', '?bench=true', '?bench=11', '?xbench=1'])(
+    '%j → no bench',
+    (search) => {
+      expect(isBenchRequested(search)).toBe(false);
     },
   );
 });
