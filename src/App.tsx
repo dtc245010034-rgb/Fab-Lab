@@ -1,13 +1,24 @@
-import { useMemo } from 'react';
+import { useEffect } from 'react';
 import { DEFAULT_RECIPE } from './sim/defaults';
-import { runRecipe } from './sim/recipe';
 import { isDebugRequested } from './ui/describe';
 import Traveler from './ui/Traveler';
+import { useRecipeResult } from './ui/useRecipeResult';
 import Viewer from './ui/Viewer';
+import ViewerPlaceholder from './ui/ViewerPlaceholder';
+import type { SimClient } from './workers/simClient';
+import { createWorkerClient } from './workers/spawn';
 
-export default function App() {
-  // On the main thread for now; the worker (S0.4) takes this over.
-  const result = useMemo(() => runRecipe(DEFAULT_RECIPE), []);
+interface Props {
+  /** Starts the simulation worker. Tests pass a stable function that answers without a Worker. */
+  createClient?: () => SimClient;
+}
+
+export default function App({ createClient = createWorkerClient }: Props) {
+  const { shown, pending, error } = useRecipeResult(DEFAULT_RECIPE, createClient);
+
+  useEffect(() => {
+    if (error) console.error(error);
+  }, [error]);
 
   return (
     <div className="app">
@@ -20,11 +31,17 @@ export default function App() {
         </p>
       </header>
       <main className="lab">
-        <Viewer
-          recipe={DEFAULT_RECIPE}
-          result={result}
-          debug={isDebugRequested(window.location.search)}
-        />
+        {shown ? (
+          <Viewer
+            recipe={shown.recipe}
+            result={shown.result}
+            pending={pending}
+            failed={error !== null}
+            debug={isDebugRequested(window.location.search)}
+          />
+        ) : (
+          <ViewerPlaceholder failed={error !== null} />
+        )}
         <Traveler />
       </main>
     </div>

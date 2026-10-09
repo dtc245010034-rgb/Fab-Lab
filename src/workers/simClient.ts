@@ -12,7 +12,10 @@ import type { RunOutcome } from './simService';
 export interface SimClient {
   /** The result for `recipe`, or null if a newer `run` (or `dispose`) made this one obsolete. */
   run(recipe: Recipe): Promise<RecipeResult | null>;
-  /** The worker is gone (failed to load, crashed): the newest request in flight rejects with `error`. */
+  /**
+   * The worker is gone (failed to load, crashed): the newest request in flight rejects with
+   * `error`, and so does every later `run`, because a dead worker would never answer it.
+   */
   abort(error: Error): void;
   /** Stops answering and releases the worker. Safe to call twice. */
   dispose(): void;
@@ -38,15 +41,18 @@ export function createSimClient(
 ): SimClient {
   let latest = 0;
   let disposed = false;
+  /** Set once the worker is known to be dead; from then on every run fails at once. */
+  let failure: Error | null = null;
   const inFlight = new Map<number, (error: Error) => void>();
 
-  const abort = (error: Error) => {
+  const rejectInFlight = (error: Error) => {
     for (const reject of [...inFlight.values()]) reject(error);
   };
 
   return {
     async run(recipe) {
       if (disposed) return null;
+      if (failure) throw failure;
       const id = ++latest;
       let outcome: RunOutcome;
       try {
@@ -64,12 +70,15 @@ export function createSimClient(
       checkResult(outcome.result);
       return outcome.result;
     },
-    abort,
+    abort(error) {
+      failure ??= error;
+      rejectInFlight(error);
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
       latest++; // whatever is still in flight is now obsolete and settles as null
-      abort(new Error('disposed'));
+      rejectInFlight(new Error('disposed'));
       onDispose();
     },
   };

@@ -131,6 +131,14 @@ describe('createSimClient.abort / dispose', () => {
     calls[0]!.resolve(ok(calls[0]!.id, resultB)); // a straggler after abort changes nothing
   });
 
+  it('after abort every new run fails at once with the same error (a dead worker never answers)', async () => {
+    const { remote, calls } = fakeRemote();
+    const client = createSimClient(remote, () => {});
+    client.abort(new Error('worker crashed'));
+    await expect(client.run(DEFAULT_RECIPE)).rejects.toThrow('worker crashed');
+    expect(calls).toHaveLength(0); // nothing was sent to the dead worker
+  });
+
   it('dispose calls the cleanup it was given, once', () => {
     const { remote } = fakeRemote();
     let disposed = 0;

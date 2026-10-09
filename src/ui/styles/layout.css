@@ -130,6 +130,36 @@
   color: var(--muted);
 }
 
+/* "Đang tính lại…" appears only if the wait lasts: a recompute of a few tens of ms must not flash. */
+.vstate {
+  animation: vstate-in 0.01s linear 300ms backwards;
+}
+
+@keyframes vstate-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* before the first result: same proportions as the picture (set inline), text centred on the screen */
+.placeholder {
+  align-items: center;
+}
+
+.placeholder p {
+  padding: 0 12px;
+  font: 500 13px/1.4 var(--f-mono);
+  color: var(--panel);
+  text-align: center;
+}
+
+/* --bad is allowed for text (docs/DESIGN.md); the sentence itself says what happened */
+.notice {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--bad);
+}
+
 .debug {
   display: flex;
   flex-wrap: wrap;

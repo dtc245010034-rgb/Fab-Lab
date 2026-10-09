@@ -3,6 +3,7 @@ import { MATERIAL_TOKENS } from '../render/canvas2d/palette';
 import type { Recipe, RecipeResult } from '../sim/recipe';
 import CrossSectionCanvas from './CrossSectionCanvas';
 import { describeRecipe, describeSection, formatMs, formatViNumber } from './describe';
+import { ComputeFailedNotice } from './ViewerPlaceholder';
 
 const METRIC_SLOTS = ['Chỉ số 1', 'Chỉ số 2', 'Chỉ số 3'] as const;
 
@@ -17,13 +18,24 @@ const LEGEND = [
 const LABELS = { top: 'đỉnh', bottom: 'đáy' } as const;
 
 interface Props {
+  /** The recipe `result` was computed from (not a newer one still being computed). */
   recipe: Recipe;
   result: RecipeResult;
+  /** A newer result is being computed; this one stays on screen until it lands. */
+  pending?: boolean;
+  /** The newest computation failed; this is the last good result. */
+  failed?: boolean;
   /** Show how long the computation took (`?debug=1`). */
   debug?: boolean;
 }
 
-export default function Viewer({ recipe, result, debug = false }: Props) {
+export default function Viewer({
+  recipe,
+  result,
+  pending = false,
+  failed = false,
+  debug = false,
+}: Props) {
   const { section, field, metrics, timingsMs } = result;
   const view = useMemo(
     () => ({ section, field, metrics, timeMin: recipe.etch.timeMin }),
@@ -31,7 +43,7 @@ export default function Viewer({ recipe, result, debug = false }: Props) {
   );
 
   return (
-    <section className="viewer" aria-labelledby="viewer-title">
+    <section className="viewer" aria-labelledby="viewer-title" aria-busy={pending}>
       <div className="vhead">
         <h2 id="viewer-title">Mặt cắt wafer</h2>
         <span className="vmeta">
@@ -39,6 +51,11 @@ export default function Viewer({ recipe, result, debug = false }: Props) {
           {' · '}
           <span>1 ô = {formatViNumber(section.cellNm)} nm</span>
         </span>
+        {pending && (
+          <span className="vstate" role="status">
+            Đang tính lại…
+          </span>
+        )}
       </div>
       <div className="screen">
         <CrossSectionCanvas
@@ -47,6 +64,7 @@ export default function Viewer({ recipe, result, debug = false }: Props) {
           labels={LABELS}
         />
       </div>
+      {failed && <ComputeFailedNotice />}
       <ul className="legend" aria-label="Chú giải vật liệu">
         {LEGEND.map(({ material, label }) => (
           <li key={material}>

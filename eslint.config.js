@@ -76,7 +76,13 @@ export default tseslint.config(
   },
   {
     files: ['src/workers/**'],
-    rules: layer(noReact),
+    rules: layer(
+      {
+        group: dirs('ui', 'render', 'modules', 'content'),
+        message: 'workers/ exposes sim/ to the page: no imports from ui, render, modules, content.',
+      },
+      noReact,
+    ),
   },
   {
     files: ['*.config.{js,ts}', 'vite.config.ts'],
