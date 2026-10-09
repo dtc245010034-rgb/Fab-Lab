@@ -117,6 +117,13 @@ const STENCIL: readonly (readonly [dx: number, dy: number])[] = (() => {
   return steps;
 })();
 
+// The same steps as two Int8Arrays, read by index in the search loop. Looping over the tuples with
+// `for (const [dx, dy] of STENCIL)` allocates an iterator and result objects on every pass while
+// the code is not fully optimized, which fills the young generation and makes the occasional run
+// several times slower than the rest (measured in docs/PROGRESS.md, "Worker, làm ấm và GC").
+const STENCIL_DX = Int8Array.from(STENCIL, ([dx]) => dx);
+const STENCIL_DY = Int8Array.from(STENCIL, ([, dy]) => dy);
+
 export interface ArrivalOptions {
   /**
    * Stop the search once the front would arrive later than this many minutes (default: no limit).
@@ -287,7 +294,9 @@ export function arrivalTime(
 
     const x = cell % w;
     const y = (cell / w) | 0;
-    for (const [dx, dy] of STENCIL) {
+    for (let step = 0; step < STENCIL_DX.length; step++) {
+      const dx = STENCIL_DX[step]!;
+      const dy = STENCIL_DY[step]!;
       const nx = x + dx;
       const ny = y + dy;
       if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
