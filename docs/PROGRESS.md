@@ -97,10 +97,15 @@
 
     Chunk chính hơn mức trước S0.5 2,07 kB (gzip 0,27 kB), tức phần mã bảng cột ghép; `etch.ts` (`arrivalTime`, `rieRates`, hằng số) nay nằm trong chunk `benchMainThread`, chỉ nạp ở `thread=main`. Chunk worker không đổi (17,61 kB, cùng tên băm). Ước lượng lúc quyết định là ≈ 56,3 kB gzip; thực tế 55,96.
   - Chống tái phạm: `e2e/bundle.spec.ts` mở `/` ở bản build production, lấy mọi tệp `.js` mà trang tải (trừ worker) và đòi chúng không chứa hai thông báo lỗi nằm trong `etch.ts` (`unknown material code`, `heap capacity exceeded`; sống sót qua tối giản); script của worker phải chứa cả hai, nếu không test sẽ đúng trên một bundle nó không nhìn được. Kiểm đột biến: cho `pixels.ts` import `Material` từ `etch.ts` lại (và `etch.ts` re-export) thì chunk chính về 175,21 kB và test đỏ ("index-….js carries “unknown material code”").
+  - **Bước 1, commit 2: bảng chi phí tính sẵn** (`stepCostTable(rates, cellNm)` trong `src/physics/etch.ts`). Bảng `Float64Array(4 × 16)`, chỉ số `material * 16 + step`, dựng một lần mỗi lần gọi bằng đúng biểu thức cũ; vòng nóng chỉ tra một ô, không còn `sqrt`, chia hay nhánh về tốc độ. `Infinity` = bước không đi được, quyết **theo từng bước** khi dựng bảng, đúng các điều kiện cũ: không khí; vật liệu không bị khắc; bước có phần dọc mà tốc độ dọc (hoặc ngang, với bước đi lên) bằng 0; bước có phần ngang mà tốc độ ngang bằng 0. Nên tốc độ ngang 0 vẫn cho bước thẳng xuống đi (không gộp thành "tốc độ 0 ⇒ Infinity"). Bảng có NaN thì ném `RangeError`. Khác kế hoạch chút: chỉ số thứ ba `[up|down]` bỏ vì hướng đã nằm trong `step`.
+    - Test: `tests/physics/stepCostTable.test.ts` (bố cục, từng ô khớp công thức cũ **từng bit** trên 10 bộ tốc độ, chặn không khí và vật liệu không bị khắc, riêng cho tốc độ ngang 0, tốc độ dọc 0, đối xứng trái-phải, tỉ lệ theo ô lưới và tốc độ, không NaN trên mọi tốc độ app tạo ra, ném khi có NaN). `tests/physics/arrivalTime.parity.test.ts` so với bản đông cứng của `arrivalTime` ở `4bb8fa2` (`tests/physics/legacy/arrivalTimeV1.ts`, sinh bằng script từ `git show` rồi `diff` từng dòng, chỉ đổi tên hàm và đường dẫn import): **bằng nhau từng bit** (`Object.is`), không dùng dung sai, trên ca A/B/C (lưới thật 260×150, có giới hạn của app, không giới hạn, và `timeMin`) và 3 × 11 × 8 lưới ngẫu nhiên có seed (đối xứng, lệch đúng một ô, không liên quan; rộng 1 đến 60, chẵn và lẻ; 7 bộ tốc độ gồm tốc độ ngang 0 và vật liệu không bị khắc; giới hạn giữa trường, 0 và 1e-9). Tổng 275 test (273 phép so, và 2 test cho chính hàm so: thấy được lệch một bit, coi `Infinity` bằng `Infinity`); `npm test` 912 test.
+    - Kiểm đột biến (10 lỗi cố ý, kết quả đếm test đỏ): chọn tốc độ dọc bằng `dy < 0` (213), đổi selectivity resist và Si (134), "tốc độ 0 của một trong hai chiều chặn mọi bước" (54), tốc độ ngang 0 chặn cả bước không có phần ngang (54), không khí thành oxit (13), bỏ kiểm NaN (5), chỉ số bảng đảo bước/vật liệu (243), kiểm mã vật liệu lệch một (1), `Math.hypot` thay căn của tổng bình phương, chỉ khác ở bit cuối (87). Lỗi thứ mười, bỏ dòng `if (cost === Infinity) continue`, **không đổi được kết quả** (`time + Infinity` không bao giờ nhỏ hơn giá trị đang có), đó là một dòng thoát sớm, giữ lại cho rõ.
+    - Số đo, desktop, bảng "arrivalTime: bảng chi phí" ở mục Hiệu năng bên dưới. Tóm tắt: ở worker 1× trung vị `runRecipe` A/B/C giảm 3,1 / 3,4 / 3,0 → 2,6 / 2,8 / 2,5 ms (−16 đến −18%); `arrivalTime` 3,0 / 3,3 / 2,9 → 2,5 / 2,7 / 2,4 ms. Ít hơn mức mong đợi khi viết kế hoạch: `sqrt` và phép chia không phải phần chính của vòng nóng; phần còn lại là đống (heap) và truy cập bộ nhớ, thứ mà bước 2 (gập gương) giảm một nửa. Nếu tỉ lệ −17% giữ trên S20 FE (67–80 ms hiện nay) thì còn ≈ 56–66 ms: đây là ngoại suy, chưa đo, và vẫn trên 50 ms.
+  - Việc đo trước/sau chạy bằng subagent Haiku trên harness `scripts/perf` (checkout từng commit, dựng trang đo, chạy, lưu JSON); số trong PROGRESS là số tôi tự tóm tắt lại từ JSON thô bằng `summarize.mjs`, trùng báo cáo của subagent. Một sai lệch quy trình: ở lượt đầu, lệnh `summarize` của vòng 1 (đọc JSON đã xong) chạy cùng lúc với lệnh đo luồng chính, nên bản gốc đo lại ở cuối (vòng 4) để so; hai lần lệch ≤ 0,1 ms.
   - Không có hằng số vật lý mới, không dòng mới ở "Values to verify".
 
 ## Next
-- S0.5, bước 0 chờ số điện thoại: mở `/?bench=1&thread=main` trên S20 FE (đợi cả hai lượt xong, bấm "Chạy lại" vài lần) và ghi bảng + tỉ số vào mục S0.5 ở "Done". Sau đó bước 1 (bảng chi phí tính sẵn) và bước 2 (đối xứng gương), mỗi bước một commit và một lần duyệt.
+- S0.5: bước 0 (`thread=main`, đã vào `main`) chờ số S20 FE: mở `/?bench=1&thread=main` (đợi cả hai lượt xong, bấm "Chạy lại" vài lần) và ghi bảng + tỉ số vào mục S0.5 ở "Done". Bước 1 (tách `Material` + bảng chi phí) xong, chờ duyệt rồi `merge --ff-only`; sau đó đo bản đó trên S20 FE. Còn bước 2 (đối xứng gương), một commit và một lần duyệt.
 - Mẫu lẻ không do GC vẫn còn sau khi sửa stencil (11,3 ms ở worker 1×, 26 ms ở 4× trên luồng chính, mỗi cái 1 lần trong 900 lần chạy, trace không thấy GC nào trùng). Chưa rõ nguyên nhân (nghi lịch của hệ điều hành hoặc nhiễu máy đo); chỉ cần quay lại nếu số đo điện thoại thật cho p95 hay lớn nhất gần 50 ms.
 - Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?bench=1` trên điện thoại thật (đợi bảng hiện, bấm "Chạy lại" vài lần) và ghi trung vị / p95 / lớn nhất của `runRecipe` ở mục Hiệu năng; số cold lấy ở `/?debug=1` (tải lại trang, ghi riêng). Tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chỉ tick khi có số warm đo trên máy thật. Chrome DevTools/CDP không làm chậm được worker (xem dưới), nên không có "4× cho worker" trên máy này.
 - Chưa biết trên điện thoại: thời gian chuyển kết quả từ worker về trang (post + nhận 312 KB `arrival` và hai mảng 39 KB). Ở desktop 1× vòng khứ hồi của một yêu cầu thật chỉ hơn thời gian tính 0,3–0,5 ms (bảng lần gọi 1–6 bên dưới), nhưng `?bench=1` chỉ đo phép tính trong worker.
@@ -283,6 +288,36 @@ Trace, 3 lần tải × 100 lần mỗi ca = 900 lần chạy mỗi hàng ("ch�
 | Luồng chính 4×, làm ấm tắt | 71,8 | 41,1 | 21,2 | 21,8 | 18,9 | 19,8 |
 
 Làm ấm không làm lần gọi đầu nhanh hơn (cold ≈ 30 ms ở worker 1×, ≈ 70 ms ở 4×) nhưng đưa lần gọi thứ 2, thường là lần người học đổi thông số đầu tiên, về mức warm: 4,3 so với 31,5 ms ở worker 1×, 20 so với 41 ms ở 4×. Bản đầu (làm ấm chạy ngay) làm lần gọi đầu chậm thêm ~25 ms: xem mục S0.4 ở "Done". Bảng đo trên máy desktop; trên điện thoại một lần làm ấm chạy 9 lần có thể kéo dài vài trăm ms, và một yêu cầu thật đến giữa lúc đó phải chờ hết lần đang chạy.
+
+### arrivalTime: bảng chi phí (S0.5, đo 2026-10-09)
+Máy và Chrome như các mục trên (Chrome 154.0.8037.98, headless), harness `scripts/perf` (lệnh ở README của nó), 4 lần tải × 30 lần = 120 mẫu mỗi ô; ô là trung vị / p95 / lớn nhất của `runRecipe`, ms. Hai đợt trong cùng một phiên, thứ tự khác nhau để thấy hiệu ứng thứ tự và độ trôi: đợt 1 = gốc, tách `Material`, bảng, gốc đo lại; đợt 2 = bảng, tách `Material`, gốc. "Gốc" = `de280c4` (mã `arrivalTime` y như `4bb8fa2`), "tách" = `693aa1d`, "bảng" = `56fc2c9`. Luồng chính 4× là cùng `SimService` trên luồng chính (Chrome không làm chậm được worker, xem mục S0.4).
+
+| Worker 1× | A | B | C |
+|---|---|---|---|
+| gốc, đợt 1 | 3,1 / 4,5 / 5,8 | 3,4 / 3,7 / 4,0 | 3,0 / 3,2 / 3,7 |
+| gốc, đo lại cuối đợt 1 | 3,1 / 4,1 / 5,7 | 3,5 / 3,7 / 4,0 | 3,0 / 3,2 / 3,5 |
+| gốc, đợt 2 | 3,1 / 3,8 / 5,6 | 3,5 / 3,8 / 4,4 | 3,0 / 3,3 / 5,2 |
+| tách `Material`, đợt 1 | 3,1 / 4,2 / 5,4 | 3,5 / 5,1 / 5,3 | 3,0 / 3,2 / 3,8 |
+| tách `Material`, đợt 2 | 3,1 / 4,2 / 5,5 | 3,4 / 3,7 / 3,9 | 3,0 / 3,1 / 3,4 |
+| **bảng**, đợt 1 | **2,6** / 3,0 / 3,1 | **2,8** / 3,1 / 3,4 | **2,5** / 2,8 / 3,3 |
+| **bảng**, đợt 2 | **2,6** / 2,9 / 3,9 | **2,9** / 3,1 / 3,9 | **2,5** / 2,7 / 3,2 |
+
+| Luồng chính 4× | A | B | C |
+|---|---|---|---|
+| gốc, đợt 1 | 13,5 / 15,1 / 19,6 | 15,6 / 18,8 / 24,2 | 13,5 / 15,8 / 19,7 |
+| gốc, đo lại cuối đợt 1 | 13,6 / 14,9 / 18,5 | 15,7 / 18,2 / 22,5 | 13,4 / 14,7 / 15,9 |
+| gốc, đợt 2 | 13,8 / 16,2 / 19,6 | 15,8 / 20,4 / 23,9 | 14,0 / 21,5 / 24,5 |
+| tách `Material`, đợt 1 | 14,3 / 18,1 / 19,5 | 16,0 / 20,6 / 24,6 | 13,9 / 18,5 / 21,6 |
+| tách `Material`, đợt 2 | 13,7 / 16,3 / 20,4 | 15,5 / 17,0 / 18,3 | 13,5 / 15,6 / 17,9 |
+| **bảng**, đợt 1 | **12,0** / 15,4 / 16,1 | **13,1** / 17,1 / 21,2 | **11,4** / 14,1 / 15,1 |
+| **bảng**, đợt 2 | **11,2** / 12,3 / 13,3 | **12,7** / 14,6 / 18,9 | **11,3** / 13,1 / 15,8 |
+
+`arrivalTime` riêng (trung vị, worker 1×): gốc 3,0 / 3,3 / 2,9 (đợt 1), 2,9 / 3,3 / 2,8 (đợt 2); bảng 2,5 / 2,7 / 2,4 ở cả hai đợt.
+
+Đọc thẳng:
+- **Tách `Material` không đổi hiệu năng.** Worker 1× y nhau ở cả hai đợt. Ở luồng chính 4× đợt 1 thấy chậm hơn gốc 0,4–0,8 ms (và p95 cao hơn), đợt 2 thì ngang gốc (13,7 so với 13,8; 15,5 so với 15,8; 13,5 so với 14,0): hiệu số đổi dấu theo thứ tự nên đó là nhiễu của đo 4× (cỡ ±0,5 ms; bản "bảng" cũng cho 12,0 và 11,2 ở A giữa hai đợt), không phải hiệu ứng của commit. Worker 1× ổn định hơn nhiều (±0,1 ms).
+- **Bảng chi phí nhanh hơn rõ**: worker 1× −16, −18, −17% (A, B, C) ở trung vị tổng, và cùng chiều ở cả hai đợt; luồng chính 4× −11 đến −19%. p95 và lớn nhất cũng thấp hơn (một phiên, một máy, không có khoảng tin cậy; mẫu vọt thưa nên so cột lớn nhất cần thận trọng).
+- Tiêu chí M04 "warm < 50 ms trên điện thoại" **vẫn chưa tick**: chưa có số điện thoại sau bước 1.
 
 ## Science review
 (chưa có)
