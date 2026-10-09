@@ -2,7 +2,8 @@
  * Pure mapping from a cross-section grid to pixels, plus the whole-number scale and the rounding
  * rule for the numbers shown. No canvas here: `gridToPixels` returns what goes into ImageData.
  */
-import { Material, type ArrivalField, type MaterialGrid } from '../../physics/etch';
+import type { ArrivalField, MaterialGrid } from '../../physics/etch';
+import { Material } from '../../physics/materials';
 import type { MaterialPalette, Rgb } from './palette';
 
 const { AIR } = Material;

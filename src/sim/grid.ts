@@ -6,7 +6,8 @@
  * touches the DOM or React, so it can run in the worker.
  */
 import { constants } from '../physics/constants';
-import { Material, type ArrivalField, type MaterialGrid } from '../physics/etch';
+import type { ArrivalField, MaterialGrid } from '../physics/etch';
+import { Material } from '../physics/materials';
 import type { LithoResult } from '../physics/litho';
 
 const { AIR, SI, OX, PR } = Material;

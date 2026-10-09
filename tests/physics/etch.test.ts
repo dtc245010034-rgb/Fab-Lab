@@ -2,12 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { constants } from '../../src/physics/constants';
 import {
   arrivalTime,
-  Material,
   rieRates,
   wetEtchRates,
   type EtchRates,
   type MaterialGrid,
 } from '../../src/physics/etch';
+import { Material } from '../../src/physics/materials';
 
 const range = (from: number, to: number, step: number) => {
   const out: number[] = [];
@@ -44,14 +44,6 @@ const rates = (over: Partial<EtchRates> = {}): EtchRates => ({
   resistSelectivity: Infinity,
   siSelectivity: Infinity,
   ...over,
-});
-
-describe('Material', () => {
-  it('has four distinct codes with air = 0', () => {
-    const codes = Object.values(Material);
-    expect(new Set(codes).size).toBe(4);
-    expect(Material.AIR).toBe(0);
-  });
 });
 
 describe('wetEtchRates', () => {

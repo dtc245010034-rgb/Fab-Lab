@@ -11,10 +11,7 @@
  * Units: nm, minutes, W, mTorr.
  */
 import { constants, type WetEtchantId } from './constants';
-
-/** Material codes stored in a grid's `materials` array. (A const object: `enum` is not allowed.) */
-export const Material = { AIR: 0, SI: 1, OX: 2, PR: 3 } as const;
-export type MaterialCode = (typeof Material)[keyof typeof Material];
+import { Material } from './materials';
 
 // Local copies: the hot loops below must not go through the `Material` object on every cell.
 const { AIR, SI, OX, PR } = Material;

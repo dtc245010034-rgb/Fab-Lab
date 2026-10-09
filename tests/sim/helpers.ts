@@ -1,6 +1,7 @@
 // Test helpers: recipe constructors and a thin wrapper over the production `runRecipe`.
 // There is deliberately no second copy of the litho → grid → arrival → metrics pipeline here.
-import { arrivalTime, Material } from '../../src/physics/etch';
+import { arrivalTime } from '../../src/physics/etch';
+import { Material } from '../../src/physics/materials';
 import type { LithoInput } from '../../src/physics/litho';
 import { DEFAULT_GRID_SPEC } from '../../src/sim/defaults';
 import type { GridSpec } from '../../src/sim/grid';

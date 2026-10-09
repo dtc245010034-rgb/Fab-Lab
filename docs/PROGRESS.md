@@ -18,7 +18,7 @@
     Kích thước lưới 260×150 và 10 nm/ô nằm ở `src/sim/defaults.ts`, không gắn mức (là cấu hình mô phỏng, không phải phát biểu vật lý).
   - `src/physics/litho.ts`: `resistThicknessNm`, `minFeatureNm`, `printLitho`. Trả số (`cdMinNm`, `ratio`, `printedNm`, `scumNm`, `taperNm`, `resistThicknessNm`) và cờ
     (`below-resolution`, `near-resolution`, `underdose`, `overdose`), không trả câu tiếng Việt; chữ cho người học thuộc MDX.
-  - `src/physics/etch.ts`: `wetEtchRates`, `rieRates`, `arrivalTime` (Dijkstra 16 hướng). Mã vật liệu `Material` và kiểu `MaterialGrid` đặt ở đây
+  - `src/physics/etch.ts`: `wetEtchRates`, `rieRates`, `arrivalTime` (Dijkstra 16 hướng). Kiểu `MaterialGrid` đặt ở đây; mã vật liệu `Material` ở `src/physics/materials.ts` (từ S0.5, xem bên dưới)
     (physics không import sim; `erasableSyntaxOnly` cấm `enum` nên dùng `const` object).
   - `src/sim/grid.ts`: `buildGrid(spec, litho, stage)` và `measureEtch` (chỉ số của prototype). `grade` (chấm điểm) chưa port, để S1.2.
   - Test: 3 ca hồi quy `m04-etch.md` (±20 nm, ±2°); 4 quy luật SCIENCE mục 5; parity với prototype ở 1e-9 trên 10 công thức khắc + 11 hàng litho,
@@ -86,7 +86,17 @@
     - Kiểm đột biến: bỏ `startWarmUp()` của luồng chính thì 3 test đỏ (bench treo vì hàng đợi làm ấm không bao giờ xong).
     - Chrome desktop (Windows, Chrome 156, headless, một lần mở trang): luồng chính / worker ≈ 1,02–1,09× ở cả ba ca (trung vị `runRecipe` worker 3,0 / 3,4 / 3,0 ms), luồng chính có vài mẫu lớn nhất cao hơn (đến 15,5 ms ở ca B). Một phiên, không có khoảng tin cậy; chỉ để biết trang chạy được, không phải kết luận.
     - **Chưa biết, chờ số trên S20 FE:** luồng chính có nhanh hơn worker nhiều không. Nếu cũng chậm cỡ ~70 ms thì giả thuyết lõi nhỏ sai và 18× so với desktop có nguyên nhân khác; vẫn làm tiếp bước 1 và 2 như đã duyệt, chỉ ghi nhận vào đây.
-    - **Lệch so với kế hoạch: gói JS chính không còn đứng yên.** Chunk chính (bản build production) 166,25 → 175,05 kB (gzip 55,69 → 58,38 kB). 3,07 kB (gzip 0,64) là mã bảng mới. 5,73 kB (gzip 2,05) là `arrivalTime`, `rieRates`, `wetEtchRates` và hằng số bị kéo vào chunk chính: `render/canvas2d/pixels.ts` đã import `Material` từ `physics/etch.ts`, nên module đó thuộc chunk chính, và `import()` của `benchMainThread` (qua `runRecipe`) làm các hàm còn lại của nó không còn bị bỏ khi tối giản. Kiểm bằng bản build tạm không có `import()` (chunk chính 169,32 kB, không có `arrivalTime`). Chunk `benchMainThread` 6,30 kB (gzip 2,73) chỉ nạp ở `thread=main`. Vẫn xa ngân sách 300 KB gzip; chưa sửa vì cách gọn nhất (tách `Material` ra module riêng, ba file import đổi theo) đụng vào `physics/` và `render/`, ngoài phạm vi bước này.
+    - **Lệch so với kế hoạch: gói JS chính không còn đứng yên.** Chunk chính (bản build production) 166,25 → 175,05 kB (gzip 55,69 → 58,38 kB). 3,07 kB (gzip 0,64) là mã bảng mới. 5,73 kB (gzip 2,05) là `arrivalTime`, `rieRates`, `wetEtchRates` và hằng số bị kéo vào chunk chính: `render/canvas2d/pixels.ts` đã import `Material` từ `physics/etch.ts`, nên module đó thuộc chunk chính, và `import()` của `benchMainThread` (qua `runRecipe`) làm các hàm còn lại của nó không còn bị bỏ khi tối giản. Kiểm bằng bản build tạm không có `import()` (chunk chính 169,32 kB, không có `arrivalTime`). Chunk `benchMainThread` 6,30 kB (gzip 2,73) chỉ nạp ở `thread=main`. Vẫn xa ngân sách 300 KB gzip; chưa sửa vì cách gọn nhất (tách `Material` ra module riêng, ba file import đổi theo) đụng vào `physics/` và `render/`, ngoài phạm vi bước này. Đã sửa ở đầu bước 1, ngay dưới.
+  - **Bước 1, commit 1: `Material` sang `src/physics/materials.ts`** (theo quyết định của người dùng; commit riêng, không đổi hành vi). `src/sim/grid.ts`, `src/render/canvas2d/pixels.ts` và các test import thẳng từ `materials.ts`; `etch.ts` không re-export. Số đo bản build production, trước/sau:
+
+    | | Chunk chính | gzip | Chunk `benchMainThread` | gzip |
+    |---|---|---|---|---|
+    | Trước S0.5 (`4bb8fa2`) | 166,25 kB | 55,69 kB | không có | |
+    | Sau bước 0 (`de280c4`) | 175,05 kB | 58,38 kB | 6,30 kB | 2,73 kB |
+    | Sau `materials.ts` | **168,32 kB** | **55,96 kB** | 13,10 kB | 5,09 kB |
+
+    Chunk chính hơn mức trước S0.5 2,07 kB (gzip 0,27 kB), tức phần mã bảng cột ghép; `etch.ts` (`arrivalTime`, `rieRates`, hằng số) nay nằm trong chunk `benchMainThread`, chỉ nạp ở `thread=main`. Chunk worker không đổi (17,61 kB, cùng tên băm). Ước lượng lúc quyết định là ≈ 56,3 kB gzip; thực tế 55,96.
+  - Chống tái phạm: `e2e/bundle.spec.ts` mở `/` ở bản build production, lấy mọi tệp `.js` mà trang tải (trừ worker) và đòi chúng không chứa hai thông báo lỗi nằm trong `etch.ts` (`unknown material code`, `heap capacity exceeded`; sống sót qua tối giản); script của worker phải chứa cả hai, nếu không test sẽ đúng trên một bundle nó không nhìn được. Kiểm đột biến: cho `pixels.ts` import `Material` từ `etch.ts` lại (và `etch.ts` re-export) thì chunk chính về 175,21 kB và test đỏ ("index-….js carries “unknown material code”").
   - Không có hằng số vật lý mới, không dòng mới ở "Values to verify".
 
 ## Next

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Material } from '../../src/physics/etch';
+import { Material } from '../../src/physics/materials';
 import { printLitho } from '../../src/physics/litho';
 import { DEFAULT_GRID_SPEC } from '../../src/sim/defaults';
 import { buildGrid, measureEtch, type GridSpec } from '../../src/sim/grid';
