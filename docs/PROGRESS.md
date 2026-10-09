@@ -75,10 +75,11 @@
   - GitHub Actions `.github/workflows/ci.yml`: mỗi push chạy `npm ci`, lint, test, build, cài Chromium, `playwright test`. Quyền `contents: read`, không secret, không deploy, hủy lần chạy cũ, giữ report khi đỏ. `tests/deploy/ci.test.ts` khóa các điểm này (thêm bước wrangler, secret hay quyền write đều bị bắt). Đã chạy xanh trên GitHub cho `79daf98` (lint, test, build, e2e). Phiên bản action: `checkout`, `setup-node`, `upload-artifact` đều `v7` (tag chính mới nhất lúc làm); chưa ghim theo SHA.
   - Không có hằng số vật lý mới, không dòng mới ở "Values to verify". `WARMUP_RUNS_PER_CASE` = 3 và `BENCH_RUNS_PER_CASE` = 30 là cấu hình công cụ (`src/sim/defaults.ts`, không mức), như kích thước lưới.
   - Kiểm tra: `npm test` (558 test), `npm run build`, `npm run lint`, `npm run e2e` xanh. JS (gzip -9): chunk chính 54,8 KB + chunk worker 6,9 KB = 61,7 KB (ngân sách 300 KB).
-  - **Giả thuyết GC không được xác nhận, nên không đổi `arrivalTime`.** Số đo và thực nghiệm ở "Worker, làm ấm và GC" bên dưới. Có một nguyên nhân khác được chứng minh bằng thực nghiệm, chờ bạn quyết (xem Next).
+  - **Giả thuyết GC không được xác nhận, nên không thêm `scratch`.** Nguyên nhân thật (cấp phát tạm trong vòng `for (const [dx, dy] of STENCIL)`) đã sửa theo quyết định review: `arrivalTime` đọc 16 bước theo chỉ số từ hai `Int8Array` (`08678c7`, kết quả không đổi). Số đo, thực nghiệm và số trước/sau ở "Worker, làm ấm và GC" bên dưới.
+  - Sau review S0.4: harness đo vào `scripts/perf/` (README ngắn: cách chạy, cách đọc trace; `tsc -b` và ESLint kiểm tra, không vào `npm run build`, đầu ra ở `scripts/perf/out/` bị git bỏ qua); thông báo lỗi worker là "Không tính được mặt cắt. Tải lại trang để thử lại." (trước đó là "...Hãy tải lại trang để thử lại.", cả hai chỗ hiện nó đều dùng chung một thành phần).
 
 ## Next
-- **Chờ bạn quyết (từ phép đo S0.4):** mẫu vọt (gấp ~5 lần trung vị ở 1×, ~1,8 lần ở 4×) không do GC của bộ đệm heap mà do cấp phát đối tượng tạm trong vòng `for (const [dx, dy] of STENCIL)` của `arrivalTime`. Thay bằng vòng chỉ số trên hai `Int8Array` (6 dòng, không đổi kết quả) đã thử vứt đi: ở worker 1× mẫu lớn nhất từ 20,3 / 16,7 ms xuống ≤ 5,3 ms, không còn scavenge nào trong 900 lần chạy, trung vị giảm 6–9%; ở luồng chính 4× mẫu lớn nhất từ 26–28 ms xuống 19 ms. **Chưa áp dụng** vì ngoài phần bạn duyệt (bạn chỉ cho `scratch` nếu trace xác nhận GC) và vì S0.2 đã chỉnh vòng lặp này. Nếu đồng ý: một commit riêng, parity với prototype và Dijkstra tham chiếu giữ nguyên làm lưới an toàn. Số đo ở "Worker, làm ấm và GC".
+- Mẫu lẻ không do GC vẫn còn sau khi sửa stencil (11,3 ms ở worker 1×, 26 ms ở 4× trên luồng chính, mỗi cái 1 lần trong 900 lần chạy, trace không thấy GC nào trùng). Chưa rõ nguyên nhân (nghi lịch của hệ điều hành hoặc nhiễu máy đo); chỉ cần quay lại nếu số đo điện thoại thật cho p95 hay lớn nhất gần 50 ms.
 - Deploy thật: nối Workers Builds trên dashboard Cloudflare theo README (tên Worker `fab-lab`). Sau đó mở `/?bench=1` trên điện thoại thật (đợi bảng hiện, bấm "Chạy lại" vài lần) và ghi trung vị / p95 / lớn nhất của `runRecipe` ở mục Hiệu năng; số cold lấy ở `/?debug=1` (tải lại trang, ghi riêng). Tiêu chí "warm < 50 ms trên điện thoại" trong `m04-etch.md` chỉ tick khi có số warm đo trên máy thật. Chrome DevTools/CDP không làm chậm được worker (xem dưới), nên không có "4× cho worker" trên máy này.
 - Chưa biết trên điện thoại: thời gian chuyển kết quả từ worker về trang (post + nhận 312 KB `arrival` và hai mảng 39 KB). Ở desktop 1× vòng khứ hồi của một yêu cầu thật chỉ hơn thời gian tính 0,3–0,5 ms (bảng lần gọi 1–6 bên dưới), nhưng `?bench=1` chỉ đo phép tính trong worker.
 - Còn lại của M04 (ngoài S0.2): KOH, Bosch, Endpoint (S1.3), UI và chấm điểm (S1.2).
@@ -227,7 +228,27 @@ Hai thực nghiệm vứt đi (sửa tạm `src/physics/etch.ts`, đo rồi `git
 | X2, worker 1× | 3,1 / 4,0 / 5,3 | 3,5 / 3,9 / 4,7 | 3,0 / 3,3 / 3,6 |
 
 - X1 không loại được mẫu vọt: trace 900 lần chạy ở worker vẫn có 3 mẫu 10–12 ms chứa 15–22 lần scavenge, ở 4× p95 và lớn nhất không tốt hơn bản gốc (A 18,5 / 29,8 so với 16,1 / 26,2). Vì vậy **không thêm `scratch`** (đúng điều kiện bạn đặt ra: chỉ làm nếu trace xác nhận GC).
-- X2 làm mẫu vọt biến mất: trong trace 900 lần chạy ở worker 1×, **0 lần chạy trùng scavenge** (bản gốc: 2 mẫu có 21–23 scavenge), mẫu lớn nhất ≤ 5,4 ms; trung vị giảm 6–9% (3,3 → 3,1; 3,8 → 3,5; 3,3 → 3,0). Ở 4× mẫu lớn nhất còn 19 ms (so với 26–28 ms), nhưng còn 127 / 898 lần chạy trùng một scavenge ngắn, nên 4× chưa sạch hoàn toàn. Giải thích hợp lý nhất: `for (const [dx, dy] of STENCIL)` cấp phát đối tượng tạm mỗi lượt khi mã chưa được tối ưu hoàn toàn (khởi động, hoặc sau khi V8 hủy tối ưu); X2 chưa chứng minh cơ chế đó ở mức V8, chỉ chứng minh rằng bỏ nó thì mẫu vọt hết. Mẫu vọt thưa nên chỉ cột "lớn nhất" và trace thấy chúng.
+- X2 làm mẫu vọt biến mất: trong trace 900 lần chạy ở worker 1×, **0 lần chạy trùng scavenge** (bản gốc: 2 mẫu có 21–23 scavenge), mẫu lớn nhất ≤ 5,4 ms; trung vị giảm 6–9% (3,3 → 3,1; 3,8 → 3,5; 3,3 → 3,0). Ở 4× mẫu lớn nhất còn 19 ms (so với 26–28 ms), nhưng còn 127 / 898 lần chạy trùng một scavenge ngắn, nên 4× chưa sạch hoàn toàn. Giải thích hợp lý nhất: `for (const [dx, dy] of STENCIL)` cấp phát đối tượng tạm mỗi lượt khi mã chưa được tối ưu hoàn toàn (khởi động, hoặc sau khi V8 hủy tối ưu); X2 chưa chứng minh cơ chế đó ở mức V8, chỉ chứng minh rằng bỏ nó thì cơn scavenge biến mất. Mẫu vọt thưa nên chỉ cột "lớn nhất" và trace thấy chúng. Con số "≤ 5,4 ms" là của một lần đo; bản đã áp dụng đo lại bên dưới cho kết quả ít đẹp hơn.
+
+**Đã áp dụng X2 (`08678c7`); số trước/sau trong cùng một phiên** bằng `scripts/perf` đã commit (Chrome 154.0.8037.98, lệnh ở `scripts/perf/README.md`). Bench: 4 lần tải × 30 lần = 120 mẫu mỗi ô, ô là trung vị / p95 / lớn nhất của `runRecipe`, ms.
+
+| Cấu hình | A | B | C |
+|---|---|---|---|
+| Worker 1×, trước | 3,4 / 3,9 / 5,3 | 3,8 / 4,2 / 4,7 | 3,3 / 3,7 / 4,5 |
+| Worker 1×, sau | 3,3 / 4,2 / 7,4 | 3,6 / 4,8 / 6,6 | 3,1 / 3,5 / 3,8 |
+| Luồng chính 4×, trước | 14,9 / 16,5 / 26,2 | 17,0 / 19,3 / 40,7 | 14,6 / 16,7 / 26,2 |
+| Luồng chính 4×, sau | 14,3 / 16,4 / 20,9 | 16,2 / 19,6 / 23,3 | 13,9 / 15,0 / 15,3 |
+
+Trace, 3 lần tải × 100 lần mỗi ca = 900 lần chạy mỗi hàng ("chậm" = lâu hơn 1,5× trung vị của ca):
+
+| Hàng | Minor GC (scavenge) | Major GC | Mẫu chậm | Lần chạy trùng một scavenge | Lần chạy lớn nhất |
+|---|---|---|---|---|---|
+| Worker 1×, trước | 343 | 22 | 7 | 3 | 18,6 ms (22 scavenge liên tiếp) |
+| Worker 1×, sau | 178 | 0 | 3 | 0 | 11,3 ms (không có GC) |
+| Luồng chính 4×, trước | 203 | 0 | 3 | 131 | 28,5 ms (5 scavenge) |
+| Luồng chính 4×, sau | 138 | 0 | 2 | 128 | 26,0 ms (không có GC) |
+
+Đọc thẳng: (1) trung vị giảm 3–6% ở worker và 4–5% ở 4×; (2) cơn scavenge dài (12–22 lần trong một lần chạy) và Major GC biến mất khỏi worker, và ở 4× không mẫu chậm nào còn trùng GC; (3) **p95 và lớn nhất của bench ở worker không giảm trong lần đo này** (A và B còn nhỉnh hơn: 7,4 và 6,6 ms so với 5,3 và 4,7 ms), vì cả hai lần đo đều rất sạch (trước đó không bắt được mẫu vọt nào trong 120 mẫu) và mẫu lẻ còn lại không do GC; ở 4× lớn nhất giảm rõ (A 26,2 → 20,9, B 40,7 → 23,3, C 26,2 → 15,3) còn p95 gần như giữ; (4) vẫn còn 128/900 lần chạy ở 4× trùng một scavenge ngắn (cả trước lẫn sau), chưa rõ nguyên nhân. Đây là một phiên trên một máy; không có khoảng tin cậy. So sánh trước/sau cần chạy cả hai trong cùng phiên, như đã làm.
 
 **Làm ấm.** Trung vị khứ hồi của lần gọi 1–6 (8 lần tải mỗi hàng; lần 1 = công thức mặc định B lúc tải trang, rồi nghỉ 3 giây, rồi B, C, B, C, B cách nhau 300 ms):
 

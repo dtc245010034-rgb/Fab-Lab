@@ -28,6 +28,9 @@ nhất (ms) của `runRecipe` và của riêng `arrivalTime`, kèm trình duyệ
 "warm"; nút "Chạy lại" đo lại trên cùng worker. Dùng trên điện thoại thật cho tiêu chí
 "warm < 50 ms" của M04. Chỉ đo phép tính trong worker, chưa gồm thời gian chuyển kết quả.
 
+Đo chi tiết trên Chrome desktop (worker 1×, luồng chính 4×, trace GC): xem
+[`scripts/perf/README.md`](scripts/perf/README.md). Không thuộc `npm run build`.
+
 Kiểm tra tự động: mỗi lần push, GitHub Actions (`.github/workflows/ci.yml`) chạy `npm ci`, lint,
 test, build và e2e. Actions không deploy và không giữ token nào.
 
