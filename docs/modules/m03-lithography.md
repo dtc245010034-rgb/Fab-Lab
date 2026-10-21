@@ -30,6 +30,15 @@
 ## Chỉ số
 Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, cảnh báo ngoài cửa sổ quy trình.
 
+## Quy tắc cho copy (đã duyệt 2026-10-21, áp dụng khi viết `src/content/vi/m03/`)
+- Gọi σ là **"độ nhòe hiệu dụng"** (gộp quang học và khuếch tán trong resist). Không gọi là PSF quang học. Có thể nói σ₀ lớn khoảng 2 lần Gauss khớp đĩa Airy (≈ 0,21·λ/NA).
+- Mô hình khe đơn **không có giới hạn phân giải cứng**: liều cao hơn mở được cửa sổ nhỏ hơn. Giới hạn thật đến từ nhiễu xạ của dãy vạch theo pitch, nằm ngoài mô hình.
+- Resist âm cần cửa sổ lớn hơn dương: viết "**trong mô hình này, do cách chuẩn hóa liều**". Không viết chung "resist âm phân giải kém hơn".
+- k₁ hiện chỉ đọc là "k₁ hiệu dụng"; chỉ k₂ chỉnh được.
+- Mọi số là "giá trị minh họa" (mức C); không trình bày như số đo thật.
+- Khối **"Giới hạn của mô hình"** (hiện ở bước tương ứng, một chỗ gom đủ): một độ nhòe cho cả độ dày resist (không đổi lấy nét theo độ sâu), không có sóng đứng, resist đáp ứng như bậc thang ở một ngưỡng (độ tương phản vô hạn), không tẩy màu (bleaching) nên thành loe hơn thực tế, một chiều, thành xấp xỉ bằng đường thẳng.
+- Phân biệt "trong mô hình này" với "trong fab thật" (SCIENCE.md mục 3).
+
 ## Tiêu chí xong
 - [x] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải. (S1.1 bước 1, `tests/physics/exposure.test.ts`. "Không mở khi dưới ngưỡng" được kiểm trong dải liều ×0,8–×1,2: mô hình khe đơn không có giới hạn phân giải cứng, liều cao hơn mở được cửa sổ nhỏ hơn. Thu hẹp khi |Δz| tăng được kiểm ở cả hai phía.)
 - [ ] Biểu đồ nhỏ "cửa sổ quy trình" (liều × tiêu cự), vùng đạt tô màu.

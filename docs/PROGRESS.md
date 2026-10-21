@@ -128,6 +128,13 @@
     4. Resist âm cần cửa sổ lớn hơn dương 34,6% trong mô hình này. Lý do là phép chuẩn hóa liều ×1 ở chân cho cả hai: dương chỉ bị cặn ở chân, âm bị màng ở đỉnh (chỗ nhận nhiều ánh sáng nhất). Copy không được viết "resist âm luôn phân giải kém hơn".
     5. Mô hình dùng một σ cho cả độ dày resist (không đổi lấy nét theo độ sâu) và không có sóng đứng; phản ứng của resist là bậc thang ở E_th.
     6. Spec nói k₁, k₂ chỉnh được ở chế độ nâng cao. Trong mô hình mới k₂ chỉnh được (là DOF), nhưng k₁ không còn là tham số tự do: nó chỉ dùng cho `printLitho` và cho việc hiệu chỉnh σ₀, α. Cần quyết định trước bước 3b.
+  - **Duyệt vật lý bước 1 (người dùng, 2026-10-21), trả lời 6 quan sát:**
+    1. Thành loe 79°: chấp nhận. α đối chiếu AZ MiR 701 và σ₀ ≈ 2× Gauss khớp Airy đã vào "Values to verify". Copy gọi σ là "độ nhòe hiệu dụng", không gọi là PSF quang học.
+    2. `printedNm = 0` khi cặn khép chân: đồng ý. Bước 2 tách `open` thành hai khái niệm (mở ở đỉnh / sạch tới đáy); `buildGrid` vẽ cặn bằng RESIST ở hàng dưới để M04 tự bị chặn, không thêm luật riêng; phán quyết Hỏng có câu "vì sao" nêu cặn.
+    3. k₁ bỏ khỏi tham số chỉnh được; chỉ hiện chỉ đọc "k₁ hiệu dụng = CD_min(mô hình)·NA/λ", đổi theo độ dày resist. Spec M03 đã sửa (`0c74f1d`).
+    4. Resist âm +34,6%: ổn. Copy ghi "trong mô hình này, do cách chuẩn hóa liều".
+    5. Ngưỡng liều ×0,58 / ×1,14: chấp nhận (mức C).
+    6. Một σ cho cả độ dày, không sóng đứng, ngưỡng bậc thang: ghi vào khối "giới hạn mô hình" của copy (xem "Quy tắc cho copy" trong `docs/modules/m03-lithography.md`).
   - **Kiểm tra:** 227 test mới (`special` 25, `aerial` 47, `exposure` 86, `processWindow` 27, `overlay` 42), `npm test` 1139 test (912 cũ không sửa). `npm run build`, `npm run lint` xanh; chunk chính 168,34 kB (gzip 55,99 kB), gần như không đổi (physics mới chưa được trang nào import). Kiểm đột biến: 39 lỗi cố ý (đổi dấu, bỏ hệ số hấp thụ, quy lỗi do liều đảo ngược, bỏ kẹp, đảo chiều quy ước DOF, bỏ phần dư…), 38 bị bắt, 1 tương đương (một `Math.min(1, …)` thừa, đã bỏ). 4 lỗi sống sót ở vòng đầu chỉ ra chỗ test lỏng (biên ±0,5% quanh CD_min, độ dày còn lại sau tráng quá, cặn kèm kích thước đúng), đã thêm test rồi bắt hết.
   - **Hiệu năng** (Node, Ryzen 5 PRO 4650G, chưa đo trên điện thoại): `exposeResist` ≈ 0,008 ms; `processWindow` 25×25 ≈ 4,1 ms, 41×41 ≈ 12,3 ms.
 
@@ -158,8 +165,8 @@
 | Lề 40 nm quanh cửa sổ khi đo resist còn lại (`geometry.resistMeasureMarginNm`) | 40 nm | C | Định nghĩa chỉ số, không phải đại lượng vật lý |
 | Tỉ lệ Si bị tiêu thụ khi oxy hóa | ≈0,44 | — | Jaeger/Plummer, chương oxy hóa |
 | k₂ trong DOF = k₂·λ/NA² (`litho.k2`) | 0,5 | C | Plummer, chương quang khắc (nhiều sách ghi DOF = ±k₂·λ/NA²; kiểm lại là bề rộng toàn phần hay nửa) |
-| Độ nhòe Gauss tại tiêu điểm tốt nhất σ₀ = hệ số·λ/NA (`litho.exposure.blurAtBestFocus`) | 0,445 | C (hệ số hình dạng) | Chọn để tái hiện ngưỡng 0,7 và 1,0 của prototype ở liều ×1; lớn khoảng 2 lần Gauss khớp đĩa Airy (≈ 0,2). Đối chiếu với mô phỏng ảnh trên không có nguồn, hoặc nới lại cùng k₁ |
-| Hấp thụ của resist α (`litho.exposure.absorptionPerNm`) | 6,4·10⁻⁴ nm⁻¹ (0,64 µm⁻¹) | C | Chọn cùng σ₀. So với hệ số hấp thụ của một resist i-line cụ thể (datasheet hoặc tham số Dill trong sách) |
+| Độ nhòe Gauss tại tiêu điểm tốt nhất σ₀ = hệ số·λ/NA (`litho.exposure.blurAtBestFocus`) | 0,445 | C (hệ số hình dạng) | Chọn để tái hiện ngưỡng 0,7 và 1,0 của prototype ở liều ×1; ≈ 2× Gauss khớp đĩa Airy (≈ 0,21·λ/NA, Zhang et al. 2007; nguồn do người dùng cung cấp, chưa tự đối chiếu). Gọi là "độ nhòe hiệu dụng" (gộp quang học và khuếch tán trong resist), **không** gọi là PSF quang học |
+| Hấp thụ của resist α (`litho.exposure.absorptionPerNm`) | 6,4·10⁻⁴ nm⁻¹ (0,64 µm⁻¹) | C | Chọn cùng σ₀. Đối chiếu (người dùng cung cấp, chưa tự kiểm): AZ MiR 701, Dill A = 0,709 µm⁻¹, B = 0,034 µm⁻¹, nên hấp thụ chưa tẩy màu A + B ≈ 0,74 µm⁻¹; mô hình dùng 0,64 µm⁻¹ và không có tẩy màu (bleaching), vì vậy thành loe hơn thực tế |
 | Ngưỡng sạch / đúng kích thước (`litho.exposure.scumOkFraction`, `cdToleranceFraction`) | 1% độ dày; ±10% bề rộng | C | Định nghĩa chỉ số của mô hình, không phải đại lượng vật lý |
 | Nung mềm (`litho.bake.*`): nhiệt độ chuẩn; thời gian tương đương gấp đôi mỗi bao nhiêu °C; dưới / trên bao nhiêu phút tương đương thì dính mask / giảm độ nhạy; độ nhạy mất mỗi phút vượt | 90 °C; 10 °C; 0,5 / 3 phút; 0,15 mỗi phút | C | Tài liệu của một resist; quy luật chỉ có hướng (SCIENCE.md mục 2, M03: nung thiếu dính mask, nung quá giảm độ nhạy, mức B) |
 | Tráng (`litho.develop.*`): thời gian làm sạch hết độ dày; ngưỡng tráng quá; mỏng đi mỗi phút vượt; nở ngang mỗi bên mỗi phút vượt | 1 phút; 1,5 lần; 10% mỗi phút; 30 nm mỗi phút | C | Datasheet resist và dung dịch tráng (TMAH) |
