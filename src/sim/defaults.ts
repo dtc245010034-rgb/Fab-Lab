@@ -1,3 +1,4 @@
+import type { ExposureInput } from '../physics/exposure';
 import type { GridSpec } from './grid';
 import type { Recipe } from './recipe';
 
@@ -42,3 +43,33 @@ export const DEFAULT_RECIPE: Recipe = {
   litho: { spinRpm: 3000, source: 'i', designNm: 800, dose: 1 },
   etch: { mode: 'dry', powerW: 200, pressureMTorr: 30, timeMin: 4.6 },
 };
+
+/**
+ * The M03 start condition: the same 3000 rpm (500 nm) i-line, 800 nm window, dose ×1 as the M04
+ * default, with the nominal soft bake (1 min at 90 °C), the nominal develop time (1 min), best
+ * focus and a positive resist. Recipe inputs, not physical constants.
+ */
+export const DEFAULT_M03_RECIPE: ExposureInput = {
+  spinRpm: 3000,
+  source: 'i',
+  designNm: 800,
+  dose: 1,
+  defocusNm: 0,
+  polarity: 'positive',
+  softBake: { tempC: 90, timeMin: 1 },
+  developMin: 1,
+};
+
+/**
+ * How far the second mask starts from the alignment marks of the first layer (step 3.7), before the
+ * learner corrects it: each of dx, dy and the rotation is drawn from the seed with a size between
+ * 0.4 and 1.0 of these ranges, either sign. A scenario setting (how hard the exercise is), not a
+ * statement about a real stepper.
+ */
+export const M03_SCENARIO = { shiftRangeNm: 150, rotationRangeUrad: 2 } as const;
+
+/** The process-window chart: dose range (×) and how many samples on each axis. */
+export const M03_WINDOW = { doseMin: 0.7, doseMax: 1.3, steps: 25, focusInDofs: 1.5 } as const;
+
+/** Untimed runs of the process window before `?bench=1` times it (the JIT warms up per thread). */
+export const M03_BENCH_WARMUP_RUNS = 3;
