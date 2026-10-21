@@ -63,6 +63,7 @@ content-source/ raw study data (semi-intro-data.json) — source material only, 
 - Before finishing: `npm test && npm run build`, update `docs/PROGRESS.md`
   (done / next / values to verify), then commit with a message `mXX: <what changed>`.
 - If a spec is ambiguous or contradicts SCIENCE.md, stop and ask instead of guessing.
+- Mỗi bước của một phiên là một context riêng: sau khi bước được duyệt và merge, người dùng chạy /clear. Trước khi dừng, PROGRESS.md phải đủ để phiên mới làm tiếp không cần hội thoại cũ.
 
 ## Performance budget
 - Cross-section grid ≤ 400×250 cells; a full etch recompute must finish < 50 ms on a

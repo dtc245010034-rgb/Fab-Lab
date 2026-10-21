@@ -9,7 +9,7 @@
    Với phiên chỉ chỉnh giao diện/copy, có thể hạ `/effort high` để tiết kiệm.
 
 ## Quy tắc mỗi phiên
-- Một phiên = một mục dưới đây. Mở phiên mới (`/clear`) khi sang mục khác.
+- Một phiên = một mục dưới đây. Mở phiên mới (`/clear`) khi sang mục khác, và sau mỗi bước đã duyệt và merge của một mục có nhiều bước (như S1.1).
 - Dán đúng prompt của mục đó. Để Claude lập plan trước, bạn duyệt rồi mới cho làm.
 - Kết thúc phiên: `npm test && npm run build` xanh, PROGRESS.md đã cập nhật, đã commit.
 
@@ -64,6 +64,29 @@ với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PRO
 Đọc CLAUDE.md, docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md.
 Làm physics trước (aerial image + ngưỡng hòa tan + DOF) kèm test quy luật, sau đó các bước UI 3.1–3.6.
 Gồm cả bước 3.7 Overlay. Đầu ra phải là grid đưa thẳng vào M04. Copy tiếng Việt viết vào src/content/vi/m03/.
+```
+S1.1 chia thành sáu bước, nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
+
+| Bước | Nội dung | Trạng thái |
+|---|---|---|
+| 1 | Physics: ảnh trên không, ngưỡng hòa tan, DOF, cửa sổ quy trình, overlay. Chưa UI | xong 2026-10-21, `f762ca0` |
+| 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` |
+| 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` |
+| 3b | UI bước 3.1–3.6 và copy, `reasons.ts`, `Grade`, biểu đồ cửa sổ quy trình ở bước 3.4 | chưa làm |
+| 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
+| 5 | Đọc lại copy theo SCIENCE.md, e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
+
+Prompt cho các bước còn lại (dán sau `/clear`):
+```
+3b: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md (cả "Phán quyết" và "Quy tắc cho copy"), docs/SCIENCE.md mục M03.
+Làm UI bước 3.1–3.6 trên /m03: điều khiển bằng bộ UI kit, Viewer từ M03View, copy MDX ở src/content/vi/m03/, src/content/vi/m03/reasons.ts,
+component Grade ("Phán quyết:"), tầng "Lưu ý" cho cờ quy trình, khối "Giới hạn của mô hình", biểu đồ cửa sổ quy trình ở bước 3.4. Lập plan trước, chờ tôi duyệt.
+
+4: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md. Làm UI bước 3.7 (Overlay): dấu căn chỉnh, đọc sai lệch ẩn,
+chỉnh dx/dy/xoay, rework hay cho qua, vùng đích vẽ làm chú thích (không thêm Material). Chưa có nút "Sang khắc" (S1.2 nối). Lập plan trước.
+
+5: Đọc CLAUDE.md, docs/PROGRESS.md, docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md. Đọc lại toàn bộ copy M03 đối chiếu SCIENCE.md,
+chạy e2e và đo bundle, tick các tiêu chí còn lại trong spec M03, cập nhật PROGRESS. Lập plan trước.
 ```
 
 ### S1.2 — M04 khắc ướt + RIE (UI)
