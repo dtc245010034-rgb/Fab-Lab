@@ -44,6 +44,7 @@ const shape = (value: number, unit: string, note?: string) =>
 export const constants = {
   litho: {
     k1: physical(0.6, 'dimensionless', 'k₁ in CD_min = k₁·λ/NA'),
+    k2: physical(0.5, 'dimensionless', 'k₂ in DOF = k₂·λ/NA²'),
     resistRefThicknessNm: physical(500, 'nm', 'resist thickness at the reference spin speed'),
     resistRefSpinRpm: physical(3000, 'rpm', 'reference spin speed for resistRefThicknessNm'),
     sources: {
@@ -92,6 +93,80 @@ export const constants = {
       'nm',
       'wall flare at the top of the resist per unit of ratio deficit',
     ),
+
+    // Aerial image → threshold model of M03 (src/physics/aerial.ts, exposure.ts). Separate from
+    // the prototype shapes above, which M04 keeps using through printLitho.
+    exposure: {
+      blurAtBestFocus: shape(
+        0.445,
+        'dimensionless',
+        'σ₀ = this · λ/NA, the Gaussian width of the aerial image at best focus. Calibrated so that, at dose ×1, best focus and the reference resist thickness, a clear window just prints clean at design = k₁·λ/NA and just opens at 0.7 of it',
+      ),
+      absorptionPerNm: physical(
+        6.4e-4,
+        '1/nm',
+        'resist absorption: the exposure falls as exp(−α·depth). Calibrated together with blurAtBestFocus',
+      ),
+      scumOkFraction: shape(
+        0.01,
+        'dimensionless',
+        'residue up to this fraction of the resist thickness still counts as clean',
+      ),
+      cdToleranceFraction: shape(
+        0.1,
+        'dimensionless',
+        'a printed bottom width within ± this fraction of the design counts as on size',
+      ),
+    },
+    bake: {
+      refTempC: physical(90, '°C', 'soft-bake temperature at which equivalent minutes = minutes'),
+      doublingC: shape(10, '°C', 'the equivalent bake time doubles for every this many °C'),
+      underbakeBelowMin: shape(
+        0.5,
+        'min',
+        'equivalent bake time below this: solvent left, the resist sticks to the mask',
+      ),
+      overbakeAboveMin: shape(
+        3,
+        'min',
+        'equivalent bake time above this: the resist loses sensitivity',
+      ),
+      sensitivityLossPerMin: shape(
+        0.15,
+        '1/min',
+        'effective dose = dose / (1 + this · equivalent minutes above overbakeAboveMin)',
+      ),
+    },
+    develop: {
+      refMin: physical(1, 'min', 'develop time that clears the whole resist thickness'),
+      overdevelopAboveRel: shape(
+        1.5,
+        '×',
+        'develop time above this multiple of refMin starts to thin the resist and widen the window',
+      ),
+      darkErosionFractionPerMin: shape(
+        0.1,
+        '1/min',
+        'fraction of the resist thickness lost per minute of develop time past the limit above',
+      ),
+      wideningNmPerMin: shape(
+        30,
+        'nm/min',
+        'window wall retreat, per side, per minute of develop time past the limit above',
+      ),
+    },
+    overlay: {
+      toleranceFractionOfCd: shape(
+        0.3,
+        'dimensionless',
+        'allowed layer-to-layer misplacement as a fraction of the printed CD (rule of thumb)',
+      ),
+      marginalFactor: shape(
+        1.5,
+        '×',
+        'worst overlay up to this multiple of the tolerance is marginal; beyond it, a fail',
+      ),
+    },
   },
 
   etch: {
@@ -152,6 +227,11 @@ export const constants = {
 
   geometry: {
     oxideThicknessNm: physical(300, 'nm', 'SiO₂ film that M04 starts from'),
+    waferRadiusMm: physical(
+      150,
+      'mm',
+      'wafer radius that the overlay measurement sites sit on (a 300 mm wafer); M01 will own wafer sizes',
+    ),
     resistMeasureMarginNm: shape(
       40,
       'nm',
