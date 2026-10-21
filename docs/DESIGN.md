@@ -29,16 +29,20 @@ kèm đường ngắt zigzag màu `--panel` ở hai mép (quy ước bản vẽ:
 ## Chữ
 - Tiêu đề: Saira Condensed 700–800, viết hoa.
 - Nội dung: Be Vietnam Pro 400–600 (hỗ trợ tiếng Việt đầy đủ).
-- Số liệu, đơn vị, phương trình: JetBrains Mono, `tabular-nums`.
+- Số liệu, đơn vị: JetBrains Mono, `tabular-nums`. Phương trình dài (đa dòng, phân số, căn) dựng bằng KaTeX lúc build, trong `EquationChip`; font KaTeX chỉ tải ở trang module có phương trình. Ký hiệu đơn giản trong chữ mono (λ σ θ μ ° × ±) lấy từ JetBrains Mono (subset `greek` đã có sẵn trong `400.css`/`600.css`); `→ ₁ ₂ ≈ ∝ √` không nằm trong subset nào và lấy từ font hệ thống.
 
 ## Bố cục
 - Desktop: Viewer (trái, co giãn) + Traveler (phải, 380 px). Dưới 960 px: xếp dọc, Viewer trước.
-- Traveler: thanh 6 bước ở trên → tiêu đề bước → cơ chế → phương trình → điều khiển → ghi chú → nút.
+- Traveler: thanh **6–7 bước theo module** ở trên (cột CSS theo số bước, `--steps`) → tiêu đề bước → cơ chế → phương trình → điều khiển → ghi chú → nút. Mỗi nút một mã nhỏ ("3.3") và **một nhãn một từ, tối đa 5 ký tự** ("Nung"): bảy nút chia 348 px ở 380 px, mỗi nút ≈ 49 px, và e2e kiểm nhãn không xuống dòng, không bị cắt, nút rộng ≥ 44 px. Tên đầy đủ ("Nung mềm") nằm ở `aria-label` và ở tiêu đề bước, và chứa nhãn (WCAG "label in name").
+- Mỗi module có một đường dẫn: `/` là M04, `/m03` là M03 (`location.pathname`, nạp bằng `import()` nên `/` không tải gì của M03).
 - Viewer: tiêu đề mặt cắt, canvas, chú giải vật liệu, hàng chỉ số (metric tiles).
 
 ## Thành phần
 - `StepNav`, `ParamSlider` (nhãn + giá trị có đơn vị), `Segmented`, `MetricTile` (ok/warn/bad),
   `Note` (ok/warn/bad), `Grade` (điểm lớn + một câu giải thích), `EquationChip`.
+- Trạng thái ok/warn/bad có từ đi kèm dùng chung ở `src/ui/status.ts`: **Đạt / Cảnh báo / Lỗi**. `MetricTile` và `Note` viết từ này thành một dòng nhỏ, in hoa, cùng màu chữ `-ink` của trạng thái.
+- `EquationChip`: khung của phương trình duy nhất của bước; phương trình dài cuộn ngang bên trong chip (trang không cuộn ngang ở 380 px), nên chip nhận tiêu điểm bàn phím.
+- Stylesheet của bộ này là `src/ui/styles/kit.css`, do trang module nạp, không phải `main.tsx`.
 - Trạng thái luôn thể hiện bằng cả màu và chữ/icon (không chỉ màu); xem "Quy tắc màu trạng thái".
 
 ## Chuyển động
