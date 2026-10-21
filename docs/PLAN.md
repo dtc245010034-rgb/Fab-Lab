@@ -31,15 +31,13 @@ thay đổi theo đúng cơ chế vật lý. Cuối mỗi module có chấm đi�
 - Port mô hình khắc của `reference/prototype-m04-etch.html` sang `src/physics/etch.ts` + `src/sim/grid.ts`, kèm test.
 - Chạy physics/sim trong Web Worker (Comlink); UI không bị giật khi kéo thanh trượt.
 - CI GitHub Actions (lint, test, build, e2e); Playwright smoke test đầu tiên.
-- Deploy bản rỗng lên Cloudflare Workers (static assets, build bằng Workers Builds), bật Cloudflare Web Analytics (không cookie).
+- Deploy bản rỗng lên Cloudflare Workers (static assets, build bằng Workers Builds).
 **Xong khi:** `npm test` và `npm run build` xanh; trang khung chạy trên điện thoại; test khắc tái tạo
 được 3 ca chuẩn (xem `docs/modules/m04-etch.md`).
 
 **Trạng thái: hoàn tất 2026-10-10** (S0.1–S0.5; chi tiết và số đo ở `docs/PROGRESS.md`). `npm test`,
 `npm run build`, `npm run lint` và `npm run e2e` xanh; khung chạy trên điện thoại (Samsung S20 FE, đo
-ở S0.5); 3 ca chuẩn pass. Hai việc trong danh sách ở trên là cấu hình trên dashboard Cloudflare nên
-repo không chứng minh được: deploy thật bằng Workers Builds và bật Web Analytics (xem mục Next của
-`PROGRESS.md`).
+ở S0.5, mở `?bench=1` trên bản deploy workers.dev); 3 ca chuẩn pass.
 
 ### Giai đoạn 1 — MVP: M03 + M04 (tuần 2–4)
 - M03 quang khắc đầy đủ, thêm tiêu cự/DOF, resist âm và **căn chỉnh Overlay** giữa hai lớp.
@@ -64,6 +62,8 @@ repo không chứng minh được: deploy thật bằng Workers Builds và bật
 ### Giai đoạn 4 — M07 Capstone + ra mắt (tuần 13–15)
 - Chuỗi quy trình chế tạo MOSFET, lưu "traveler" (phiếu công đoạn) để xem lại.
 - Tên miền, SEO cơ bản, trang giới thiệu, nguồn tham khảo.
+- Bật Cloudflare Web Analytics (không cookie; chuyển từ Giai đoạn 0 ngày 2026-10-21). Đây là cấu hình trên
+  dashboard Cloudflare nên repo không chứng minh được; ghi lại ngày bật vào `PROGRESS.md` khi làm.
 - Bản tiếng Anh (tùy chọn).
 - Backend nhỏ đầu tiên: form góp ý / báo lỗi khoa học (Cloudflare Workers + D1).
 - (Tùy chọn, sau ra mắt) Gia sư AI qua Worker proxy giữ API key, có giới hạn tần suất,
