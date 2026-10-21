@@ -118,13 +118,25 @@ export type CauseCode =
   | 'overbaked'
   | 'underdeveloped'
   | 'overdeveloped'
+  | 'cd-off-size'
   | 'overlay';
 
 export interface Cause {
   code: CauseCode;
   severity: 'fail' | 'marginal';
-  /** The size that goes with the cause: the residue left (scum), the worst overlay (overlay), nm. */
+  /**
+   * The size that goes with the cause, nm: the residue left (scum), the skin (bridging), the worst
+   * overlay (overlay), and for `cd-off-size` the width at the foot minus the design, with its sign.
+   */
   valueNm?: number;
+  /** `cd-off-size` only: that deviation as a signed fraction of the design (−0.15 is 15% too narrow). */
+  fraction?: number;
+  /**
+   * `cd-off-size` only: which way to turn the dose to bring the width back. The same for either
+   * sign of the error only for a positive resist; for a negative one more light narrows the window,
+   * so it is the other way round. Worked out here, where the polarity is known, not in the copy.
+   */
+  doseAdvice?: 'increase' | 'decrease';
 }
 
 /** Đạt / Biên / Hỏng, and the causes, failing ones first and each root cause before its effect. */
@@ -375,39 +387,78 @@ export function readOverlay(s: M03Session, e: ExposureResult): OverlayReadout {
  * Đạt / Biên / Hỏng from the physics status and flags (and the overlay, when it has been read),
  * with the causes. No score: the M03 spec has no formula and none is invented here.
  *
- * One rule for what stands between the etchant and the substrate: scum at the foot, a skin over
- * the top, or no window at all, thicker than the tolerance (`scumOkFraction` of the film) is a
- * **fail**, whether or not the top is open. It is the rule the process-window chart already uses
- * (a sample passes only if it is `cleanToFoot`), and a wet oxide etchant does not attack resist,
- * so even a thin layer stops it completely. (For RIE a thin layer would only delay the etch, and a
- * real fab strips such residue with an O₂ descum; neither is modelled, so the verdict stays strict.)
- * A cause is also "fail" when the resist was not baked enough, and "marginal" when the print is
- * merely imperfect. Root causes come before their effect, so the residue is listed after the dose
- * or the resolution that left it. Each cause that has a size keeps it (scum, skin, overlay), in nm.
+ * The verdict says whether the **print is what was asked for**, exactly as the process-window chart
+ * does: it is Đạt if and only if the chart would pass the sample (`passesProcessWindow`) and, when
+ * the overlay is read, the overlay is Đạt. The physics `status` is a different question (does it
+ * print clean: the 0.7 / 1.0 thresholds of the prototype) and is left as it is.
+ *
+ * Fail: anything standing between the etchant and the substrate (scum at the foot, a skin over
+ * the top, or no window at all) thicker than the tolerance (`scumOkFraction` of the film), whether
+ * or not the top is open. A wet oxide etchant does not attack resist, so even a thin layer stops
+ * it completely. (For RIE a thin layer would only delay the etch, and a real fab strips such
+ * residue with an O₂ descum; neither is modelled, so the verdict stays strict.) Also a resist that
+ * was not baked enough.
+ *
+ * Marginal: a window clean to the foot whose width is off the design by more than the size
+ * tolerance (`cd-off-size`, with the deviation and which way to turn the dose). There is no fail
+ * threshold for the size: a real fab would call a big deviation a fail; the model does not grade it.
+ *
+ * Out of focus, an overbaked resist and a wrong develop time are not defects of the print: they
+ * explain one. They are listed only when the print has a defect, so a print that comes out right
+ * says nothing about how it was made.
+ *
+ * Order: failing causes first; then the roots (resolution, dose), the process causes that explain
+ * them, and the effects (scum, size); the overlay last. Each cause that has a size keeps it in nm.
  */
 export function judge(e: ExposureResult, overlay: OverlayReadout | null): M03Verdict {
   const tolerance = constants.litho.exposure.scumOkFraction.value;
+  const sizeTolerance = constants.litho.exposure.cdToleranceFraction.value;
   const filmNm = resistThicknessNm(e.spinRpm);
   const blocked = e.blockedFraction > tolerance;
   const has = (flag: (typeof e.flags)[number]) => e.flags.includes(flag);
-  const causes: Cause[] = [];
-  const add = (code: CauseCode, severity: Cause['severity'], valueNm?: number) =>
-    causes.push(valueNm === undefined ? { code, severity } : { code, severity, valueNm });
+  const hasScum = e.scumNm > tolerance * filmNm;
+  /** Clean to the foot, so the width at the foot means something, and not the size asked for. */
+  const offSize = e.cleanToFoot && Math.abs(e.cdErrorFraction) > sizeTolerance;
   const atBlocking = blocked ? 'fail' : 'marginal';
+
+  const printHasDefect =
+    has('below-resolution') ||
+    has('underbaked') ||
+    has('bridging') ||
+    has('underdose') ||
+    has('overdose') ||
+    has('near-resolution') ||
+    hasScum ||
+    offSize;
+
+  const causes: Cause[] = [];
+  const add = (code: CauseCode, severity: Cause['severity'], extra: Partial<Cause> = {}) =>
+    causes.push({ code, severity, ...extra });
 
   if (has('below-resolution')) add('below-resolution', 'fail');
   if (has('underbaked')) add('underbaked', 'fail');
-  if (has('bridging')) add('bridging', 'fail', e.skinNm);
+  if (has('bridging')) add('bridging', 'fail', { valueNm: e.skinNm });
   if (has('underdose')) add('underdose', atBlocking);
   if (has('overdose')) add('overdose', atBlocking);
-  if (e.scumNm > tolerance * filmNm) add('scum', 'fail', e.scumNm);
   if (has('near-resolution')) add('near-resolution', atBlocking);
-  if (has('out-of-focus')) add('out-of-focus', 'marginal');
-  if (has('overbaked')) add('overbaked', 'marginal');
-  if (has('underdeveloped')) add('underdeveloped', 'marginal');
-  if (has('overdeveloped')) add('overdeveloped', 'marginal');
+  if (printHasDefect) {
+    if (has('out-of-focus')) add('out-of-focus', 'marginal');
+    if (has('overbaked')) add('overbaked', 'marginal');
+    if (has('underdeveloped')) add('underdeveloped', 'marginal');
+    if (has('overdeveloped')) add('overdeveloped', 'marginal');
+  }
+  if (hasScum) add('scum', 'fail', { valueNm: e.scumNm });
+  if (offSize) {
+    const narrow = e.cdErrorFraction < 0;
+    add('cd-off-size', 'marginal', {
+      valueNm: e.printedNm - e.designNm,
+      fraction: e.cdErrorFraction,
+      // a positive window grows with the dose; a negative one (the window is the unexposed line) shrinks
+      doseAdvice: narrow === (e.polarity === 'positive') ? 'increase' : 'decrease',
+    });
+  }
   if (overlay && overlay.verdict !== 'ok') {
-    add('overlay', overlay.verdict === 'fail' ? 'fail' : 'marginal', overlay.worstNm);
+    add('overlay', overlay.verdict === 'fail' ? 'fail' : 'marginal', { valueNm: overlay.worstNm });
   }
 
   // failing causes first, otherwise in the order above (Array.sort is stable)

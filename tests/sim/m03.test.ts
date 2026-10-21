@@ -454,11 +454,19 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
     expect(codes(v).indexOf('below-resolution')).toBeLessThan(codes(v).indexOf('scum'));
   });
 
-  it('does not blame a residue within the tolerance', () => {
-    // 0.5% of the film is left (2.5 nm of 500 nm): too little to count as scum.
+  it('lists the resolution that left the scum before the scum, and the scum before the size', () => {
+    const v = judge(run({ designNm: designAt(0.9) }), null);
+    expect(codes(v)).toEqual(['near-resolution', 'scum']);
+    expect(v.causes.every((c) => c.severity === 'fail')).toBe(true);
+  });
+
+  it('does not blame a residue within the tolerance, nor the develop time that left it', () => {
+    // 0.5% of the film is left (2.5 nm of 500 nm): too little to count as scum, and the window is
+    // the right size, so the print has nothing wrong with it and the verdict has nothing to say.
     const e = run({ developMin: 0.995 });
     expect(e.scumNm).toBeGreaterThan(0);
-    expect(codes(judge(e, null))).toEqual(['underdeveloped']);
+    expect(e.flags).toContain('underdeveloped');
+    expect(judge(e, null)).toEqual({ grade: 'ok', causes: [] });
   });
 
   it('fails an undeveloped film on the residue alone', () => {
@@ -487,8 +495,7 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
     const scum = run({ developMin: 0.988 });
     expect(thinScum.scumNm).toBeLessThan(tolerance);
     expect(scum.scumNm).toBeGreaterThan(tolerance);
-    expect(codes(judge(thinScum, null))).toEqual(['underdeveloped']);
-    expect(judge(thinScum, null).grade).toBe('marginal');
+    expect(judge(thinScum, null)).toEqual({ grade: 'ok', causes: [] });
     expect(judge(scum, null).grade).toBe('fail');
     expect(judge(scum, null).causes.find((c) => c.code === 'scum')).toEqual({
       code: 'scum',
@@ -510,7 +517,10 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
       severity: 'fail',
       valueNm: skinned.skinNm,
     });
-    expect(judge(clear, null)).toEqual({ grade: 'ok', causes: [] });
+    // no bridging cause: the skin is within the tolerance. (At this limit of the negative resist the
+    // foot is narrower than designed, so the size is what the verdict still has to say.)
+    expect(codes(judge(clear, null))).not.toContain('bridging');
+    expect(judge(clear, null).grade).not.toBe('fail');
   });
 
   it('gives a thick scum and a thin skin the same grade', () => {
@@ -536,11 +546,137 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
     expect(v.causes.find((c) => c.code === 'bridging')!.valueNm).toBeGreaterThan(0);
   });
 
-  it('marks an out-of-focus exposure that still prints as a marginal, with only that cause', () => {
-    const v = judge(run({ defocusNm: 0.52 * dofNm('i') }), null);
-    expect(v).toEqual({
-      grade: 'marginal',
-      causes: [{ code: 'out-of-focus', severity: 'marginal' }],
+  it('says nothing of the focus while the print is on size: out of focus is not a defect of the print', () => {
+    const e = run({ defocusNm: 0.52 * dofNm('i') });
+    expect(e.flags).toContain('out-of-focus');
+    expect(judge(e, null)).toEqual({ grade: 'ok', causes: [] });
+  });
+
+  it('names the focus, before its effect, once the print is off size', () => {
+    // 2·CD_min of an i-line window: scan out of focus for the first dose-×1 print that is clean to
+    // the foot but off size.
+    let found = null;
+    for (let dz = 0.5; dz <= 1.5 && found === null; dz += 0.05) {
+      const e = run({ designNm: designAt(2), defocusNm: dz * dofNm('i') });
+      if (e.cleanToFoot && Math.abs(e.cdErrorFraction) > 0.1) found = e;
+    }
+    expect(found).not.toBeNull();
+    const v = judge(found!, null);
+    expect(v.grade).toBe('marginal');
+    expect(codes(v)).toEqual(['out-of-focus', 'cd-off-size']);
+  });
+
+  it('keeps the process causes (bake, develop) out of the verdict while the print is fine, and lists them when it is not', () => {
+    const fine = run({ softBake: { tempC: 110, timeMin: 2 }, dose: 1.8 }); // overbaked, dose made up for it
+    expect(fine.flags).toContain('overbaked');
+    expect(passesProcessWindow(fine)).toBe(true);
+    expect(judge(fine, null)).toEqual({ grade: 'ok', causes: [] });
+
+    const bad = run({ softBake: { tempC: 110, timeMin: 2 } }); // overbaked and underexposed
+    expect(passesProcessWindow(bad)).toBe(false);
+    expect(codes(judge(bad, null))).toContain('overbaked');
+  });
+
+  describe('cd-off-size: the window is not the size that was asked for', () => {
+    const tolerance = constants.litho.exposure.cdToleranceFraction.value;
+    const offSize = (e: ReturnType<typeof run>) =>
+      judge(e, null).causes.find((c) => c.code === 'cd-off-size');
+
+    it('is a Biên at 1.3·CD_min and dose ×1: clean to the foot, but narrower than designed', () => {
+      const e = run({ designNm: designAt(1.3) });
+      expect(e.cleanToFoot).toBe(true);
+      expect(e.status).toBe('ok'); // the physics: it prints clean (the prototype threshold is 1.0)
+      const v = judge(e, null);
+      expect(v.grade).toBe('marginal'); // the verdict: it is not the size asked for
+      expect(codes(v)).toEqual(['cd-off-size']);
+      const cause = v.causes[0]!;
+      expect(cause.severity).toBe('marginal');
+      expect(cause.valueNm!).toBeLessThan(0);
+      expect(cause.fraction!).toBeLessThan(-tolerance);
+    });
+
+    it('keeps the deviation with its sign, in nm and as a fraction of the design', () => {
+      for (const [designRatio, dose] of [
+        [1.3, 1],
+        [2.2, 1.3],
+        [2.2, 0.8],
+        [3, 1.5],
+      ] as const) {
+        const e = run({ designNm: designAt(designRatio), dose });
+        const cause = offSize(e);
+        expect(cause, `${designRatio} ×${dose}`).toBeDefined();
+        expect(cause!.valueNm, `${designRatio} ×${dose}`).toBeCloseTo(e.printedNm - e.designNm, 9);
+        expect(cause!.fraction, `${designRatio} ×${dose}`).toBeCloseTo(e.cdErrorFraction, 12);
+        expect(Math.sign(cause!.valueNm!)).toBe(Math.sign(cause!.fraction!));
+      }
+      expect(offSize(run({ designNm: designAt(2.2), dose: 1.3 }))!.valueNm!).toBeGreaterThan(0);
+      expect(offSize(run({ designNm: designAt(2.2), dose: 0.8 }))!.valueNm!).toBeLessThan(0);
+    });
+
+    it('is not there while the window is within the tolerance, and not for a window that is blocked', () => {
+      expect(offSize(run({}))).toBeUndefined();
+      expect(offSize(run({ designNm: designAt(1.5) }))).toBeUndefined(); // −6.2%
+      expect(offSize(run({ designNm: designAt(0.8) }))).toBeUndefined(); // scummed: width at the foot is 0
+      expect(offSize(run({ designNm: 150 }))).toBeUndefined(); // nothing opens
+    });
+
+    it('stays a Biên however far off size: there is no Hỏng threshold for the size yet', () => {
+      const e = run({ dose: 1.6 });
+      expect(e.cleanToFoot).toBe(true);
+      expect(e.cdErrorFraction).toBeGreaterThan(2 * tolerance);
+      const v = judge(e, null);
+      expect(v.grade).toBe('marginal');
+      expect(offSize(e)!.severity).toBe('marginal');
+    });
+
+    it('says which way to turn the dose: positive resist, narrow → more, wide → less; negative, the reverse', () => {
+      const cause = (patch: Partial<ExposureInput>) => {
+        const e = run(patch);
+        return { error: e.cdErrorFraction, advice: offSize(e)!.doseAdvice };
+      };
+      // positive: more light widens the window
+      expect(cause({ designNm: designAt(1.3) })).toMatchObject({ advice: 'increase' });
+      expect(cause({ designNm: designAt(1.3) }).error).toBeLessThan(0);
+      expect(cause({ dose: 1.4 })).toMatchObject({ advice: 'decrease' });
+      expect(cause({ dose: 1.4 }).error).toBeGreaterThan(0);
+      // negative: the window is the unexposed line, so more light narrows it
+      expect(cause({ polarity: 'negative', dose: 1.4 })).toMatchObject({ advice: 'decrease' });
+      expect(cause({ polarity: 'negative', dose: 1.4 }).error).toBeLessThan(0);
+      expect(cause({ polarity: 'negative', dose: 0.8 })).toMatchObject({ advice: 'increase' });
+      expect(cause({ polarity: 'negative', dose: 0.8 }).error).toBeGreaterThan(0);
+    });
+
+    it('gives advice that works: a small step the advised way brings the width nearer to the design', () => {
+      let checked = 0;
+      for (const polarity of ['positive', 'negative'] as const) {
+        for (const ratio of [1.3, 1.6, 2.2, 3]) {
+          for (const dose of [0.75, 0.85, 1, 1.15, 1.3]) {
+            const base = { polarity, designNm: designAt(ratio), dose };
+            const cause = offSize(run(base));
+            if (!cause) continue;
+            const step = cause.doseAdvice === 'increase' ? 1.03 : 1 / 1.03;
+            const after = run({ ...base, dose: dose * step });
+            if (!after.cleanToFoot) continue;
+            expect(Math.abs(after.cdErrorFraction), JSON.stringify(base)).toBeLessThan(
+              Math.abs(run(base).cdErrorFraction),
+            );
+            checked++;
+          }
+        }
+      }
+      expect(checked).toBeGreaterThan(10); // the property was really exercised
+    });
+
+    it('can be put right with the dose: a dose in ×0.7 … ×1.3 gives Đạt at 1.5·CD_min and at 1.3·CD_min', () => {
+      const doses = Array.from({ length: 25 }, (_, i) => 0.7 + (0.6 * i) / 24);
+      for (const ratio of [1.5, 1.3]) {
+        const ok = doses.filter(
+          (dose) => judge(run({ designNm: designAt(ratio), dose }), null).grade === 'ok',
+        );
+        expect(ok.length, `${ratio}`).toBeGreaterThan(0);
+        // dose-to-size: the window is narrower than designed at ×1, so the doses that fix it are above ×1
+        if (ratio === 1.3) for (const dose of ok) expect(dose).toBeGreaterThan(1);
+      }
     });
   });
 
@@ -598,6 +734,10 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
                   const failing = e.status === 'fail' || blocked || overlay?.verdict === 'fail';
                   expect(v.grade === 'fail', tag).toBe(failing);
                   expect(v.grade === 'ok', tag).toBe(v.causes.length === 0);
+                  // Đạt exactly where the chart would pass (and the overlay, when it is read, is Đạt)
+                  expect(v.grade === 'ok', tag).toBe(
+                    passesProcessWindow(e) && (overlay === null || overlay.verdict === 'ok'),
+                  );
                   if (v.grade === 'fail')
                     expect(
                       v.causes.some((c) => c.severity === 'fail'),
@@ -661,20 +801,44 @@ describe('the verdict and the process-window chart never contradict each other',
     }
   });
 
-  it('when it is not Hỏng and the chart does not pass, says only Biên causes unrelated to scum or skin, on a window that is clean to the foot', () => {
-    for (const { e, v, passes, tag } of samples()) {
-      if (v.grade === 'fail' || passes) continue;
+  it('is Đạt exactly where the chart passes: both ways, with no sample left over', () => {
+    let ok = 0;
+    let notOk = 0;
+    for (const { v, passes, tag } of samples()) {
+      expect(v.grade === 'ok', tag).toBe(passes);
+      if (passes) expect(v.causes, tag).toEqual([]);
+      else expect(v.causes.length, tag).toBeGreaterThan(0);
+      if (v.grade === 'ok') ok++;
+      else notOk++;
+    }
+    expect(ok).toBeGreaterThan(300); // both sides are really there
+    expect(notOk).toBeGreaterThan(300);
+  });
+
+  it('is Đạt only if the overlay is Đạt too, when it is read', () => {
+    const good = readOverlay(session(), exposeResist(DEFAULT_M03_RECIPE));
+    const bad = readOverlay(
+      session({ hidden: { dxNm: 900, dyNm: 0, rotationUrad: 0 } }),
+      exposeResist(DEFAULT_M03_RECIPE),
+    );
+    for (const { e, passes, tag } of samples()) {
+      expect(judge(e, good).grade === 'ok', tag).toBe(passes);
+      expect(judge(e, bad).grade, tag).toBe('fail');
+    }
+  });
+
+  it('puts a size, never a layer in the way, behind every sample that is clean but not Đạt', () => {
+    for (const { e, v, tag } of samples()) {
+      if (v.grade === 'ok' || e.blockedFraction > tolerance) continue;
+      expect(e.cleanToFoot && e.status !== 'fail', tag).toBe(true);
       expect(
-        v.causes.every(
-          (c) => c.severity === 'marginal' && c.code !== 'scum' && c.code !== 'bridging',
-        ),
+        v.causes.every((c) => c.severity === 'marginal'),
         tag,
       ).toBe(true);
-      // what is left for the chart to object to is the size of the window, not a layer in the way
-      expect(e.cleanToFoot && e.status !== 'fail', tag).toBe(true);
-      expect(Math.abs(e.cdErrorFraction), tag).toBeGreaterThan(
-        constants.litho.exposure.cdToleranceFraction.value,
-      );
+      expect(
+        v.causes.map((c) => c.code),
+        tag,
+      ).toContain('cd-off-size');
     }
   });
 });
