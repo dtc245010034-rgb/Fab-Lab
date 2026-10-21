@@ -28,6 +28,14 @@ export interface GridSpec {
  */
 export type LithoStage = 'ox' | 'resist' | 'exposed' | 'developed';
 
+/**
+ * What `buildGrid` needs from the lithography: a `LithoResult`, plus optionally the thickness of a
+ * cross-linked skin that bridges the top of the window (negative resist). The skin is drawn as
+ * resist in the top rows of the window, as scum is drawn at the bottom, so that an etch is blocked
+ * by it through the ordinary material rules.
+ */
+export type GridLitho = LithoResult & { readonly skinNm?: number };
+
 export interface CrossSection extends MaterialGrid {
   /** 1 where resist is exposed but not yet developed away ("stage exposed" only), else 0. */
   readonly latent: Uint8Array;
@@ -60,8 +68,12 @@ function assertSpec(spec: GridSpec): void {
   }
 }
 
-export function buildGrid(spec: GridSpec, litho: LithoResult, stage: LithoStage): CrossSection {
+export function buildGrid(spec: GridSpec, litho: GridLitho, stage: LithoStage): CrossSection {
   assertSpec(spec);
+  const skinNm = litho.skinNm ?? 0;
+  if (!Number.isFinite(skinNm) || skinNm < 0) {
+    throw new RangeError(`skinNm must be a finite number ≥ 0, got ${skinNm}`);
+  }
   const { widthCells: w, heightCells: h, cellNm, oxideTopRow } = spec;
 
   const oxideRows = Math.round(constants.geometry.oxideThicknessNm.value / cellNm);
@@ -82,6 +94,7 @@ export function buildGrid(spec: GridSpec, litho: LithoResult, stage: LithoStage)
   const latent = new Uint8Array(w * h);
   const centreX = w / 2;
   const scumRows = Math.round(litho.scumNm / cellNm);
+  const skinRows = Math.round(skinNm / cellNm);
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -98,7 +111,7 @@ export function buildGrid(spec: GridSpec, litho: LithoResult, stage: LithoStage)
           const halfWindowCells =
             (litho.printedNm / 2 + (litho.taperNm * k) / Math.max(1, resistRows)) / cellNm;
           const inWindow = Math.abs(x + 0.5 - centreX) < halfWindowCells;
-          if (inWindow && k >= scumRows) {
+          if (inWindow && k >= scumRows && k < resistRows - skinRows) {
             if (stage === 'developed') m = AIR;
             else latent[i] = 1;
           }
