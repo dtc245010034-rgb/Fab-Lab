@@ -30,6 +30,10 @@
 ## Chỉ số
 Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, cảnh báo ngoài cửa sổ quy trình.
 
+## Phán quyết (S1.1, đã duyệt 2026-10-21)
+- Đạt / Biên / Hỏng, chưa có điểm số. Một luật cho mọi lớp chặn đường xuống đế: cặn ở chân, màng bắc cầu ở đỉnh hoặc không có cửa sổ, dày hơn 1% độ dày resist là **Hỏng**, bất kể đỉnh có mở hay không. Khắc ướt oxit có độ chọn lọc ∞ với resist nên một hàng cặn chặn hoàn toàn, và biểu đồ cửa sổ quy trình cũng coi là không đạt. Với RIE lớp mỏng chỉ làm trễ phép khắc, và fab thật tẩy cặn bằng descum O₂; hai điều này nằm ngoài mô hình.
+- Mỗi nguyên nhân giữ số nm đi kèm (cặn, màng, overlay tệ nhất). Overlay chỉ tính từ bước 3.7.
+
 ## Quy tắc cho copy (đã duyệt 2026-10-21, áp dụng khi viết `src/content/vi/m03/`)
 - Gọi σ là **"độ nhòe hiệu dụng"** (gộp quang học và khuếch tán trong resist). Không gọi là PSF quang học. Có thể nói σ₀ lớn khoảng 2 lần Gauss khớp đĩa Airy (≈ 0,21·λ/NA).
 - Mô hình khe đơn **không có giới hạn phân giải cứng**: liều cao hơn mở được cửa sổ nhỏ hơn. Giới hạn thật đến từ nhiễu xạ của dãy vạch theo pitch, nằm ngoài mô hình.
@@ -38,6 +42,7 @@ Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, 
 - Mọi số là "giá trị minh họa" (mức C); không trình bày như số đo thật.
 - Khối **"Giới hạn của mô hình"** (hiện ở bước tương ứng, một chỗ gom đủ): một độ nhòe cho cả độ dày resist (không đổi lấy nét theo độ sâu), không có sóng đứng, resist đáp ứng như bậc thang ở một ngưỡng (độ tương phản vô hạn), không tẩy màu (bleaching) nên thành loe hơn thực tế, một chiều, thành xấp xỉ bằng đường thẳng.
 - Phân biệt "trong mô hình này" với "trong fab thật" (SCIENCE.md mục 3).
+- Câu "vì sao" của từng nguyên nhân của phán quyết: `src/content/vi/m03/reasons.ts`, `Record<CauseCode, (nm?: number) => string>` để TypeScript bắt thiếu mã. MDX chỉ cho bài giảng dài.
 
 ## Tiêu chí xong
 - [x] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải. (S1.1 bước 1, `tests/physics/exposure.test.ts`. "Không mở khi dưới ngưỡng" được kiểm trong dải liều ×0,8–×1,2: mô hình khe đơn không có giới hạn phân giải cứng, liều cao hơn mở được cửa sổ nhỏ hơn. Thu hẹp khi |Δz| tăng được kiểm ở cả hai phía.)
