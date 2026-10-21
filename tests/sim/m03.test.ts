@@ -15,9 +15,10 @@ import {
   overlayErrorAt,
   overlayToleranceNm,
   overlayVerdict,
+  worstOverlayNm,
   type Alignment,
 } from '../../src/physics/overlay';
-import { processWindow } from '../../src/physics/processWindow';
+import { passesProcessWindow, processWindow } from '../../src/physics/processWindow';
 import { DEFAULT_GRID_SPEC, DEFAULT_M03_RECIPE, M03_SCENARIO } from '../../src/sim/defaults';
 import { runEtchOnSection } from '../../src/sim/etchFrom';
 import { buildGrid } from '../../src/sim/grid';
@@ -70,15 +71,59 @@ describe('scenarioMisalignment (the hidden placement error, drawn from the seed)
     expect(seen.size).toBe(30);
   });
 
-  it('draws dx, dy and the rotation in that order, each as a sign then a size, from the seed', () => {
-    const next = seededRandom(42);
+  /** The tolerance of the default window: what the starting overlay has to exceed. */
+  const startTolerance = () => overlayToleranceNm(exposeResist(DEFAULT_M03_RECIPE).printedNm);
+
+  /** The documented draw, written out again: dx, dy, rotation; sign then size; redrawn until it is outside. */
+  function drawsOf(seed: number) {
+    const next = seededRandom(seed);
     const component = (range: number) => (next() < 0.5 ? -1 : 1) * (0.4 + 0.6 * next()) * range;
-    const expected = {
+    const draw = (): Alignment => ({
       dxNm: component(M03_SCENARIO.shiftRangeNm),
       dyNm: component(M03_SCENARIO.shiftRangeNm),
       rotationUrad: component(M03_SCENARIO.rotationRangeUrad),
-    };
-    expect(scenarioMisalignment(42)).toEqual(expected);
+    });
+    const tolerance = startTolerance();
+    const rejected: Alignment[] = [];
+    for (;;) {
+      const a = draw();
+      if (worstOverlayNm(a) > tolerance) return { accepted: a, rejected };
+      rejected.push(a);
+    }
+  }
+
+  it('draws dx, dy and the rotation in that order, each as a sign then a size, from the seed', () => {
+    for (const seed of [42, 1, 0, 7]) {
+      expect(scenarioMisalignment(seed), `seed ${seed}`).toEqual(drawsOf(seed).accepted);
+    }
+  });
+
+  it('draws again, from the same sequence, until the start is outside the tolerance', () => {
+    // The redraw is a real path: some seeds start with a draw that is too small.
+    const needingRedraw = Array.from({ length: 60 }, (_, seed) => seed).filter(
+      (seed) => drawsOf(seed).rejected.length > 0,
+    );
+    expect(needingRedraw.length).toBeGreaterThan(0);
+    for (const seed of needingRedraw) {
+      const { accepted, rejected } = drawsOf(seed);
+      for (const small of rejected)
+        expect(worstOverlayNm(small)).toBeLessThanOrEqual(startTolerance());
+      expect(scenarioMisalignment(seed), `seed ${seed}`).toEqual(accepted);
+    }
+  });
+
+  it('starts every exercise outside the overlay tolerance of the default window, for 1000 seeds', () => {
+    const tolerance = startTolerance();
+    for (let seed = 0; seed < 1000; seed++) {
+      expect(worstOverlayNm(scenarioMisalignment(seed)), `seed ${seed}`).toBeGreaterThan(tolerance);
+    }
+  });
+
+  it('therefore needs a rework with the default window: the first reading is never "ok"', () => {
+    for (let seed = 0; seed < 1000; seed++) {
+      const s = goToStep(createSession(seed), LAST);
+      expect(deriveView(s).overlay.verdict, `seed ${seed}`).not.toBe('ok');
+    }
   });
 
   it('is never zero in any component: between 0.4 and 1.0 of the range, with either sign', () => {
@@ -423,13 +468,59 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
     expect(codes(v)).toContain('underdeveloped');
   });
 
-  it('marks a window that opens but scums as a marginal, with the scum and its measure', () => {
+  it('fails a window that opens at the top but scums: the layer in the way is a fail whatever the top does', () => {
     const e = run({ dose: 0.55 });
+    expect(e.openAtTop).toBe(true);
+    expect(e.scumNm).toBeGreaterThan(50);
     const v = judge(e, null);
-    expect(v.grade).toBe('marginal');
-    expect(codes(v)).toEqual(['underdose', 'scum']);
-    expect(v.causes.every((c) => c.severity === 'marginal')).toBe(true);
-    expect(v.causes[1]!.valueNm).toBe(e.scumNm);
+    expect(v.grade).toBe('fail');
+    expect(v.causes).toEqual([
+      { code: 'underdose', severity: 'fail' },
+      { code: 'scum', severity: 'fail', valueNm: e.scumNm },
+    ]);
+  });
+
+  it('treats scum at the foot and a skin on top alike: thicker than the tolerance is a fail, thinner is not', () => {
+    const tolerance = constants.litho.exposure.scumOkFraction.value * resistThicknessNm(3000);
+    // scum: 6 nm of 500 nm is over 1%, 4 nm is under
+    const thinScum = run({ developMin: 0.992 });
+    const scum = run({ developMin: 0.988 });
+    expect(thinScum.scumNm).toBeLessThan(tolerance);
+    expect(scum.scumNm).toBeGreaterThan(tolerance);
+    expect(codes(judge(thinScum, null))).toEqual(['underdeveloped']);
+    expect(judge(thinScum, null).grade).toBe('marginal');
+    expect(judge(scum, null).grade).toBe('fail');
+    expect(judge(scum, null).causes.find((c) => c.code === 'scum')).toEqual({
+      code: 'scum',
+      severity: 'fail',
+      valueNm: scum.scumNm,
+    });
+
+    // skin: just over the tolerance is a fail, just under it is not a cause at all
+    const cdMin = modelCdMinNm('i', 3000, 'negative');
+    const skinned = run({ polarity: 'negative', designNm: 0.999 * cdMin });
+    const clear = run({ polarity: 'negative', designNm: 1.001 * cdMin });
+    expect(skinned.skinNm).toBeGreaterThan(tolerance);
+    expect(skinned.skinNm).toBeLessThan(20); // a few nm, like the scum above
+    expect(clear.skinNm).toBeGreaterThan(0);
+    expect(clear.skinNm).toBeLessThanOrEqual(tolerance);
+    expect(judge(skinned, null).grade).toBe('fail');
+    expect(judge(skinned, null).causes.find((c) => c.code === 'bridging')).toEqual({
+      code: 'bridging',
+      severity: 'fail',
+      valueNm: skinned.skinNm,
+    });
+    expect(judge(clear, null)).toEqual({ grade: 'ok', causes: [] });
+  });
+
+  it('gives a thick scum and a thin skin the same grade', () => {
+    const thickScum = judge(run({ dose: 0.55 }), null);
+    const thinSkin = judge(
+      run({ polarity: 'negative', designNm: 0.999 * modelCdMinNm('i', 3000, 'negative') }),
+      null,
+    );
+    expect(thickScum.grade).toBe('fail');
+    expect(thinSkin.grade).toBe('fail');
   });
 
   it('fails a resist that was not baked enough', () => {
@@ -442,6 +533,7 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
     const v = judge(run({ polarity: 'negative', designNm: designAt(1.2) }), null);
     expect(v.grade).toBe('fail');
     expect(v.causes.find((c) => c.code === 'bridging')).toMatchObject({ severity: 'fail' });
+    expect(v.causes.find((c) => c.code === 'bridging')!.valueNm).toBeGreaterThan(0);
   });
 
   it('marks an out-of-focus exposure that still prints as a marginal, with only that cause', () => {
@@ -502,7 +594,8 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
                     softBake,
                     overlay: overlay?.verdict,
                   });
-                  const failing = e.status === 'fail' || overlay?.verdict === 'fail';
+                  const blocked = e.blockedFraction > constants.litho.exposure.scumOkFraction.value;
+                  const failing = e.status === 'fail' || blocked || overlay?.verdict === 'fail';
                   expect(v.grade === 'fail', tag).toBe(failing);
                   expect(v.grade === 'ok', tag).toBe(v.causes.length === 0);
                   if (v.grade === 'fail')
@@ -523,6 +616,65 @@ describe('judge (Đạt / Biên / Hỏng, and why)', () => {
           }
         }
       }
+    }
+  });
+});
+
+describe('the verdict and the process-window chart never contradict each other', () => {
+  const tolerance = constants.litho.exposure.scumOkFraction.value;
+  const designs = [3, 2.2, 1.8, 1.5, 1.3, 1.1, 0.9, 0.7];
+
+  /** Every sample of the chart of each design, with its exposure, its verdict and the chart's answer. */
+  function* samples() {
+    for (const polarity of ['positive', 'negative'] as const) {
+      for (const ratio of designs) {
+        const recipe = { ...DEFAULT_M03_RECIPE, polarity, designNm: designAt(ratio) };
+        const w = processWindow(recipe, processWindowSpecFor('i'));
+        for (let iFocus = 0; iFocus < w.defocusNm.length; iFocus++) {
+          for (let iDose = 0; iDose < w.doses.length; iDose++) {
+            const e = exposeResist({
+              ...recipe,
+              dose: w.doses[iDose]!,
+              defocusNm: w.defocusNm[iFocus]!,
+            });
+            const passes = w.pass[iFocus * w.doses.length + iDose] === 1;
+            yield { e, v: judge(e, null), passes, tag: `${polarity} ${ratio} #${iFocus},${iDose}` };
+          }
+        }
+      }
+    }
+  }
+
+  it('reads the chart’s answer the same way the chart does', () => {
+    for (const { e, passes, tag } of samples()) expect(passes, tag).toBe(passesProcessWindow(e));
+  });
+
+  it('calls Hỏng anything that has a layer in the way thicker than the tolerance', () => {
+    for (const { e, v, tag } of samples()) {
+      if (e.blockedFraction > tolerance) expect(v.grade, tag).toBe('fail');
+    }
+  });
+
+  it('never calls Hỏng a sample the chart passes', () => {
+    for (const { v, passes, tag } of samples()) {
+      if (passes) expect(v.grade, tag).not.toBe('fail');
+    }
+  });
+
+  it('when it is not Hỏng and the chart does not pass, says only Biên causes unrelated to scum or skin, on a window that is clean to the foot', () => {
+    for (const { e, v, passes, tag } of samples()) {
+      if (v.grade === 'fail' || passes) continue;
+      expect(
+        v.causes.every(
+          (c) => c.severity === 'marginal' && c.code !== 'scum' && c.code !== 'bridging',
+        ),
+        tag,
+      ).toBe(true);
+      // what is left for the chart to object to is the size of the window, not a layer in the way
+      expect(e.cleanToFoot && e.status !== 'fail', tag).toBe(true);
+      expect(Math.abs(e.cdErrorFraction), tag).toBeGreaterThan(
+        constants.litho.exposure.cdToleranceFraction.value,
+      );
     }
   });
 });

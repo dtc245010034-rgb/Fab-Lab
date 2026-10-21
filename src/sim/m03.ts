@@ -23,6 +23,7 @@ import {
   overlayErrorAt,
   overlayToleranceNm,
   overlayVerdict,
+  worstOverlayNm,
   type Alignment,
   type Landing,
   type OverlayError,
@@ -162,18 +163,33 @@ export type M03Result =
 
 // --- the session --------------------------------------------------------------------------------
 
+/** The overlay tolerance of the default window; the starting misplacement has to be outside it. */
+let defaultToleranceNm: number | undefined;
+const startTolerance = () =>
+  (defaultToleranceNm ??= overlayToleranceNm(exposeResist(DEFAULT_M03_RECIPE).printedNm));
+
+/** Far more than ever needed (23 of the first 1000 seeds reject their first draw, none a second); it only stops a bug from looping. */
+const MAX_DRAWS = 1000;
+
 /**
  * The hidden misplacement of the second mask for a seed: dx, dy and the rotation in this order,
  * each a sign (one draw) and a size between 0.4 and 1.0 of its range (one draw), so none is zero.
+ * A draw whose worst overlay is within the tolerance of the default window is thrown away and the
+ * next one taken from the same sequence, so the first reading of every exercise calls for a rework.
  */
 export function scenarioMisalignment(seed: number): Alignment {
   const next = seededRandom(seed);
   const component = (range: number) => (next() < 0.5 ? -1 : 1) * (0.4 + 0.6 * next()) * range;
-  return {
-    dxNm: component(M03_SCENARIO.shiftRangeNm),
-    dyNm: component(M03_SCENARIO.shiftRangeNm),
-    rotationUrad: component(M03_SCENARIO.rotationRangeUrad),
-  };
+  const tolerance = startTolerance();
+  for (let draw = 0; draw < MAX_DRAWS; draw++) {
+    const misalignment: Alignment = {
+      dxNm: component(M03_SCENARIO.shiftRangeNm),
+      dyNm: component(M03_SCENARIO.shiftRangeNm),
+      rotationUrad: component(M03_SCENARIO.rotationRangeUrad),
+    };
+    if (worstOverlayNm(misalignment) > tolerance) return misalignment;
+  }
+  throw new Error(`no starting misplacement outside the tolerance in ${MAX_DRAWS} draws`);
 }
 
 export function createSession(
@@ -359,28 +375,33 @@ export function readOverlay(s: M03Session, e: ExposureResult): OverlayReadout {
  * Đạt / Biên / Hỏng from the physics status and flags (and the overlay, when it has been read),
  * with the causes. No score: the M03 spec has no formula and none is invented here.
  *
- * A cause is "fail" when it is what closes the window (the top does not open, or the resist was
- * not baked enough) and "marginal" when the print is merely imperfect. Root causes come before
- * their effect, so the residue is listed after the dose or the resolution that left it.
+ * One rule for what stands between the etchant and the substrate: scum at the foot, a skin over
+ * the top, or no window at all, thicker than the tolerance (`scumOkFraction` of the film) is a
+ * **fail**, whether or not the top is open. It is the rule the process-window chart already uses
+ * (a sample passes only if it is `cleanToFoot`), and a wet oxide etchant does not attack resist,
+ * so even a thin layer stops it completely. (For RIE a thin layer would only delay the etch, and a
+ * real fab strips such residue with an O₂ descum; neither is modelled, so the verdict stays strict.)
+ * A cause is also "fail" when the resist was not baked enough, and "marginal" when the print is
+ * merely imperfect. Root causes come before their effect, so the residue is listed after the dose
+ * or the resolution that left it. Each cause that has a size keeps it (scum, skin, overlay), in nm.
  */
 export function judge(e: ExposureResult, overlay: OverlayReadout | null): M03Verdict {
-  const closed = !e.openAtTop;
+  const tolerance = constants.litho.exposure.scumOkFraction.value;
   const filmNm = resistThicknessNm(e.spinRpm);
+  const blocked = e.blockedFraction > tolerance;
   const has = (flag: (typeof e.flags)[number]) => e.flags.includes(flag);
   const causes: Cause[] = [];
   const add = (code: CauseCode, severity: Cause['severity'], valueNm?: number) =>
     causes.push(valueNm === undefined ? { code, severity } : { code, severity, valueNm });
-  const atClosing = closed ? 'fail' : 'marginal';
+  const atBlocking = blocked ? 'fail' : 'marginal';
 
   if (has('below-resolution')) add('below-resolution', 'fail');
   if (has('underbaked')) add('underbaked', 'fail');
-  if (has('bridging')) add('bridging', 'fail');
-  if (has('underdose')) add('underdose', atClosing);
-  if (has('overdose')) add('overdose', atClosing);
-  if (e.scumNm > constants.litho.exposure.scumOkFraction.value * filmNm) {
-    add('scum', atClosing, e.scumNm);
-  }
-  if (has('near-resolution')) add('near-resolution', atClosing);
+  if (has('bridging')) add('bridging', 'fail', e.skinNm);
+  if (has('underdose')) add('underdose', atBlocking);
+  if (has('overdose')) add('overdose', atBlocking);
+  if (e.scumNm > tolerance * filmNm) add('scum', 'fail', e.scumNm);
+  if (has('near-resolution')) add('near-resolution', atBlocking);
   if (has('out-of-focus')) add('out-of-focus', 'marginal');
   if (has('overbaked')) add('overbaked', 'marginal');
   if (has('underdeveloped')) add('underdeveloped', 'marginal');

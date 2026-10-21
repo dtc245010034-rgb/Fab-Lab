@@ -63,8 +63,9 @@ export const DEFAULT_M03_RECIPE: ExposureInput = {
 /**
  * How far the second mask starts from the alignment marks of the first layer (step 3.7), before the
  * learner corrects it: each of dx, dy and the rotation is drawn from the seed with a size between
- * 0.4 and 1.0 of these ranges, either sign. A scenario setting (how hard the exercise is), not a
- * statement about a real stepper.
+ * 0.4 and 1.0 of these ranges, either sign. A draw whose worst overlay is within the tolerance of
+ * the default window is drawn again, so every exercise starts out of tolerance. A scenario setting
+ * (how hard the exercise is), not a statement about a real stepper.
  */
 export const M03_SCENARIO = { shiftRangeNm: 150, rotationRangeUrad: 2 } as const;
 
