@@ -1,0 +1,173 @@
+/*
+ * UI kit: ParamSlider, Segmented, the status of a MetricTile, Note, EquationChip.
+ * Colours come from tokens only. Imported by the module pages that use the kit (not by main.tsx),
+ * so a page that has none of these does not download them.
+ */
+
+/* ── ParamSlider ────────────────────────────────────────── */
+
+.ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ctl-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ctl-head label {
+  font: 500 13px/1.3 var(--f-body);
+}
+
+.ctl-head output {
+  font: 600 13px/1.3 var(--f-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ctl input[type='range'] {
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  accent-color: var(--navy);
+}
+
+.ctl input[type='range']:focus-visible {
+  outline: 2px solid var(--pr);
+  outline-offset: 2px;
+}
+
+.ctl input[type='range']:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* ── Segmented ──────────────────────────────────────────── */
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 4px;
+}
+
+.seg button {
+  min-height: 44px;
+  padding: 8px 4px;
+  font: 600 12px/1.2 var(--f-mono);
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* chosen: colour (navy fill) AND text (underline), never colour alone */
+.seg button[aria-pressed='true'] {
+  color: var(--panel);
+  background: var(--navy);
+  border-color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── MetricTile status ──────────────────────────────────── */
+
+.metric--ok {
+  border-left: 4px solid var(--ok);
+}
+
+.metric--warn {
+  border-left: 4px solid var(--warn);
+}
+
+.metric--bad {
+  border-left: 4px solid var(--bad);
+}
+
+.metric-status {
+  display: block;
+  margin-top: 3px;
+  font: 600 11px/1.2 var(--f-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.metric--ok .metric-status {
+  color: var(--ok-ink);
+}
+
+.metric--warn .metric-status {
+  color: var(--warn-ink);
+}
+
+.metric--bad .metric-status {
+  color: var(--bad);
+}
+
+/* ── Note ───────────────────────────────────────────────── */
+
+.note {
+  padding: 9px 11px;
+  font: 500 13px/1.45 var(--f-body);
+  background: var(--panel-2);
+  border-left: 4px solid var(--ok);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.note--warn {
+  border-left-color: var(--warn);
+}
+
+.note--bad {
+  border-left-color: var(--bad);
+}
+
+.note-tag {
+  display: block;
+  margin-bottom: 2px;
+  font: 600 11px/1.2 var(--f-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.note--ok .note-tag {
+  color: var(--ok-ink);
+}
+
+.note--warn .note-tag {
+  color: var(--warn-ink);
+}
+
+.note--bad .note-tag {
+  color: var(--bad);
+}
+
+/* ── EquationChip ───────────────────────────────────────── */
+
+/* a long equation scrolls inside the chip: the page itself never scrolls sideways */
+.eq {
+  width: max-content;
+  max-width: 100%;
+  padding: 6px 9px;
+  font: 600 14px/1.4 var(--f-mono);
+  color: var(--navy);
+  background: var(--panel-2);
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.eq:focus-visible {
+  outline: 2px solid var(--pr);
+  outline-offset: 2px;
+}
+
+/* KaTeX gives a display equation a margin of its own; the chip is the frame */
+.eq .katex-display {
+  margin: 0;
+}
