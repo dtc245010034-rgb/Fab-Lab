@@ -30,7 +30,7 @@
 Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, cảnh báo ngoài cửa sổ quy trình.
 
 ## Tiêu chí xong
-- [ ] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải.
+- [x] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải. (S1.1 bước 1, `tests/physics/exposure.test.ts`. "Không mở khi dưới ngưỡng" được kiểm trong dải liều ×0,8–×1,2: mô hình khe đơn không có giới hạn phân giải cứng, liều cao hơn mở được cửa sổ nhỏ hơn. Thu hẹp khi |Δz| tăng được kiểm ở cả hai phía.)
 - [ ] Biểu đồ nhỏ "cửa sổ quy trình" (liều × tiêu cự), vùng đạt tô màu.
 - [ ] Đầu ra là grid đưa thẳng vào M04.
-- [ ] Bước 3.7: test overlay tại rìa wafer lớn hơn ở tâm khi có xoay; rework xóa sạch resist lớp 2.
+- [ ] Bước 3.7: test overlay tại rìa wafer lớn hơn ở tâm khi có xoay; rework xóa sạch resist lớp 2. (Nửa đầu đã có ở `tests/physics/overlay.test.ts`, S1.1 bước 1; rework thuộc state machine ở bước 2.)
