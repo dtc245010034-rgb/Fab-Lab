@@ -1,9 +1,9 @@
 import { Fragment, useMemo, useSyncExternalStore } from 'react';
 import { M04_CASES } from '../sim/cases';
-import { BENCH_RUNS_PER_CASE, WARMUP_RUNS_PER_CASE } from '../sim/defaults';
+import { BENCH_RUNS_PER_CASE, M03_BENCH_WARMUP_RUNS, WARMUP_RUNS_PER_CASE } from '../sim/defaults';
 import { summarize, type Summary } from '../sim/stats';
 import type { SimClient } from '../workers/simClient';
-import type { BenchCaseReport, BenchReport } from '../workers/simService';
+import type { BenchCaseReport, BenchReport, WindowBenchReport } from '../workers/simService';
 import { createBenchStore, type MainBench } from './benchStore';
 import { describeRecipe, formatMs, formatMsValue, formatRatio } from './describe';
 
@@ -134,6 +134,82 @@ function PairedTable({
   );
 }
 
+/**
+ * The M03 process-window chart, timed as one computation. Alone it reads like the M04 tables; next
+ * to the main thread it takes the same side-by-side form, with a dash where the main thread sent
+ * no chart numbers.
+ */
+function WindowTable({ chart, main }: { chart: WindowBenchReport; main: BenchReport | undefined }) {
+  const label = `${chart.doseSteps}×${chart.defocusSteps} mẫu`;
+  const worker = summarize(chart.totalMs);
+  if (!main) {
+    return (
+      <table className="bench-table">
+        <caption>Cửa sổ quy trình M03 ({label})</caption>
+        <thead>
+          <tr>
+            <th scope="col">Biểu đồ</th>
+            <th scope="col">Số lần</th>
+            <th scope="col">Trung vị</th>
+            <th scope="col">p95</th>
+            <th scope="col">Lớn nhất</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">{label}</th>
+            <td>{worker.count}</td>
+            <td>{formatMs(worker.medianMs)}</td>
+            <td>{formatMs(worker.p95Ms)}</td>
+            <td>{formatMs(worker.maxMs)}</td>
+          </tr>
+        </tbody>
+      </table>
+    );
+  }
+  const onMain = main.processWindow ? summarize(main.processWindow.totalMs) : null;
+  return (
+    <table className="bench-table bench-table--paired">
+      <caption>Cửa sổ quy trình M03 ({label}), ms</caption>
+      <thead>
+        <tr>
+          <th scope="col" rowSpan={2}>
+            Biểu đồ
+          </th>
+          <th scope="col" rowSpan={2}>
+            Số lần
+          </th>
+          {STAT_COLUMNS.map(([name]) => (
+            <th key={name} scope="colgroup" colSpan={2}>
+              {name}
+            </th>
+          ))}
+        </tr>
+        <tr>
+          {STAT_COLUMNS.map(([name]) => (
+            <Fragment key={name}>
+              <th scope="col">Worker</th>
+              <th scope="col">Luồng chính</th>
+            </Fragment>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">{label}</th>
+          <td>{worker.count}</td>
+          {STAT_COLUMNS.map(([name, pick]) => (
+            <Fragment key={name}>
+              <td>{formatMsValue(pick(worker))}</td>
+              <td>{onMain ? formatMsValue(pick(onMain)) : '—'}</td>
+            </Fragment>
+          ))}
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 /** Median on the main thread ÷ median in the worker, per case: below 1× the main thread is faster. */
 function RatioTable({ report, main }: { report: BenchReport; main: BenchReport }) {
   const ratio = (c: BenchCaseReport, samples: (c: BenchCaseReport) => number[]) => {
@@ -243,6 +319,15 @@ export default function BenchPanel({
               report={state.report}
               samples={(c) => c.arrivalMs}
             />
+          </>
+        )}
+        {state.status === 'done' && state.report.processWindow && (
+          <>
+            <p className="caption">
+              Biểu đồ cửa sổ quy trình của M03 được đo {BENCH_RUNS_PER_CASE} lần sau{' '}
+              {M03_BENCH_WARMUP_RUNS} lần chạy làm ấm riêng; một lần là tính cả lưới liều × tiêu cự.
+            </p>
+            <WindowTable chart={state.report.processWindow} main={state.main} />
           </>
         )}
         <div className="row">
