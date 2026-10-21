@@ -17,7 +17,8 @@
 | 3.7 | Căn chỉnh lớp thứ hai (Overlay) | Dịch x/y và xoay của mask so với dấu căn chỉnh (alignment mark) của lớp trước; đo overlay, quyết định rework hay cho qua |
 
 ## Mô hình
-- CD_min = k₁·λ/NA; DOF = k₂·λ/NA² (k₁, k₂ là tham số quy trình, hiển thị cho người học chỉnh ở chế độ nâng cao).
+- DOF = k₂·λ/NA²; k₂ là tham số quy trình, người học chỉnh được ở chế độ nâng cao.
+- k₁ **không** chỉnh được (quyết định 2026-10-21): giới hạn phân giải lấy từ mô hình ngưỡng (bề rộng nhỏ nhất in sạch ở liều ×1, tiêu điểm tốt nhất), không phải từ k₁ nhập vào. UI chỉ hiện chỉ đọc "k₁ hiệu dụng = CD_min(mô hình)·NA/λ"; số này đổi theo độ dày resist (−0,3% so với k₁ = 0,6 ở 3000 rpm, +16,6% ở 1500 rpm, −10,4% ở 6000 rpm). `k₁ = 0,6` chỉ còn là hằng số của `printLitho` (M04) và là mục tiêu hiệu chỉnh của mô hình mới.
 - Ảnh trên không (aerial image): xấp xỉ Gauss một chiều theo bề rộng mask, độ nhòe tăng theo λ/NA và theo |lệch tiêu cự|/DOF.
 - Ngưỡng hòa tan: resist dương tan ở nơi liều × cường độ > ngưỡng → suy ra bề rộng in được và góc vách.
 - Phải tái tạo được hành vi prototype: dưới 0,7·CD_min không mở cửa sổ; 0,7–1·CD_min mở hẹp, có cặn.
