@@ -1,6 +1,9 @@
 /**
  * Aerial image of M03: how light from a clear slit on the mask lands on the resist after the
- * lens. One dimension (x across the slit), a Gaussian blur, no diffraction orders.
+ * lens. One dimension (x across the slit), a Gaussian blur, no diffraction orders. The blur σ is
+ * an *effective* one: it lumps the optics and the spread of the exposure inside the resist, and is
+ * not the point spread function of a lens (it comes out about twice as wide as a Gaussian fitted
+ * to an Airy disk, ≈ 0.21·λ/NA).
  * Model of docs/SCIENCE.md §2 M03; every coefficient is in constants.ts (tier C).
  *
  *   CD_min = k₁·λ/NA   (minFeatureNm in litho.ts, kept for M04)

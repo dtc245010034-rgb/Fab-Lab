@@ -86,8 +86,18 @@ export interface ExposureResult extends ExposureInput {
   bakeEquivalentMin: number;
   /** Dose × the bake's effect on sensitivity (×). */
   effectiveDose: number;
-  /** A window has been opened through the film (see `status` for how well). */
-  open: boolean;
+  /**
+   * The window is open at the top surface of the resist: some of the film is cleared from the top
+   * down, and for a negative resist no cross-linked skin (thicker than the residue tolerance)
+   * covers it. False means nothing printed; a result that is false here is always a fail.
+   */
+  openAtTop: boolean;
+  /**
+   * The window is clean to the foot: the opening reaches the substrate with no more than the
+   * tolerated residue (scum at the foot, skin at the top). Implies `openAtTop`. A window that is
+   * open at the top but not clean to the foot has `printedNm = 0`, because the foot is blocked.
+   */
+  cleanToFoot: boolean;
   /** Window width at the foot of the resist, nm; 0 when nothing opens. What M04 etches through. */
   printedNm: number;
   /** Window width at the top of the opening, nm; 0 when nothing opens. */
@@ -161,7 +171,10 @@ interface Env {
 
 /** What one exposure + develop leaves, before it is judged. */
 interface Core {
-  open: boolean;
+  /** An opening exists inside the film (the wall profile below is defined). */
+  exists: boolean;
+  openAtTop: boolean;
+  cleanToFoot: boolean;
   printedNm: number;
   cdTopNm: number;
   scumNm: number;
@@ -187,7 +200,7 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
   const i0 = slitIntensity(0, designNm, sigmaNm);
   const edge = (level: number) => slitEdgeHalfWidthNm(level, designNm, sigmaNm);
 
-  let open = false;
+  let exists = false;
   let skinNm = 0;
   let scumNm = 0;
   let d1 = 0; // depth of the top of the opening
@@ -200,7 +213,7 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
     const cleared = Math.max(0, Math.min(reach, T, devDepthNm));
     scumNm = T - cleared;
     if (cleared > MIN_OPEN_NM) {
-      open = true;
+      exists = true;
       d1 = 0;
       d2 = cleared;
       x1 = edge(THRESHOLD / D);
@@ -216,7 +229,7 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
       skinNm = Math.min(bridge, T);
       scumNm = T - bottom;
       if (bottom - bridge > MIN_OPEN_NM) {
-        open = true;
+        exists = true;
         d1 = bridge;
         d2 = bottom;
         x1 = edge(levelAt(bridge));
@@ -225,9 +238,12 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
     }
   }
 
-  if (!open) {
+  const scumTolerance = X.scumOkFraction.value;
+  if (!exists) {
     return {
-      open,
+      exists,
+      openAtTop: false,
+      cleanToFoot: false,
       printedNm: 0,
       cdTopNm: 0,
       scumNm: Math.min(remainingNm, scumNm),
@@ -245,8 +261,11 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
   const halfAt = (depthNm: number) => x1 + slope * (depthNm - d1) + widenNm;
   const footHalf = Math.max(0, halfAt(T));
   const printedNm = 2 * footHalf;
+  const blockedFraction = Math.max(scumNm, skinNm) / T;
   return {
-    open,
+    exists,
+    openAtTop: skinNm <= scumTolerance * T,
+    cleanToFoot: blockedFraction <= scumTolerance,
     printedNm,
     cdTopNm: 2 * (x1 + widenNm),
     scumNm: Math.min(remainingNm, scumNm),
@@ -254,7 +273,7 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
     taperNm: halfAt(T - remainingNm) - footHalf,
     wallAngleDeg: (Math.atan2(height, x1 - x2) * 180) / Math.PI,
     cdErrorFraction: (printedNm - designNm) / designNm,
-    blockedFraction: Math.max(scumNm, skinNm) / T,
+    blockedFraction,
     remainingNm,
   };
 }
@@ -290,16 +309,16 @@ export function exposeResist(input: ExposureInput): ExposureResult {
   const flags: ExposureFlag[] = [];
 
   const bakeStuck = bakeMin < BAKE.underbakeBelowMin.value;
-  if (!actual.open) {
-    if (!standard.open) flags.push('below-resolution');
+  if (!actual.exists) {
+    if (!standard.exists) flags.push('below-resolution');
     else if (doseOff) flags.push(doseFlag);
   } else if (actual.blockedFraction > scumOk) {
-    if (!standard.open || standard.blockedFraction > scumOk) flags.push('near-resolution');
+    if (!standard.exists || standard.blockedFraction > scumOk) flags.push('near-resolution');
     else if (doseOff) flags.push(doseFlag);
   } else if (
     doseOff &&
     Math.abs(actual.cdErrorFraction) > sizeTol &&
-    standard.open &&
+    standard.exists &&
     Math.abs(standard.cdErrorFraction) <= sizeTol
   ) {
     flags.push(doseFlag);
@@ -312,7 +331,7 @@ export function exposeResist(input: ExposureInput): ExposureResult {
   if (developMin > DEV.overdevelopAboveRel.value * DEV.refMin.value) flags.push('overdeveloped');
 
   const status: LithoStatus =
-    !actual.open || bakeStuck ? 'fail' : flags.length > 0 ? 'marginal' : 'ok';
+    !actual.openAtTop || bakeStuck ? 'fail' : flags.length > 0 ? 'marginal' : 'ok';
 
   return {
     ...input,
@@ -323,7 +342,8 @@ export function exposeResist(input: ExposureInput): ExposureResult {
     sigmaNm,
     bakeEquivalentMin: bakeMin,
     effectiveDose,
-    open: actual.open,
+    openAtTop: actual.openAtTop,
+    cleanToFoot: actual.cleanToFoot,
     printedNm: actual.printedNm,
     cdTopNm: actual.cdTopNm,
     scumNm: actual.scumNm,

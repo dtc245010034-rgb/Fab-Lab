@@ -3,13 +3,13 @@
  * on-size window? Pure functions. It is `exposeResist` evaluated over a grid, nothing more, so the
  * chart can never disagree with the single run shown beside it.
  *
- * "Passing" means: a window opens through the film, it carries no more than the tolerated
- * residue, and its width at the foot is within the size tolerance of the design.
+ * "Passing" means: the window is clean to the foot (it opens through the film with no more than
+ * the tolerated residue), and its width at the foot is within the size tolerance of the design.
  */
 import { constants } from './constants';
 import { exposeResist, type ExposureInput, type ExposureResult } from './exposure';
 
-const { scumOkFraction, cdToleranceFraction } = constants.litho.exposure;
+const { cdToleranceFraction } = constants.litho.exposure;
 
 /** The two axes of the chart, sampled evenly with both ends included. */
 export interface ProcessWindowSpec {
@@ -37,8 +37,7 @@ export interface ProcessWindow {
 export function passesProcessWindow(result: ExposureResult): boolean {
   return (
     result.status !== 'fail' &&
-    result.open &&
-    result.blockedFraction <= scumOkFraction.value &&
+    result.cleanToFoot &&
     Math.abs(result.cdErrorFraction) <= cdToleranceFraction.value
   );
 }

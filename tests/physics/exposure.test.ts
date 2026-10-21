@@ -42,7 +42,8 @@ describe('prototype thresholds at dose ×1, best focus, reference resist thickne
   // those from one blur and one absorption coefficient; the tolerance on the ratio is ±0.03.
   it.each(SOURCES)('opens nothing at 0.68·CD_min (source %s)', (source) => {
     const r = run({ source, designNm: designAt(source, 0.68) });
-    expect(r.open).toBe(false);
+    expect(r.openAtTop).toBe(false);
+    expect(r.cleanToFoot).toBe(false);
     expect(r.printedNm).toBe(0);
     expect(r.scumNm).toBe(r.resistThicknessNm);
     expect(r.status).toBe('fail');
@@ -51,7 +52,8 @@ describe('prototype thresholds at dose ×1, best focus, reference resist thickne
 
   it.each(SOURCES)('opens a narrow window with scum at 0.72·CD_min (source %s)', (source) => {
     const r = run({ source, designNm: designAt(source, 0.72) });
-    expect(r.open).toBe(true);
+    expect(r.openAtTop).toBe(true);
+    expect(r.cleanToFoot).toBe(false);
     expect(r.scumNm).toBeGreaterThan(0.5 * r.resistThicknessNm);
     expect(r.status).toBe('marginal');
     expect(r.flags).toContain('near-resolution');
@@ -118,7 +120,7 @@ describe('the resolution limit depends on dose (single-slit model: no hard limit
   it('opens nothing at 0.55·CD_min for any dose in ×0.8 … ×1.2', () => {
     for (const dose of DOSES) {
       const r = run({ designNm: designAt('i', 0.55), dose });
-      expect(r.open, `dose ${dose}`).toBe(false);
+      expect(r.openAtTop, `dose ${dose}`).toBe(false);
       expect(r.status, `dose ${dose}`).toBe('fail');
     }
   });
@@ -126,7 +128,7 @@ describe('the resolution limit depends on dose (single-slit model: no hard limit
   it('opens something at 0.95·CD_min for every dose in ×0.8 … ×1.2', () => {
     for (const dose of DOSES) {
       const r = run({ designNm: designAt('i', 0.95), dose });
-      expect(r.open, `dose ${dose}`).toBe(true);
+      expect(r.openAtTop, `dose ${dose}`).toBe(true);
       // printedNm is the width at the foot, which scum can still block; the opening exists at the top.
       expect(r.cdTopNm, `dose ${dose}`).toBeGreaterThan(0);
     }
@@ -134,14 +136,14 @@ describe('the resolution limit depends on dose (single-slit model: no hard limit
 
   it('lets a higher dose open a smaller window: the limit moves with dose', () => {
     const design = designAt('i', 0.6);
-    expect(run({ designNm: design, dose: 1.0 }).open).toBe(false);
-    expect(run({ designNm: design, dose: 1.5 }).open).toBe(true);
+    expect(run({ designNm: design, dose: 1.0 }).openAtTop).toBe(false);
+    expect(run({ designNm: design, dose: 1.5 }).openAtTop).toBe(true);
   });
 
   it('has no hard limit: a window at 0.3·CD_min opens if the dose is big enough', () => {
     const design = designAt('i', 0.3);
-    expect(run({ designNm: design, dose: 1 }).open).toBe(false);
-    expect(run({ designNm: design, dose: 3 }).open).toBe(true);
+    expect(run({ designNm: design, dose: 1 }).openAtTop).toBe(false);
+    expect(run({ designNm: design, dose: 3 }).openAtTop).toBe(true);
   });
 });
 
@@ -206,7 +208,8 @@ describe('printed width versus focus', () => {
   it('closes the window altogether when far out of focus', () => {
     for (const dz of [1500, -1500]) {
       const r = run({ designNm: narrow, defocusNm: dz });
-      expect(r.open).toBe(false);
+      expect(r.openAtTop).toBe(false);
+      expect(r.cleanToFoot).toBe(false);
       expect(r.printedNm).toBe(0);
       expect(r.status).toBe('fail');
     }
@@ -295,7 +298,10 @@ describe('positive and negative resist', () => {
     expect(r.skinNm).toBeGreaterThan(0);
     expect(r.scumNm).toBe(0);
     expect(r.flags).toContain('bridging');
-    expect(r.status).not.toBe('ok');
+    // The skin covers the window at the top, so nothing is open there: a fail, not a marginal.
+    expect(r.openAtTop).toBe(false);
+    expect(r.cleanToFoot).toBe(false);
+    expect(r.status).toBe('fail');
   });
 
   it('runs the wall of a bridged window from the underside of the skin down to the foot', () => {
@@ -310,15 +316,55 @@ describe('positive and negative resist', () => {
     expect(r.wallAngleDeg).toBeGreaterThan(90);
   });
 
+  it('tells "open at the top" from "clean to the foot": a window that scums is the first, not the second', () => {
+    // 0.8·CD_min at ×1: the centre is bright enough to clear the top part of the film only.
+    const r = run({ designNm: designAt('i', 0.8) });
+    expect(r.openAtTop).toBe(true);
+    expect(r.cleanToFoot).toBe(false);
+    expect(r.cdTopNm).toBeGreaterThan(0);
+    expect(r.printedNm).toBe(0); // the foot is blocked, so the width at the foot is 0
+    expect(r.status).toBe('marginal');
+    const clean = run();
+    expect(clean.openAtTop).toBe(true);
+    expect(clean.cleanToFoot).toBe(true);
+    expect(clean.printedNm).toBeGreaterThan(0);
+  });
+
+  it('is clean to the foot exactly when the residue is within tolerance, and never without being open at the top', () => {
+    const tolerance = constants.litho.exposure.scumOkFraction.value;
+    for (const polarity of ['positive', 'negative'] as const) {
+      for (const ratio of [0.4, 0.7, 0.9, 1, 1.1, 1.4, 2, 3]) {
+        for (const dose of [0.6, 1, 1.4]) {
+          const r = run({ polarity, dose, designNm: designAt('i', ratio) });
+          const tag = `${polarity} ${ratio} ×${dose}`;
+          expect(r.cleanToFoot, tag).toBe(r.openAtTop && r.blockedFraction <= tolerance);
+          if (r.cleanToFoot) expect(r.openAtTop, tag).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('covers a negative window with a skin thicker than the tolerance, and not with a thinner one', () => {
+    const cdMin = modelCdMinNm('i', 3000, 'negative');
+    const thin = run({ polarity: 'negative', designNm: 1.001 * cdMin });
+    expect(thin.skinNm).toBeGreaterThan(0);
+    expect(thin.openAtTop).toBe(true);
+    expect(thin.cleanToFoot).toBe(true);
+    const thick = run({ polarity: 'negative', designNm: 0.999 * cdMin });
+    expect(thick.openAtTop).toBe(false);
+    expect(thick.cleanToFoot).toBe(false);
+    expect(thick.status).toBe('fail');
+  });
+
   it('opens nothing for a window far below the limit', () => {
     const r = run({ polarity: 'negative', designNm: designAt('i', 0.5) });
-    expect(r.open).toBe(false);
+    expect(r.openAtTop).toBe(false);
     expect(r.status).toBe('fail');
   });
 
   it('fails an underexposed negative resist whose foot is not cross-linked', () => {
     const r = run({ polarity: 'negative', dose: 0.3 });
-    expect(r.open).toBe(false);
+    expect(r.openAtTop).toBe(false);
     expect(r.status).toBe('fail');
     expect(r.flags).toContain('underdose');
   });
@@ -425,7 +471,7 @@ describe('develop', () => {
 
   it('opens nothing when it is not developed at all', () => {
     const r = run({ developMin: 0 });
-    expect(r.open).toBe(false);
+    expect(r.openAtTop).toBe(false);
     expect(r.status).toBe('fail');
   });
 
@@ -443,7 +489,7 @@ describe('develop', () => {
     // A window that never opens leaves the whole film as residue; after overdevelopment the film
     // is thinner, and the residue cannot be thicker than what is left.
     const r = run({ developMin: 3, designNm: designAt('i', 0.5) });
-    expect(r.open).toBe(false);
+    expect(r.openAtTop).toBe(false);
     expect(r.resistThicknessNm).toBeLessThan(resistThicknessNm(3000));
     expect(r.scumNm).toBeLessThanOrEqual(r.resistThicknessNm);
     expect(r.scumNm).toBe(r.resistThicknessNm);
@@ -563,7 +609,9 @@ describe('invariants over the whole input range', () => {
                 ] as const) {
                   expect(Number.isFinite(r[key]), `${tag} ${key}`).toBe(true);
                 }
-                expect(r.status === 'fail', tag).toBe(!r.open || r.flags.includes('underbaked'));
+                expect(r.status === 'fail', tag).toBe(
+                  !r.openAtTop || r.flags.includes('underbaked'),
+                );
               }
             }
           }

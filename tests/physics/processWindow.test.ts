@@ -109,7 +109,8 @@ describe('what counts as passing', () => {
     // the residue alone must be what fails it.
     expect(r.blockedFraction).toBeGreaterThan(0.01);
     expect(Math.abs(r.cdErrorFraction)).toBeLessThanOrEqual(0.1);
-    expect(r.open).toBe(true);
+    expect(r.openAtTop).toBe(true);
+    expect(r.cleanToFoot).toBe(false);
     expect(passesProcessWindow(r)).toBe(false);
   });
 
