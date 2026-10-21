@@ -31,8 +31,12 @@
 Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, cảnh báo ngoài cửa sổ quy trình.
 
 ## Phán quyết (S1.1, đã duyệt 2026-10-21)
-- Đạt / Biên / Hỏng, chưa có điểm số. Một luật cho mọi lớp chặn đường xuống đế: cặn ở chân, màng bắc cầu ở đỉnh hoặc không có cửa sổ, dày hơn 1% độ dày resist là **Hỏng**, bất kể đỉnh có mở hay không. Khắc ướt oxit có độ chọn lọc ∞ với resist nên một hàng cặn chặn hoàn toàn, và biểu đồ cửa sổ quy trình cũng coi là không đạt. Với RIE lớp mỏng chỉ làm trễ phép khắc, và fab thật tẩy cặn bằng descum O₂; hai điều này nằm ngoài mô hình.
-- Mỗi nguyên nhân giữ số nm đi kèm (cặn, màng, overlay tệ nhất). Overlay chỉ tính từ bước 3.7.
+- Đạt / Biên / Hỏng, chưa có điểm số. Phán quyết hỏi "bản in có đúng cái đã yêu cầu không", như biểu đồ cửa sổ quy trình: **Đạt khi và chỉ khi biểu đồ đạt** (và overlay Đạt, khi đã đọc). Test kiểm hai chiều trên 10 000 mẫu của biểu đồ, không còn mẫu lệch.
+- **`status` vật lý khác phán quyết.** `status` hỏi "có in sạch không" (ngưỡng 0,7 và 1,0·CD_min của prototype); phán quyết hỏi "có đúng kích thước không". Ví dụ 1,3·CD_min ở liều ×1: `status` là OK (in sạch), phán quyết là Biên (hẹp 15%).
+- **Hỏng:** một luật cho mọi lớp chặn đường xuống đế (cặn ở chân, màng bắc cầu ở đỉnh, hoặc không có cửa sổ) dày hơn 1% độ dày resist, bất kể đỉnh có mở hay không. Khắc ướt oxit có độ chọn lọc ∞ với resist nên một hàng cặn chặn hoàn toàn. Với RIE lớp mỏng chỉ làm trễ phép khắc, và fab thật tẩy cặn bằng descum O₂; hai điều này nằm ngoài mô hình. Cũng Hỏng khi resist nung chưa đủ (dính mask).
+- **Biên:** `cd-off-size`, khi cửa sổ sạch tới đáy nhưng bề rộng ở chân lệch khỏi thiết kế quá ±10%. Giữ độ lệch có dấu (nm và %) và chiều chỉnh liều. Chưa có ngưỡng Hỏng cho kích thước: fab thật coi lệch lớn là Hỏng, mô hình chưa phân cấp.
+- Lệch tiêu cự, nung quá và tráng sai **giải thích** một lỗi chứ không phải lỗi của bản in: chỉ được nêu khi bản in đã có lỗi. Bản in đúng thì không có nguyên nhân nào, dù tiêu cự lệch quá ±DOF/2 (nên biểu đồ và phán quyết không mâu thuẫn).
+- Mỗi nguyên nhân giữ số đi kèm (cặn, màng, overlay tệ nhất, độ lệch bề rộng). Overlay chỉ tính từ bước 3.7.
 
 ## Quy tắc cho copy (đã duyệt 2026-10-21, áp dụng khi viết `src/content/vi/m03/`)
 - Gọi σ là **"độ nhòe hiệu dụng"** (gộp quang học và khuếch tán trong resist). Không gọi là PSF quang học. Có thể nói σ₀ lớn khoảng 2 lần Gauss khớp đĩa Airy (≈ 0,21·λ/NA).
@@ -42,7 +46,8 @@ Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, 
 - Mọi số là "giá trị minh họa" (mức C); không trình bày như số đo thật.
 - Khối **"Giới hạn của mô hình"** (hiện ở bước tương ứng, một chỗ gom đủ): một độ nhòe cho cả độ dày resist (không đổi lấy nét theo độ sâu), không có sóng đứng, resist đáp ứng như bậc thang ở một ngưỡng (độ tương phản vô hạn), không tẩy màu (bleaching) nên thành loe hơn thực tế, một chiều, thành xấp xỉ bằng đường thẳng.
 - Phân biệt "trong mô hình này" với "trong fab thật" (SCIENCE.md mục 3).
-- Câu "vì sao" của từng nguyên nhân của phán quyết: `src/content/vi/m03/reasons.ts`, `Record<CauseCode, (nm?: number) => string>` để TypeScript bắt thiếu mã. MDX chỉ cho bài giảng dài.
+- Câu "vì sao" của từng nguyên nhân của phán quyết: `src/content/vi/m03/reasons.ts`, `Record<CauseCode, (cause: Cause) => string>` để TypeScript bắt thiếu mã. Hàm nhận cả `Cause` (không chỉ số nm) vì `cd-off-size` cần dấu, phần trăm và `doseAdvice`. MDX chỉ cho bài giảng dài.
+- Với `cd-off-size`, câu phải gợi ý chiều chỉnh liều theo `doseAdvice` do sim tính, không tự suy trong copy: resist dương, cửa sổ hẹp thì tăng liều, rộng thì giảm; resist âm ngược lại (cửa sổ là vạch không được chiếu sáng, thêm ánh sáng làm nó hẹp).
 
 ## Tiêu chí xong
 - [x] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải. (S1.1 bước 1, `tests/physics/exposure.test.ts`. "Không mở khi dưới ngưỡng" được kiểm trong dải liều ×0,8–×1,2: mô hình khe đơn không có giới hạn phân giải cứng, liều cao hơn mở được cửa sổ nhỏ hơn. Thu hẹp khi |Δz| tăng được kiểm ở cả hai phía.)
