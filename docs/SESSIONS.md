@@ -72,7 +72,7 @@ S1.1 chia thành bảy bước (1, 2, 3a, 3b-1, 3b-2, 4, 5), nhánh `s1.1-m03-li
 | 1 | Physics: ảnh trên không, ngưỡng hòa tan, DOF, cửa sổ quy trình, overlay. Chưa UI | xong 2026-10-21, `f762ca0` |
 | 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` |
 | 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` |
-| 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong 2026-10-22 trên nhánh, chờ duyệt (chưa merge) |
+| 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong, đã duyệt và merge 2026-10-22 (`main` = HEAD sau commit docs "3b-1 đã duyệt và merge") |
 | 3b-2 | Bước 3.5–3.6: `reasons.ts`, `cautions.ts`, `Grade`, "Lưu ý", `ModelLimits`, MDX đầy đủ 3.1–3.6, e2e 3.5–3.6, DESIGN, tick spec | chưa làm |
 | 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
 | 5 | Đọc lại copy theo SCIENCE.md, e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
