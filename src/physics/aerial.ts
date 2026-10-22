@@ -18,7 +18,10 @@
  * this model leaves out.
  */
 import { constants, type LightSourceId } from './constants';
+import { dofNm, sourceOf } from './focus';
 import { erfc } from './special';
+
+export { dofNm }; // defined in focus.ts, which the page can carry without the error function
 
 const L = constants.litho;
 
@@ -30,18 +33,6 @@ function assertPositiveFinite(name: string, value: number): void {
   if (!Number.isFinite(value) || value <= 0) {
     throw new RangeError(`${name} must be a positive finite number, got ${value}`);
   }
-}
-
-function sourceOf(id: LightSourceId) {
-  const source = L.sources[id];
-  if (source === undefined) throw new RangeError(`unknown light source "${String(id)}"`);
-  return source;
-}
-
-/** Depth of focus DOF = k₂·λ/NA², nm: the focus range over which the blur grows by at most √2. */
-export function dofNm(source: LightSourceId): number {
-  const { wavelengthNm, na } = sourceOf(source);
-  return (L.k2.value * wavelengthNm.value) / (na.value * na.value);
 }
 
 /** Gaussian width σ of the aerial image, nm, at a focus offset `defocusNm` (either sign). */

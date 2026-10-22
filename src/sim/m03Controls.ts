@@ -3,7 +3,7 @@
  * them (see tests/sim/pageSafe.test.ts): focus in depths of focus, a change of source, and when
  * the process-window chart has to be asked for again.
  */
-import { dofNm } from '../physics/aerial';
+import { dofNm } from '../physics/focus';
 import type { LightSourceId } from '../physics/constants';
 import type { ExposureInput } from '../physics/exposure';
 

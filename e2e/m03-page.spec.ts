@@ -30,7 +30,7 @@ async function requestsDuring(page: Page, act: () => Promise<void>): Promise<str
   return paths;
 }
 
-test('the page loads with seven steps, no worker, no error and no sideways scroll', async ({
+test('the page loads with seven steps, one worker, a picture, no error and no sideways scroll', async ({
   page,
 }) => {
   const problems: string[] = [];
@@ -45,8 +45,9 @@ test('the page loads with seven steps, no worker, no error and no sideways scrol
   await expect(steps.first()).toHaveAttribute('aria-current', 'step');
   await expect(page.getByRole('heading', { level: 2, name: /^3\.1 / })).toBeVisible();
 
-  // M03 has no simulation worker yet: the etch lab's must not be started for it
-  expect(page.workers()).toHaveLength(0);
+  // the model runs in a worker: exactly one, and the picture it draws is there (its description names the stage)
+  await expect(page.getByRole('img', { name: /oxit trần/i })).toBeVisible();
+  expect(page.workers()).toHaveLength(1);
   expect(problems).toEqual([]);
 
   const sideways = await page.evaluate(
@@ -183,7 +184,7 @@ test('the stylesheet of KaTeX names woff2 files only, and carries no font inline
   expect(css).not.toContain('base64');
 });
 
-test('the scripts of /m03 hold neither the KaTeX engine nor the lithography model', async ({
+test('the page scripts of /m03 hold neither the KaTeX engine nor the lithography model; the worker holds the model', async ({
   page,
 }) => {
   // control: the marker is a string that KaTeX really contains, so its absence means something
@@ -198,8 +199,18 @@ test('the scripts of /m03 hold neither the KaTeX engine nor the lithography mode
   await page.goto('/m03');
   await page.getByRole('button', { name: /^Bước 3\.4/ }).click();
   await expect(page.locator('.katex')).toBeVisible();
+  await expect(page.getByRole('img', { name: /ảnh trên không/i })).toBeVisible(); // the worker has answered
 
-  const scripts = await Promise.all(bodies);
+  // the page starts the M03 worker, which is where the model lives: its script is not "the page"
+  const [worker] = page.workers();
+  expect(worker, 'no worker was started').toBeDefined();
+  const everything = await Promise.all(bodies);
+  const workerBody = everything.find((s) => s.url === worker!.url())?.body;
+  expect(workerBody, 'the worker script was not seen').toBeDefined();
+  // control: the markers are strings the model really contains, so their absence from the page means something
+  for (const marker of M03_MARKERS) expect(workerBody).toContain(marker);
+
+  const scripts = everything.filter((s) => s.url !== worker!.url());
   expect(
     scripts.some((s) => /M03Page/.test(s.url)),
     'the M03 chunk was not seen',

@@ -14,7 +14,7 @@ const ALLOWED = [
   /^\.\/defaults$/,
   /^\.\/m03Session$/,
   /^\.\/windowSpec$/,
-  /^\.\.\/physics\/aerial$/,
+  /^\.\.\/physics\/focus$/,
   /^\.\.\/physics\/constants$/,
   /^\.\.\/physics\/litho$/,
 ];
