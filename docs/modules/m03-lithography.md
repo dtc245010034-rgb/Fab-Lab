@@ -52,6 +52,6 @@ Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, 
 
 ## Tiêu chí xong
 - [x] Test quy luật: CD in được tăng theo liều (resist dương), giảm khi lệch tiêu cự lớn, không mở khi dưới ngưỡng phân giải. (S1.1 bước 1, `tests/physics/exposure.test.ts`. "Không mở khi dưới ngưỡng" được kiểm trong dải liều ×0,8–×1,2: mô hình khe đơn không có giới hạn phân giải cứng, liều cao hơn mở được cửa sổ nhỏ hơn. Thu hẹp khi |Δz| tăng được kiểm ở cả hai phía.)
-- [ ] Biểu đồ nhỏ "cửa sổ quy trình" (liều × tiêu cự), vùng đạt tô màu.
+- [x] Biểu đồ nhỏ "cửa sổ quy trình" (liều × tiêu cự), vùng đạt tô màu. (S1.1 bước 3b-1: `ProcessWindowChart` ở bước 3.4, vùng đạt tô bằng họa tiết gạch chéo kèm điểm đánh dấu và chữ; `tests/render/chartGeometry.test.ts`, `tests/ui/m03Charts.test.tsx`, và `e2e/m03-steps.spec.ts` kiểm vừa 380 px và điểm đánh dấu đổi theo liều. Vùng đạt là đúng nơi `passesProcessWindow` đúng.)
 - [x] Đầu ra là grid đưa thẳng vào M04. (S1.1 bước 2: `m03Output` → `runEtchOnSection`, `tests/sim/m03.test.ts` và `tests/sim/etchFrom.test.ts`. Cặn và màng bắc cầu chặn khắc qua luật vật liệu thường của M04.)
 - [x] Bước 3.7, phần logic: test overlay tại rìa wafer lớn hơn ở tâm khi có xoay (`tests/physics/overlay.test.ts`); rework xóa sạch resist lớp 2 (`tests/sim/m03.test.ts`). Giao diện bước 3.7 còn lại ở bước 4 của S1.1.
