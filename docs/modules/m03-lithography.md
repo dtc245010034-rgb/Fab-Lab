@@ -17,7 +17,7 @@
 | 3.7 | Căn chỉnh lớp thứ hai (Overlay) | Dịch x/y và xoay của mask so với dấu căn chỉnh (alignment mark) của lớp trước; đo overlay, quyết định rework hay cho qua |
 
 ## Mô hình
-- DOF = k₂·λ/NA²; k₂ là tham số quy trình, người học chỉnh được ở chế độ nâng cao.
+- DOF = k₂·λ/NA²; k₂ là tham số quy trình. **k₂ chỉ đọc; chỉnh được: dự kiến** (chế độ nâng cao, cần thêm `k2` vào `ExposureInput`, ngoài S1.1 bước 3b; quyết định 2026-10-22).
 - k₁ **không** chỉnh được (quyết định 2026-10-21): giới hạn phân giải lấy từ mô hình ngưỡng (bề rộng nhỏ nhất in sạch ở liều ×1, tiêu điểm tốt nhất), không phải từ k₁ nhập vào. UI chỉ hiện chỉ đọc "k₁ hiệu dụng = CD_min(mô hình)·NA/λ"; số này đổi theo độ dày resist (−0,3% so với k₁ = 0,6 ở 3000 rpm, +16,6% ở 1500 rpm, −10,4% ở 6000 rpm). `k₁ = 0,6` chỉ còn là hằng số của `printLitho` (M04) và là mục tiêu hiệu chỉnh của mô hình mới.
 - Ảnh trên không (aerial image): xấp xỉ Gauss một chiều theo bề rộng mask, độ nhòe tăng theo λ/NA và theo |lệch tiêu cự|/DOF.
 - Ngưỡng hòa tan: resist dương tan ở nơi liều × cường độ > ngưỡng → suy ra bề rộng in được và góc vách.
@@ -42,7 +42,7 @@ Giới hạn phân giải, DOF, CD in được, góc vách resist, cặn đáy, 
 - Gọi σ là **"độ nhòe hiệu dụng"** (gộp quang học và khuếch tán trong resist). Không gọi là PSF quang học. Có thể nói σ₀ lớn khoảng 2 lần Gauss khớp đĩa Airy (≈ 0,21·λ/NA).
 - Mô hình khe đơn **không có giới hạn phân giải cứng**: liều cao hơn mở được cửa sổ nhỏ hơn. Giới hạn thật đến từ nhiễu xạ của dãy vạch theo pitch, nằm ngoài mô hình.
 - Resist âm cần cửa sổ lớn hơn dương: viết "**trong mô hình này, do cách chuẩn hóa liều**". Không viết chung "resist âm phân giải kém hơn".
-- k₁ hiện chỉ đọc là "k₁ hiệu dụng"; chỉ k₂ chỉnh được.
+- k₁ hiện chỉ đọc là "k₁ hiệu dụng"; k₂ chỉ đọc; chỉnh được: dự kiến. Copy không nói k₂ "chỉnh được".
 - Mọi số là "giá trị minh họa" (mức C); không trình bày như số đo thật.
 - Khối **"Giới hạn của mô hình"** (hiện ở bước tương ứng, một chỗ gom đủ): một độ nhòe cho cả độ dày resist (không đổi lấy nét theo độ sâu), không có sóng đứng, resist đáp ứng như bậc thang ở một ngưỡng (độ tương phản vô hạn), không tẩy màu (bleaching) nên thành loe hơn thực tế, một chiều, thành xấp xỉ bằng đường thẳng.
 - Phân biệt "trong mô hình này" với "trong fab thật" (SCIENCE.md mục 3).
