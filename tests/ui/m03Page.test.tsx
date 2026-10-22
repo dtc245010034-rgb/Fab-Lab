@@ -4,12 +4,20 @@
  * driven by the M03 worker's client (a stand-in that answers with the real model here).
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { resistThicknessNm } from '../../src/physics/litho';
 import App from '../../src/App';
 import { dofNm } from '../../src/physics/aerial';
 import { inlineClient } from './clients';
 import { inlineM03Client, manualM03Client, type TestM03Client } from './m03Clients';
+
+// `App` loads the page with React.lazy. The first import compiles the lessons' MDX and the
+// stylesheet of KaTeX, which on a slow shared machine takes longer than the 1 s that `findBy*`
+// waits (Cloudflare Workers Builds: 1084 ms). Load it here, under the hook's own timeout, so that
+// no test pays for it and the "Đang tải…" fallback is not what a test happens to see.
+beforeAll(async () => {
+  await import('../../src/modules/m03-lithography/M03Page');
+});
 
 afterEach(() => {
   window.history.replaceState({}, '', '/');
