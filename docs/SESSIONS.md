@@ -65,22 +65,26 @@ với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PRO
 Làm physics trước (aerial image + ngưỡng hòa tan + DOF) kèm test quy luật, sau đó các bước UI 3.1–3.6.
 Gồm cả bước 3.7 Overlay. Đầu ra phải là grid đưa thẳng vào M04. Copy tiếng Việt viết vào src/content/vi/m03/.
 ```
-S1.1 chia thành sáu bước, nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
+S1.1 chia thành bảy bước (1, 2, 3a, 3b-1, 3b-2, 4, 5), nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | Physics: ảnh trên không, ngưỡng hòa tan, DOF, cửa sổ quy trình, overlay. Chưa UI | xong 2026-10-21, `f762ca0` |
 | 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` |
 | 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` |
-| 3b | UI bước 3.1–3.6 và copy, `reasons.ts`, `Grade`, biểu đồ cửa sổ quy trình ở bước 3.4 | chưa làm |
+| 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong 2026-10-22 trên nhánh, chờ duyệt (chưa merge) |
+| 3b-2 | Bước 3.5–3.6: `reasons.ts`, `cautions.ts`, `Grade`, "Lưu ý", `ModelLimits`, MDX đầy đủ 3.1–3.6, e2e 3.5–3.6, DESIGN, tick spec | chưa làm |
 | 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
 | 5 | Đọc lại copy theo SCIENCE.md, e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
 
 Prompt cho các bước còn lại (dán sau `/clear`):
 ```
-3b: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md (cả "Phán quyết" và "Quy tắc cho copy"), docs/SCIENCE.md mục M03.
-Làm UI bước 3.1–3.6 trên /m03: điều khiển bằng bộ UI kit, Viewer từ M03View, copy MDX ở src/content/vi/m03/, src/content/vi/m03/reasons.ts,
-component Grade ("Phán quyết:"), tầng "Lưu ý" cho cờ quy trình, khối "Giới hạn của mô hình", biểu đồ cửa sổ quy trình ở bước 3.4. Lập plan trước, chờ tôi duyệt.
+3b-2 (sau khi 3b-1 đã duyệt và merge): Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1, nhất là "Bước 3b-1"), docs/modules/m03-lithography.md (cả "Phán quyết" và "Quy tắc cho copy"),
+docs/DESIGN.md, docs/SCIENCE.md mục M03. Nhánh s1.1-m03-litho, rebase lên main.
+Làm tiếp /m03 bước 3.5–3.6: src/content/vi/m03/reasons.ts (Record<CauseCode,(cause)=>string>, gợi ý chiều liều theo doseAdvice) và cautions.ts,
+component Grade riêng ("Phán quyết:", chỉ ở 3.6, ca Đạt cũng có câu "vì sao"), tầng "Lưu ý" cho cờ quy trình (test: Lưu ý ∩ nguyên nhân = ∅), khối "Giới hạn của mô hình" (ModelLimits),
+điều khiển và ô số cho 3.5–3.6, viết lại MDX đầy đủ cho 3.1–3.6 (copy 3.5 nói cách thấy cặn do thiếu liều), e2e 380 px cho 3.5–3.6, DESIGN (Grade, hai biểu đồ), tick ô "biểu đồ cửa sổ quy trình" trong spec.
+Trang không được import mô hình (xem "Page-safe" ở Next). Chưa làm 3.7. Lập plan trước, chờ tôi duyệt; dừng để duyệt, chưa merge.
 
 4: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md. Làm UI bước 3.7 (Overlay): dấu căn chỉnh, đọc sai lệch ẩn,
 chỉnh dx/dy/xoay, rework hay cho qua, vùng đích vẽ làm chú thích (không thêm Material). Chưa có nút "Sang khắc" (S1.2 nối). Lập plan trước.
