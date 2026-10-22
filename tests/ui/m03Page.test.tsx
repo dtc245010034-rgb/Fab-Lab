@@ -105,6 +105,43 @@ describe('/m03: before the first session lands', () => {
   });
 });
 
+describe('/m03: steps 3.1 – 3.6 have no empty slot', () => {
+  /** A slot is written or dropped, never left to say "Chưa có nội dung." */
+  const SLOTS_AT: [string, string[]][] = [
+    ['3.1', ['Cơ chế', 'Điều khiển']],
+    ['3.2', ['Cơ chế', 'Phương trình', 'Điều khiển']],
+    ['3.3', ['Cơ chế', 'Điều khiển']],
+    ['3.4', ['Cơ chế', 'Phương trình', 'Điều khiển', 'Ghi chú']],
+    ['3.5', ['Cơ chế', 'Điều khiển', 'Ghi chú']],
+    ['3.6', ['Cơ chế', 'Điều khiển', 'Ghi chú']],
+  ];
+
+  it.each(SLOTS_AT)(
+    '%s keeps the slots %j and none says "Chưa có nội dung."',
+    async (code, titles) => {
+      openM03();
+      await screen.findByRole('img', { name: /oxit trần/i });
+      await goTo(code);
+      const traveler = screen.getByRole('complementary', { name: /phiếu công đoạn/i });
+      const slotTitles = within(traveler)
+        .getAllByRole('heading', { level: 3 })
+        .map((h) => h.textContent);
+      expect(slotTitles).toEqual(titles);
+      expect(within(traveler).queryByText('Chưa có nội dung.')).not.toBeInTheDocument();
+    },
+  );
+
+  it('the mechanism of each of the six steps ends with one "Nếu làm sai:" sentence', async () => {
+    openM03();
+    await screen.findByRole('img', { name: /oxit trần/i });
+    for (const [code] of SLOTS_AT) {
+      await goTo(code);
+      const traveler = screen.getByRole('complementary', { name: /phiếu công đoạn/i });
+      expect(within(traveler).getAllByText(/^Nếu làm sai:/), code).toHaveLength(1);
+    }
+  });
+});
+
 describe('/m03: the worker and the picture', () => {
   it('asks the worker for the first session and the first view, and describes the picture it gets', async () => {
     const client = openM03();

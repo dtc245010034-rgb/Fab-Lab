@@ -77,3 +77,85 @@ describe('copy of M03: the soft bake, as the source says it', () => {
     }
   });
 });
+
+/** The six files that are the "Cơ chế" of steps 3.1 – 3.6. */
+const MECHANISM = ['clean', 'coat', 'softbake', 'exposeMechanism', 'develop', 'inspect'];
+const IF_WRONG = '**Nếu làm sai:**';
+const paragraphs = (text: string) =>
+  text
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+describe('copy of M03: the mechanism of each step 3.1 – 3.6', () => {
+  it.each(MECHANISM)(
+    '%s.mdx: exactly one sentence opens with "Nếu làm sai:", on a paragraph of its own',
+    (name) => {
+      const text = read(`${name}.mdx`);
+      expect(text.split(IF_WRONG).length - 1).toBe(1);
+      const wrong = paragraphs(text).filter((p) => p.startsWith(IF_WRONG));
+      expect(wrong).toHaveLength(1);
+      expect(sentences(wrong[0]!), `"${wrong[0]}" is one sentence`).toHaveLength(1);
+    },
+  );
+
+  it.each(MECHANISM)(
+    '%s.mdx: the mechanism is 2 – 4 sentences, apart from "Nếu làm sai:"',
+    (name) => {
+      const body = paragraphs(read(`${name}.mdx`))
+        .filter((p) => !p.startsWith(IF_WRONG))
+        .join('\n');
+      const count = sentences(body).length;
+      expect(count).toBeGreaterThanOrEqual(2);
+      expect(count).toBeLessThanOrEqual(4);
+    },
+  );
+
+  it('no other file of the module writes a "Nếu làm sai:" (one per step, six in all)', () => {
+    const total = FILES.reduce((n, f) => n + (f.text.split(IF_WRONG).length - 1), 0);
+    expect(total).toBe(MECHANISM.length);
+  });
+
+  it('at most one equation per step, each in a chip: 3.2 and 3.4 have one, the others none', () => {
+    const withEquation = FILES.filter((f) => f.name.endsWith('.mdx') && /\$\$/.test(f.text)).map(
+      (f) => f.name,
+    );
+    expect(withEquation.sort()).toEqual(['coatEquation.mdx', 'expose.mdx']);
+    for (const name of withEquation) {
+      expect(read(name), name).toMatch(/<EquationChip label="[^"]+">/);
+      expect(read(name).split('$$').length - 1, `${name}: one display equation`).toBe(2);
+    }
+  });
+});
+
+describe('copy of M03: the model limits, in one place', () => {
+  const limits = () => read('modelLimits.mdx');
+
+  it('names each limit of the copy rules: one blur for the whole film, no standing waves, a step-threshold resist, no bleaching, one dimension, straight walls', () => {
+    for (const word of [
+      /độ nhòe/,
+      /sóng đứng \(standing wave\)/,
+      /bậc thang/,
+      /tẩy màu \(bleaching\)/,
+      /một chiều/,
+      /đường thẳng/,
+    ]) {
+      expect(limits(), String(word)).toMatch(word);
+    }
+  });
+
+  it('says the single-slit model has no hard resolution limit, and where the real one comes from', () => {
+    expect(limits()).toMatch(/không có giới hạn phân giải cứng/);
+    expect(limits()).toMatch(/nhiễu xạ/);
+    expect(limits()).toMatch(/pitch/);
+  });
+
+  it('says the soft bake is a short rule: the real effects are not drawn', () => {
+    expect(limits()).toMatch(/nung mềm/i);
+    expect(limits()).toMatch(/không (được )?vẽ/);
+  });
+
+  it('says every figure is illustrative', () => {
+    expect(limits()).toMatch(/giá trị minh họa/);
+  });
+});
