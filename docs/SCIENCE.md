@@ -72,7 +72,7 @@ không lấy từ bộ nhớ của AI.
 - MicroChemicals, *Softbake of Photoresists* (ghi chú ứng dụng, chương "Fundamentals of Microstructuring"): chỉ dùng cho các câu về nung mềm ở mức B (xu hướng); không phải giáo trình, nên không đưa số của nó lên mức A.
 
 Khi đưa một hằng số lên mức A, ghi đúng tên sách, lần xuất bản, bảng hoặc trang.
-Nếu không có sách trong tay, giữ ở mức C và thêm vào "Values to verify" trong PROGRESS.md.
+Nếu không có sách trong tay, giữ ở mức C và thêm vào "Values to verify" trong docs/PROGRESS.md.
 
 ## 5. Kiểm thử bắt buộc
 - Mỗi hàm vật lý có ít nhất: một test giá trị tham chiếu (nếu mức A), một test quy luật (đơn điệu, giới hạn, đối xứng).

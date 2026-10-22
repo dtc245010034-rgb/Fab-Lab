@@ -93,4 +93,4 @@ npx wrangler deploy --dry-run
 ## Cấu trúc và quy ước
 
 Xem [`CLAUDE.md`](CLAUDE.md) (kiến trúc, quy tắc), [`docs/DESIGN.md`](docs/DESIGN.md) (giao diện),
-[`docs/SCIENCE.md`](docs/SCIENCE.md) (quy tắc khoa học), [`docs/PROGRESS.md`](docs/PROGRESS.md) (tiến độ).
+[`docs/SCIENCE.md`](docs/SCIENCE.md) (quy tắc khoa học), [`docs/STATUS.md`](docs/STATUS.md) (trạng thái và bước tiếp), [`docs/PROGRESS.md`](docs/PROGRESS.md) (giá trị cần đối chiếu).

@@ -2,16 +2,16 @@
 
 ## Chuẩn bị (một lần)
 1. Tạo thư mục dự án, chép toàn bộ bộ file này vào (CLAUDE.md, `.claude/`, `docs/`, `reference/`), rồi `git init`.
-2. Model và effort đã đặt trong `.claude/settings.json`: Sonnet 5.5, effort `xhigh`.
-   Nếu phiên mở ra không đúng, chạy: `claude --model sonnet --effort xhigh` (chỉ áp dụng cho phiên đó),
-   hoặc trong phiên gõ `/model` rồi `/effort xhigh`.
-3. Mức `xhigh` tốn token hơn `medium`/`high`. Nên dùng cho phiên viết mô hình vật lý.
-   Với phiên chỉ chỉnh giao diện/copy, có thể hạ `/effort high` để tiết kiệm.
+2. Model và effort mặc định đã đặt trong `.claude/settings.json`: Sonnet 5.5, effort `high`.
+   Mỗi bước còn lại có cột "effort" ở bảng S1.1 dưới đây; đổi bằng `/effort <mức>` trong phiên,
+   hoặc `claude --model sonnet --effort <mức>` (chỉ áp dụng cho phiên đó).
+3. Mức `xhigh` tốn token hơn `high`. Chỉ dùng cho phiên viết mô hình vật lý hoặc rà soát khoa học; việc dọn dẹp, tài liệu dùng `medium`.
+4. Đầu mỗi phiên Claude đọc `docs/STATUS.md`; KHÔNG đọc `docs/history/` trừ khi cần tra. Cuối phiên người dùng điền bảng nhật ký ở STATUS.md.
 
 ## Quy tắc mỗi phiên
 - Một phiên = một mục dưới đây. Mở phiên mới (`/clear`) khi sang mục khác, và sau mỗi bước đã duyệt và merge của một mục có nhiều bước (như S1.1).
 - Dán đúng prompt của mục đó. Để Claude lập plan trước, bạn duyệt rồi mới cho làm.
-- Kết thúc phiên: `npm test && npm run build` xanh, PROGRESS.md đã cập nhật, đã commit.
+- Kết thúc phiên: `npm test && npm run build` xanh, STATUS.md đã cập nhật, đã commit (không `--no-verify`; hook đỏ thì sửa hoặc dừng báo).
 
 ---
 
@@ -55,7 +55,7 @@ trung vị; giả thuyết "worker bị xếp lên lõi nhỏ" **sai**); bước
 `src/physics/materials.ts` (gói chính về mức cũ) và bảng chi phí tính sẵn (−17% ở desktop, kết quả trùng
 từng bit với bản cũ); bước 2 (gập gương) **hủy** vì không còn vấn đề hiệu năng cần giải. Kết quả: ở
 trình duyệt Chromium có JIT trên S20 FE, `runRecipe` ≈ 6,5–7,7 ms; Chrome của máy thử chậm ≈ 10×, khớp
-với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PROGRESS.md`, mục S0.5.
+với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/history/PROGRESS-s0-s1.1.md`, mục S0.5.
 
 **Giai đoạn 0 hoàn tất (2026-10-10).** Phiên tiếp theo: S1.1.
 
@@ -65,21 +65,23 @@ với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PRO
 Làm physics trước (aerial image + ngưỡng hòa tan + DOF) kèm test quy luật, sau đó các bước UI 3.1–3.6.
 Gồm cả bước 3.7 Overlay. Đầu ra phải là grid đưa thẳng vào M04. Copy tiếng Việt viết vào src/content/vi/m03/.
 ```
-S1.1 chia thành chín bước (1, 2, 3a, 3b-1, 3b-2, 3b-3, 3b-4, 4, 5), nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
+S1.1 chia thành mười bước (1, 2, 3a, 3b-1, 3b-2, 3b-3, 3b-4, housekeeping, 5b, 4, 5; thứ tự làm nốt: housekeeping, 5b, 4, 5), nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/STATUS.md`, không cần hội thoại cũ (chi tiết cũ ở `docs/history/`, chỉ đọc khi cần tra).
 
-| Bước | Nội dung | Trạng thái |
-|---|---|---|
-| 1 | Physics: ảnh trên không, ngưỡng hòa tan, DOF, cửa sổ quy trình, overlay. Chưa UI | xong 2026-10-21, `f762ca0` |
-| 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` |
-| 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` |
-| 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong, đã duyệt và merge 2026-10-22 (`main` = HEAD sau commit docs "3b-1 đã duyệt và merge") |
-| 3b-2 | Phần mã: ô số có chữ riêng, `reasons.ts`, `cautions.ts`, `Grade`, `ModelLimits`, `verdict.ts`, thanh trượt tráng, ô số 3.5–3.6, phán quyết và Lưu ý ở 3.6 | xong, đã duyệt và merge 2026-10-22, `69d3bc4` |
-| 3b-3 | Sửa khoa học "nung thiếu" (nguồn MicroChemicals; "dính mask" chỉ khi chiếu tiếp xúc; nung quá nêu hiệu ứng thật rồi mới nói mô hình gộp thành liều hiệu dụng giảm) ở `reasons.ts`, `cautions.ts`, MDX 3.3, spec, SCIENCE, `constants.ts` (chỉ chữ); `Traveler` bỏ slot `null`; MDX đầy đủ 3.1–3.6 (mỗi bước đúng một câu **Nếu làm sai:**), `ModelLimits` ở 3.4, copy cặn do thiếu liều (resist dương) và test copy | xong commit 1–3 và một commit test ("preload lazy pages", sửa Workers Builds đỏ), đã duyệt và merge 2026-10-22, `0551e65`; chi tiết ở PROGRESS Done "Bước 3b-3" |
-| 3b-4 | e2e 380 px cho 3.1–3.6 và không còn "Chưa có nội dung", chụp và xem 3.6; DESIGN, tick spec, số gzip; kiểm đột biến | xong commit 4–6 (e2e 380 px, DESIGN, số gzip, 27 đột biến đều bị bắt), đã duyệt và merge 2026-10-23; font 600 (+33,5 KiB gzip): chọn bỏ, làm ở bước 5; chi tiết ở PROGRESS Next và Done "Bước 3b-4" |
-| 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
-| 5 | Đọc lại copy theo SCIENCE.md, bỏ font Be Vietnam Pro 600 khỏi `/m03` (nhãn đậm dùng mono 600 của kit, chụp lại 380 px và xem ảnh), e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
+| Bước | Nội dung | Trạng thái | Effort |
+|---|---|---|---|
+| 1 | Physics: ảnh trên không, ngưỡng hòa tan, DOF, cửa sổ quy trình, overlay. Chưa UI | xong 2026-10-21, `f762ca0` | — |
+| 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` | — |
+| 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` | — |
+| 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong, đã duyệt và merge 2026-10-22 (`main` = HEAD sau commit docs "3b-1 đã duyệt và merge") | — |
+| 3b-2 | Phần mã: ô số có chữ riêng, `reasons.ts`, `cautions.ts`, `Grade`, `ModelLimits`, `verdict.ts`, thanh trượt tráng, ô số 3.5–3.6, phán quyết và Lưu ý ở 3.6 | xong, đã duyệt và merge 2026-10-22, `69d3bc4` | — |
+| 3b-3 | Sửa khoa học "nung thiếu" (nguồn MicroChemicals; "dính mask" chỉ khi chiếu tiếp xúc; nung quá nêu hiệu ứng thật rồi mới nói mô hình gộp thành liều hiệu dụng giảm) ở `reasons.ts`, `cautions.ts`, MDX 3.3, spec, SCIENCE, `constants.ts` (chỉ chữ); `Traveler` bỏ slot `null`; MDX đầy đủ 3.1–3.6 (mỗi bước đúng một câu **Nếu làm sai:**), `ModelLimits` ở 3.4, copy cặn do thiếu liều (resist dương) và test copy | xong commit 1–3 và một commit test ("preload lazy pages", sửa Workers Builds đỏ), đã duyệt và merge 2026-10-22, `0551e65`; chi tiết ở PROGRESS Done "Bước 3b-3" | — |
+| 3b-4 | e2e 380 px cho 3.1–3.6 và không còn "Chưa có nội dung", chụp và xem 3.6; DESIGN, tick spec, số gzip; kiểm đột biến | xong commit 4–6 (e2e 380 px, DESIGN, số gzip, 27 đột biến đều bị bắt), đã duyệt và merge 2026-10-23; font 600 (+33,5 KiB gzip): chọn bỏ, làm ở bước 5; chi tiết ở PROGRESS Next và Done "Bước 3b-4" | — |
+| housekeeping | Tách PROGRESS thành STATUS + history, hook git (simple-git-hooks), bảng nhật ký phiên, cột effort, CLAUDE.md và SESSIONS đọc STATUS.md | nhánh `chore/housekeeping`, chờ duyệt | medium |
+| 5b | Nghiệm thu sản phẩm (a)+(b): `/` có đường vào `/m03`, không trang nào hiện "Chưa có nội dung."; cân nhắc `/` = trang chọn module, M04 sang `/m04`; (c) người dùng thử trên điện thoại, 5 nhận xét ở STATUS | chưa làm | medium |
+| 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm | high |
+| 5 | Đọc lại copy theo SCIENCE.md, bỏ font Be Vietnam Pro 600 khỏi `/m03` (nhãn đậm dùng mono 600 của kit, chụp lại 380 px và xem ảnh), e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm | high (rà khoa học: xhigh) |
 
-Prompt cho các bước còn lại (dán sau `/clear`):
+Prompt cho các bước còn lại (dán sau `/clear`). Các prompt 3b-2, 3b-3, 3b-4 dưới đây đã xong; mục PROGRESS mà chúng nhắc nay nằm ở `docs/history/PROGRESS-s0-s1.1.md`.
 ```
 3b-2 (sau khi 3b-1 đã duyệt và merge): Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1, nhất là "Bước 3b-1"), docs/modules/m03-lithography.md (cả "Phán quyết" và "Quy tắc cho copy"),
 docs/DESIGN.md, docs/SCIENCE.md mục M03. Nhánh s1.1-m03-litho, rebase lên main.
@@ -99,12 +101,17 @@ Chưa làm e2e, DESIGN, gzip, đột biến (3b-4) và 3.7. Gặp điều mơ h�
 Plan đã được duyệt và ghi trong PROGRESS: làm commit 4–6 (e2e 380 px 3.1–3.6, docs và gzip, kiểm đột biến). Việc đầu tiên: chụp 3.6 ở 380 px bằng M03_SHOTS và XEM ảnh (CSS Grade, Lưu ý, ModelLimits chưa từng được xem); chỉnh CSS nếu cần.
 Xong dừng để duyệt, chưa merge.
 
-4: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md. Làm UI bước 3.7 (Overlay): dấu căn chỉnh, đọc sai lệch ẩn,
+5b (sau housekeeping; làm TRƯỚC bước 4 để người lạ vào được /m03 ngay): Đọc CLAUDE.md, docs/STATUS.md (mục "Bước 5b"), docs/DESIGN.md. Không đọc docs/history/ trừ khi cần tra.
+Việc: (a) trang `/` có đường vào `/m03` (danh sách module hoặc nav) để người lạ không phải gõ URL; (b) không trang nào hiện "Chưa có nội dung." (M04 ở `/` đang hiện ở cả 6 bước vì `Lab.tsx` gọi <Traveler /> không slot);
+nội dung thật của M04 là S1.2, ở đây chỉ cần trạng thái trung thực. Plan phải cân nhắc phương án "`/` = trang chọn module, M04 sang `/m04`", với điều kiện `/?bench=1` (và `&thread=main`, `/?debug=1`) vẫn chạy, hoặc đổi có ghi rõ (README, STATUS, e2e, bench).
+Giữ ngân sách bundle và 380 px. Lập plan trước, chờ tôi duyệt; xong dừng để duyệt, chưa merge. Sau khi merge, (c) là việc của tôi: tôi mở site trên điện thoại như người mới và ghi 5 nhận xét vào STATUS.
+
+4 (sau 5b): Đọc CLAUDE.md, docs/STATUS.md (mục "Bước 4"), docs/modules/m03-lithography.md. Làm UI bước 3.7 (Overlay): dấu căn chỉnh, đọc sai lệch ẩn,
 chỉnh dx/dy/xoay, rework hay cho qua, vùng đích vẽ làm chú thích (không thêm Material). Chưa có nút "Sang khắc" (S1.2 nối). Lập plan trước.
 
-5: Đọc CLAUDE.md, docs/PROGRESS.md, docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md. Đọc lại toàn bộ copy M03 đối chiếu SCIENCE.md,
-làm việc "bỏ font Be Vietnam Pro 600" đã được duyệt (PROGRESS Next, "Việc ghi sẵn cho bước 5": chụp lại 380 px và xem ảnh), cùng các việc ghi sẵn khác ở đó,
-chạy e2e và đo bundle, tick các tiêu chí còn lại trong spec M03, cập nhật PROGRESS. Lập plan trước.
+5 (sau 4): Đọc CLAUDE.md, docs/STATUS.md (mục "Bước 5"), docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md. Đọc lại toàn bộ copy M03 đối chiếu SCIENCE.md,
+làm việc "bỏ font Be Vietnam Pro 600" đã được duyệt (STATUS "Bước 5": chụp lại 380 px và xem ảnh), cùng các việc khác ở đó; phần rà khoa học dùng effort xhigh,
+chạy e2e và đo bundle, tick các tiêu chí còn lại trong spec M03, cập nhật STATUS. Không đọc docs/history/ trừ khi cần tra. Lập plan trước.
 ```
 
 ### S1.2 — M04 khắc ướt + RIE (UI)
@@ -124,7 +131,7 @@ Physics và test trước, UI sau.
 ```
 Đọc docs/SCIENCE.md. Rà toàn bộ src/content/vi/m03/, m04/ và src/physics/constants.ts.
 Liệt kê (không sửa) mọi câu có thể sai hoặc phóng đại, mọi hằng số chưa có nguồn, kèm đề xuất sửa.
-Ghi kết quả vào docs/PROGRESS.md mục "Science review".
+Ghi kết quả vào docs/PROGRESS.md mục "Science review" (file này chỉ còn Values to verify và Science review).
 ```
 Sau phiên này, **bạn** đối chiếu danh sách với giáo trình và đưa số liệu đã kiểm tra vào phiên tiếp theo.
 
@@ -132,7 +139,7 @@ Sau phiên này, **bạn** đối chiếu danh sách với giáo trình và đư
 Dùng cùng khuôn prompt:
 ```
 Đọc CLAUDE.md, docs/SCIENCE.md mục <Mxx>, docs/modules/<file>.md.
-Physics + test trước (hằng số mức A phải kèm nguồn tôi cung cấp dưới đây; nếu thiếu thì để mức C và ghi vào PROGRESS.md),
+Physics + test trước (hằng số mức A phải kèm nguồn tôi cung cấp dưới đây; nếu thiếu thì để mức C và ghi vào docs/PROGRESS.md "Values to verify"),
 sau đó sim, render, UI, copy tiếng Việt. Kết thúc bằng checklist "Tiêu chí xong" của module.
 Số liệu đã kiểm tra: <dán bảng số liệu bạn tra từ sách>
 ```

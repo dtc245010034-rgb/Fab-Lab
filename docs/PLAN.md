@@ -63,17 +63,17 @@ thay đổi theo đúng cơ chế vật lý. Cuối mỗi module có chấm đi�
 - Chuỗi quy trình chế tạo MOSFET, lưu "traveler" (phiếu công đoạn) để xem lại.
 - Tên miền, SEO cơ bản, trang giới thiệu, nguồn tham khảo.
 - Bật Cloudflare Web Analytics (không cookie; chuyển từ Giai đoạn 0 ngày 2026-10-21). Đây là cấu hình trên
-  dashboard Cloudflare nên repo không chứng minh được; ghi lại ngày bật vào `PROGRESS.md` khi làm.
+  dashboard Cloudflare nên repo không chứng minh được; ghi lại ngày bật vào `STATUS.md` khi làm.
 - Bản tiếng Anh (tùy chọn).
 - Backend nhỏ đầu tiên: form góp ý / báo lỗi khoa học (Cloudflare Workers + D1).
 - (Tùy chọn, sau ra mắt) Gia sư AI qua Worker proxy giữ API key, có giới hạn tần suất,
   chỉ trả lời dựa trên SCIENCE.md và kết quả mô phỏng của người học.
 
 ## 4. Cách dùng Claude Code
-- Model và effort đặt trong `.claude/settings.json` (Sonnet 5.5, effort `xhigh`).
+- Model và effort đặt trong `.claude/settings.json` (Sonnet 5.5, effort mặc định `high`; từng bước có effort riêng ở SESSIONS).
   CLAUDE.md **không** đặt được model hay effort.
 - Mỗi phiên = một mục trong `docs/SESSIONS.md`. Copy prompt của phiên đó vào Claude Code.
-- Sau mỗi phiên, cập nhật `docs/PROGRESS.md` và commit.
+- Sau mỗi phiên, cập nhật `docs/STATUS.md` (và `docs/PROGRESS.md` nếu có giá trị cần đối chiếu) rồi commit.
 - Phần vật lý: **bạn tự duyệt** trước khi merge. Đây là phần AI dễ sai nhất mà nhìn qua lại khó phát hiện.
 
 ## 5. Rủi ro chính và cách xử lý

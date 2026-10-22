@@ -29,7 +29,7 @@ src/ui/        React components (Traveler, StepNav, ParamSlider, MetricTile, Not
 src/modules/   m01-wafer … m06-packaging: steps, params, scoring config per module
 src/content/vi/ all learner-facing text as MDX, one folder per module
 tests/physics/ reference-value tests for every physics function
-docs/          PLAN, SCIENCE, DESIGN, SESSIONS, PROGRESS, modules/*.md
+docs/          PLAN, SCIENCE, DESIGN, SESSIONS, STATUS, PROGRESS (values to verify), history/, modules/*.md
 reference/     prototype-m04-etch.html (working single-file prototype of the etch model)
 content-source/ raw study data (semi-intro-data.json) — source material only, never import into src/
 ```
@@ -60,10 +60,12 @@ content-source/ raw study data (semi-intro-data.json) — source material only, 
   `docs/modules/mXX-*.md`, not all of them.
 - Start in plan mode: restate the acceptance criteria, list files to touch, then implement.
 - Physics first (with tests), then sim, then render, then UI and copy.
-- Before finishing: `npm test && npm run build`, update `docs/PROGRESS.md`
-  (done / next / values to verify), then commit with a message `mXX: <what changed>`.
+- Read `docs/STATUS.md` at the start of a session. Do NOT read `docs/history/` unless you need to look something up.
+- Before finishing: `npm test && npm run build`, update `docs/STATUS.md` (state / next / user tasks / session log; ≤ 150 lines,
+  each ≤ 300 characters) and `docs/PROGRESS.md` ("Values to verify"), then commit with a message `mXX: <what changed>`.
+- Do not use `--no-verify`. A red git hook (pre-commit: `tsc -b` + lint; pre-push: tests) means fix it or stop and report.
 - If a spec is ambiguous or contradicts SCIENCE.md, stop and ask instead of guessing.
-- Mỗi bước của một phiên là một context riêng: sau khi bước được duyệt và merge, người dùng chạy /clear. Trước khi dừng, PROGRESS.md phải đủ để phiên mới làm tiếp không cần hội thoại cũ.
+- Mỗi bước của một phiên là một context riêng: sau khi bước được duyệt và merge, người dùng chạy /clear. Trước khi dừng, STATUS.md phải đủ để phiên mới làm tiếp không cần hội thoại cũ.
 
 ## Performance budget
 - Cross-section grid ≤ 400×250 cells; a full etch recompute must finish < 50 ms on a
