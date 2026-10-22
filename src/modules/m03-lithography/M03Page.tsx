@@ -57,7 +57,9 @@ export default function M03Page({ createClient }: { createClient: () => M03Clien
               chartPending={chartPending}
               setRecipe={setRecipe}
             />
-          ) : null;
+          ) : (
+            <p role="status">Đang tính…</p>
+          );
           const notes =
             id === 'inspect' ? <VerdictSlot shown={shown} pending={pending} /> : undefined;
           return slotsFor(id, { controls, notes });

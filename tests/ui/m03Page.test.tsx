@@ -3,13 +3,13 @@
  * `/m03`: the lithography page, chosen from `location.pathname`, loaded only when asked for, and
  * driven by the M03 worker's client (a stand-in that answers with the real model here).
  */
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resistThicknessNm } from '../../src/physics/litho';
 import App from '../../src/App';
 import { dofNm } from '../../src/physics/aerial';
 import { inlineClient } from './clients';
-import { inlineM03Client, type TestM03Client } from './m03Clients';
+import { inlineM03Client, manualM03Client, type TestM03Client } from './m03Clients';
 
 afterEach(() => {
   window.history.replaceState({}, '', '/');
@@ -79,6 +79,21 @@ describe('/m03', () => {
     expect(chip.querySelector('annotation[encoding="application/x-tex"]')?.textContent).toContain(
       '\\mathrm{CD}_{\\min}',
     );
+  });
+});
+
+describe('/m03: before the first session lands', () => {
+  it('the controls slot says it is working, never "Chưa có nội dung."', async () => {
+    const manual = manualM03Client();
+    openM03(manual.client);
+    await stepNav();
+    const slot = screen.getByRole('heading', { level: 3, name: 'Điều khiển' }).parentElement!;
+    expect(within(slot).getByRole('status')).toHaveTextContent('Đang tính…');
+    expect(within(slot).queryByText('Chưa có nội dung.')).not.toBeInTheDocument();
+    // the session lands: the slot has its controls
+    await act(async () => manual.answerStart());
+    expect(await within(slot).findByText(/không có điều khiển ở bước này/i)).toBeInTheDocument();
+    expect(within(slot).queryByRole('status')).not.toBeInTheDocument();
   });
 });
 

@@ -44,6 +44,30 @@ describe('Traveler with its own steps', () => {
     expect(screen.getAllByText('Chưa có nội dung.')).toHaveLength(3);
   });
 
+  it('drops a slot whose content is null, heading and all; a slot left out still says "Chưa có nội dung"', () => {
+    render(
+      <Traveler
+        steps={STEPS}
+        content={() => ({
+          'Cơ chế': <p>Cơ chế của bước</p>,
+          'Phương trình': null,
+          'Ghi chú': null,
+        })}
+      />,
+    );
+    const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
+    expect(titles).toEqual(['Cơ chế', 'Điều khiển']);
+    expect(screen.getByText('Cơ chế của bước')).toBeInTheDocument();
+    // "Điều khiển" was not given: the default text stays; the two dropped ones leave nothing behind
+    expect(screen.getAllByText('Chưa có nội dung.')).toHaveLength(1);
+  });
+
+  it('keeps all four slots, with the default text, for a Traveler that has no content (the etch lab)', () => {
+    render(<Traveler />);
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(4);
+    expect(screen.getAllByText('Chưa có nội dung.')).toHaveLength(4);
+  });
+
   it('puts the slots in the order of docs/DESIGN.md: mechanism, equation, controls, notes', () => {
     render(<Traveler steps={STEPS} />);
     const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);

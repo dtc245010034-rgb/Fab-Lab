@@ -13,7 +13,11 @@ export type SlotName = (typeof SLOTS)[number];
 
 interface Props {
   steps?: readonly TravelerStep[];
-  /** What a step puts in its slots; a slot left out says "Chưa có nội dung". */
+  /**
+   * What a step puts in its slots. A slot left out says "Chưa có nội dung" (the page has not
+   * written it yet); a slot given as `null` is dropped, heading and all (the page says this step
+   * has none).
+   */
   content?: (stepIndex: number) => Partial<Record<SlotName, ReactNode>>;
   /**
    * The current step, when the page holds it (the picture follows the step). Then the Traveler only
@@ -40,12 +44,16 @@ export default function Traveler({ steps, content, step: heldStep, onStepChange 
       <StepNav count={count} current={step} items={steps} onSelect={setStep} />
       <div className="tbody">
         <h2>{named ? `${named.code} ${named.name}` : `Bước ${step + 1}`}</h2>
-        {SLOTS.map((label) => (
-          <div className="slot" key={label}>
-            <h3>{label}</h3>
-            {slots[label] ?? <p>Chưa có nội dung.</p>}
-          </div>
-        ))}
+        {SLOTS.map((label) => {
+          const slot = slots[label];
+          if (slot === null) return null; // left out on purpose: no heading either
+          return (
+            <div className="slot" key={label}>
+              <h3>{label}</h3>
+              {slot ?? <p>Chưa có nội dung.</p>}
+            </div>
+          );
+        })}
         <div className="row">
           <button
             type="button"
