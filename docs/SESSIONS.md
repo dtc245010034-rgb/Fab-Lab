@@ -75,9 +75,9 @@ S1.1 chia thành chín bước (1, 2, 3a, 3b-1, 3b-2, 3b-3, 3b-4, 4, 5), nhánh 
 | 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong, đã duyệt và merge 2026-10-22 (`main` = HEAD sau commit docs "3b-1 đã duyệt và merge") |
 | 3b-2 | Phần mã: ô số có chữ riêng, `reasons.ts`, `cautions.ts`, `Grade`, `ModelLimits`, `verdict.ts`, thanh trượt tráng, ô số 3.5–3.6, phán quyết và Lưu ý ở 3.6 | xong, đã duyệt và merge 2026-10-22, `69d3bc4` |
 | 3b-3 | Sửa khoa học "nung thiếu" (nguồn MicroChemicals; "dính mask" chỉ khi chiếu tiếp xúc; nung quá nêu hiệu ứng thật rồi mới nói mô hình gộp thành liều hiệu dụng giảm) ở `reasons.ts`, `cautions.ts`, MDX 3.3, spec, SCIENCE, `constants.ts` (chỉ chữ); `Traveler` bỏ slot `null`; MDX đầy đủ 3.1–3.6 (mỗi bước đúng một câu **Nếu làm sai:**), `ModelLimits` ở 3.4, copy cặn do thiếu liều (resist dương) và test copy | xong commit 1–3 và một commit test ("preload lazy pages", sửa Workers Builds đỏ), đã duyệt và merge 2026-10-22, `0551e65`; chi tiết ở PROGRESS Done "Bước 3b-3" |
-| 3b-4 | e2e 380 px cho 3.1–3.6 và không còn "Chưa có nội dung", chụp và xem 3.6; DESIGN, tick spec, số gzip; kiểm đột biến | xong commit 4–6 (e2e 380 px, DESIGN, số gzip, 27 đột biến đều bị bắt), chờ duyệt 2026-10-22; có một quyết định về font 600 (+33,5 KiB gzip), chi tiết ở PROGRESS Next và Done "Bước 3b-4" |
+| 3b-4 | e2e 380 px cho 3.1–3.6 và không còn "Chưa có nội dung", chụp và xem 3.6; DESIGN, tick spec, số gzip; kiểm đột biến | xong commit 4–6 (e2e 380 px, DESIGN, số gzip, 27 đột biến đều bị bắt), đã duyệt và merge 2026-10-23; font 600 (+33,5 KiB gzip): chọn bỏ, làm ở bước 5; chi tiết ở PROGRESS Next và Done "Bước 3b-4" |
 | 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
-| 5 | Đọc lại copy theo SCIENCE.md, e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
+| 5 | Đọc lại copy theo SCIENCE.md, bỏ font Be Vietnam Pro 600 khỏi `/m03` (nhãn đậm dùng mono 600 của kit, chụp lại 380 px và xem ảnh), e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
 
 Prompt cho các bước còn lại (dán sau `/clear`):
 ```
@@ -103,6 +103,7 @@ Xong dừng để duyệt, chưa merge.
 chỉnh dx/dy/xoay, rework hay cho qua, vùng đích vẽ làm chú thích (không thêm Material). Chưa có nút "Sang khắc" (S1.2 nối). Lập plan trước.
 
 5: Đọc CLAUDE.md, docs/PROGRESS.md, docs/SCIENCE.md mục M03, docs/modules/m03-lithography.md. Đọc lại toàn bộ copy M03 đối chiếu SCIENCE.md,
+làm việc "bỏ font Be Vietnam Pro 600" đã được duyệt (PROGRESS Next, "Việc ghi sẵn cho bước 5": chụp lại 380 px và xem ảnh), cùng các việc ghi sẵn khác ở đó,
 chạy e2e và đo bundle, tick các tiêu chí còn lại trong spec M03, cập nhật PROGRESS. Lập plan trước.
 ```
 
