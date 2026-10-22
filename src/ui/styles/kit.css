@@ -148,6 +148,116 @@
   color: var(--bad);
 }
 
+/* ── Grade ──────────────────────────────────────────────── */
+
+/* the verdict of a step: its own shape (a wide bar, a large word), not the Note's */
+.grade {
+  padding: 10px 12px;
+  font: 13px/1.45 var(--f-body);
+  background: var(--panel-2);
+  border-left: 8px solid var(--ok);
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+}
+
+.grade--warn {
+  border-left-color: var(--warn);
+}
+
+.grade--bad {
+  border-left-color: var(--bad);
+}
+
+.grade-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 4px;
+}
+
+.grade-label {
+  font: 600 11px/1.2 var(--f-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.grade-word {
+  font: 800 26px/1 var(--f-display);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.grade--ok .grade-word {
+  color: var(--ok-ink);
+}
+
+.grade--warn .grade-word {
+  color: var(--warn-ink);
+}
+
+.grade--bad .grade-word {
+  color: var(--bad);
+}
+
+.grade-why {
+  margin: 0;
+}
+
+.grade-others {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 6px;
+  font: 500 12px/1.3 var(--f-mono);
+  color: var(--muted);
+}
+
+.grade-others ul {
+  display: contents;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.grade-others li {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+}
+
+/* ── ModelLimits ────────────────────────────────────────── */
+
+.limits {
+  font: 13px/1.45 var(--f-body);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.limits summary {
+  padding: 8px 11px;
+  font: 600 12px/1.2 var(--f-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.limits-body {
+  padding: 0 11px 9px;
+  overflow-wrap: anywhere;
+}
+
+.limits-body > :first-child {
+  margin-top: 0;
+}
+
+.limits-body > :last-child {
+  margin-bottom: 0;
+}
+
 /* ── EquationChip ───────────────────────────────────────── */
 
 /* a long equation scrolls inside the chip: the page itself never scrolls sideways */
