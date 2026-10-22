@@ -9,12 +9,14 @@ import type { M03Step, M03View } from '../../sim/m03';
 import { fixedVi, nmVi } from '../../ui/numbers';
 import type { Status } from '../../ui/status';
 
-export interface MetricSpec {
-  label: string;
-  /** Already formatted, with its unit. */
-  value: string;
-  status?: Status;
-}
+/**
+ * A tile is a figure, or a figure with a status: then it has a word of its own for the state it
+ * names ("Nung thiếu"). The page never writes the shared Đạt, which here would be taken for the
+ * verdict, and the type does not let a status go without its word.
+ */
+export type MetricSpec = { label: string; value: string } & (
+  { status?: undefined; word?: undefined } | { status: Status; word: string }
+);
 
 export function metricsFor(step: M03Step, view: M03View): MetricSpec[] {
   const e = view.exposure;
@@ -32,7 +34,11 @@ export function metricsFor(step: M03Step, view: M03View): MetricSpec[] {
         {
           label: `Nung quy về ${constants.litho.bake.refTempC.value} °C`,
           value: `${fixedVi(e.bakeEquivalentMin, 2)} phút`,
-          status: has('underbaked') ? 'bad' : has('overbaked') ? 'warn' : 'ok',
+          ...(has('underbaked')
+            ? { status: 'bad', word: 'Nung thiếu' }
+            : has('overbaked')
+              ? { status: 'warn', word: 'Nung quá' }
+              : { status: 'ok', word: 'Nung đủ' }),
         },
       ];
     case 'expose': {
@@ -48,7 +54,9 @@ export function metricsFor(step: M03Step, view: M03View): MetricSpec[] {
         {
           label: 'Lệch tiêu cự',
           value: nmVi(e.defocusNm),
-          status: has('out-of-focus') ? 'warn' : 'ok',
+          ...(has('out-of-focus')
+            ? { status: 'warn', word: 'Ngoài DOF' }
+            : { status: 'ok', word: 'Trong DOF' }),
         },
       ];
     }

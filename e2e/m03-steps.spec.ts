@@ -141,15 +141,16 @@ test('the spin speed slider moves the thickness in the picture description and i
   await expect(page.getByRole('slider', { name: 'Tốc độ quay' })).toHaveValue('6000');
 });
 
-test('a bake that is too cool shows as an error tile with the word, not only a colour', async ({
+test('a bake that is too cool shows as a tile with its own word, not only a colour', async ({
   page,
 }) => {
   await open(page);
   await go(page, '3.3');
   const tiles = page.getByLabel('Chỉ số của bước');
-  await expect(tiles.getByText('Đạt')).toBeVisible();
+  await expect(tiles.getByText('Nung đủ')).toBeVisible();
   await page.getByRole('slider', { name: 'Nhiệt độ nung' }).fill('60');
-  await expect(tiles.getByText('Lỗi')).toBeVisible();
+  await expect(tiles.getByText('Nung thiếu')).toBeVisible();
+  await expect(tiles.getByText('Đạt')).toHaveCount(0);
 });
 
 test('step 3.4: both charts fit, the marker says where the setting is, the source changes the numbers', async ({

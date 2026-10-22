@@ -138,13 +138,14 @@ describe('/m03: the controls of steps 3.1 – 3.4', () => {
     );
   });
 
-  it('3.3: a bake that is too cool is a Lỗi tile, a nominal one is Đạt', async () => {
+  it('3.3: a bake that is too cool is a "Nung thiếu" tile, a nominal one "Nung đủ", never the verdict word', async () => {
     openM03();
     await goTo('3.3');
     const tiles = await screen.findByLabelText(/chỉ số của bước/i);
-    await waitFor(() => expect(within(tiles).getByText('Đạt')).toBeInTheDocument());
+    await waitFor(() => expect(within(tiles).getByText('Nung đủ')).toBeInTheDocument());
+    expect(within(tiles).queryByText('Đạt')).not.toBeInTheDocument();
     change(/nhiệt độ nung/i, 60);
-    await waitFor(() => expect(within(tiles).getByText('Lỗi')).toBeInTheDocument());
+    await waitFor(() => expect(within(tiles).getByText('Nung thiếu')).toBeInTheDocument());
   });
 
   describe('3.4', () => {

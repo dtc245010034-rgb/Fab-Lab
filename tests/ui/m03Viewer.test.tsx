@@ -47,14 +47,15 @@ describe('M03Viewer', () => {
       <M03Viewer
         view={viewAt(2)}
         metrics={[
-          { label: 'Nung quy về 90 °C', value: '1,00 phút', status: 'ok' },
+          { label: 'Nung quy về 90 °C', value: '1,00 phút', status: 'ok', word: 'Nung đủ' },
           { label: 'Tốc độ quay', value: '3000 rpm' },
         ]}
       />,
     );
     const list = screen.getByLabelText(/chỉ số của bước/i);
     expect(within(list).getByText('1,00 phút')).toBeInTheDocument();
-    expect(within(list).getByText('Đạt')).toBeInTheDocument();
+    expect(within(list).getByText('Nung đủ')).toBeInTheDocument();
+    expect(within(list).queryByText('Đạt')).not.toBeInTheDocument();
     rerender(<M03Viewer view={viewAt(2)} metrics={[]} />);
     expect(screen.queryByLabelText(/chỉ số của bước/i)).not.toBeInTheDocument();
   });

@@ -135,6 +135,17 @@ describe('MetricTile', () => {
     expect(container.querySelector('.metric')).toHaveClass(`metric--${status}`);
   });
 
+  it('writes the word it is given instead of the shared one, and keeps the colour of the status', () => {
+    const { container } = render(
+      <dl>
+        <MetricTile label="Nung" value="1,00 phút" status="bad" word="Nung thiếu" />
+      </dl>,
+    );
+    expect(screen.getByRole('definition')).toHaveTextContent('Nung thiếu');
+    expect(screen.getByRole('definition')).not.toHaveTextContent(STATUS_WORDS.bad);
+    expect(container.querySelector('.metric')).toHaveClass('metric--bad');
+  });
+
   it('has no status word and no status class when there is no status', () => {
     const { container } = render(
       <dl>

@@ -114,6 +114,21 @@ describe('metricsFor: the tiles of each step', () => {
     expect(focus(-dof * 0.6).status).toBe('warn');
   });
 
+  it('names the state of the bake, with a word of its own and not the verdict', () => {
+    const bake = (softBake: { tempC: number; timeMin: number }) =>
+      byLabel(tiles(2, { softBake }), /nung/i)!;
+    expect(bake({ tempC: 90, timeMin: 1 })).toMatchObject({ status: 'ok', word: 'Nung đủ' });
+    expect(bake({ tempC: 60, timeMin: 1 })).toMatchObject({ status: 'bad', word: 'Nung thiếu' });
+    expect(bake({ tempC: 110, timeMin: 1 })).toMatchObject({ status: 'warn', word: 'Nung quá' });
+  });
+
+  it('names the focus in words: inside the DOF or outside it', () => {
+    const dof = viewAt(3).exposure.dofNm;
+    const focus = (defocusNm: number) => byLabel(tiles(3, { defocusNm }), /tiêu cự/i)!;
+    expect(focus(0)).toMatchObject({ status: 'ok', word: 'Trong DOF' });
+    expect(focus(dof * 0.6)).toMatchObject({ status: 'warn', word: 'Ngoài DOF' });
+  });
+
   it('writes a dash, not "Infinity", where the model has no CD_min', () => {
     const list = tiles(3, { polarity: 'negative', spinRpm: 1500 });
     for (const tile of list) expect(tile.value).not.toMatch(/Infinity|NaN/);

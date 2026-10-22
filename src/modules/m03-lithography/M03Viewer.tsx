@@ -89,7 +89,7 @@ export default function M03Viewer({ view, metrics, pending = false, failed = fal
       {metrics.length > 0 && (
         <dl className="metrics" aria-label="Chỉ số của bước">
           {metrics.map((m) => (
-            <MetricTile key={m.label} label={m.label} value={m.value} status={m.status} />
+            <MetricTile key={m.label} {...m} />
           ))}
         </dl>
       )}
