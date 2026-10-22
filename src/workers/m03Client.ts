@@ -15,6 +15,11 @@ import type { M03Request, M03Result, M03Session, M03View } from '../sim/m03';
 import type { M03Outcome } from './simService';
 
 export interface M03Client {
+  /**
+   * The first session for a seed, drawn in the worker (the hidden misplacement of the second mask
+   * needs the model, which the page does not carry), or null if a newer `start` replaced it.
+   */
+  start(seed: number, recipe?: ExposureInput): Promise<M03Session | null>;
   /** The view of `session`, or null if a newer `view` (or `dispose`) made this one obsolete. */
   view(session: M03Session, spec?: GridSpec): Promise<M03View | null>;
   /** The process-window chart of `recipe`, or null if a newer `window` (or `dispose`) replaced it. */
@@ -29,6 +34,12 @@ export interface M03Client {
 }
 
 /** What the page relies on in an answer; a failure here is a bug in the worker or the protocol. */
+function checkStart(result: M03Result): M03Session {
+  if (result.kind !== 'start')
+    throw new Error(`worker answered a start request with a ${result.kind}`);
+  return result.session;
+}
+
 function checkView(result: M03Result): M03View {
   if (result.kind !== 'view')
     throw new Error(`worker answered a view request with a ${result.kind}`);
@@ -62,7 +73,7 @@ export function createM03Client(
 ): M03Client {
   let counter = 0;
   /** The newest request of each kind; an answer to any other is obsolete. */
-  const latest = { view: 0, window: 0 };
+  const latest = { start: 0, view: 0, window: 0 };
   let disposed = false;
   /** Set once the worker is known to be dead; from then on every request fails at once. */
   let failure: Error | null = null;
@@ -95,6 +106,13 @@ export function createM03Client(
   }
 
   return {
+    async start(seed, recipe) {
+      const result = await ask(
+        'start',
+        recipe ? { kind: 'start', seed, recipe } : { kind: 'start', seed },
+      );
+      return result && checkStart(result);
+    },
     async view(session, spec) {
       const result = await ask(
         'view',

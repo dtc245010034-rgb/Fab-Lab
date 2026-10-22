@@ -72,5 +72,29 @@ export const M03_SCENARIO = { shiftRangeNm: 150, rotationRangeUrad: 2 } as const
 /** The process-window chart: dose range (×) and how many samples on each axis. */
 export const M03_WINDOW = { doseMin: 0.7, doseMax: 1.3, steps: 25, focusInDofs: 1.5 } as const;
 
+/**
+ * The aerial-image graph: points on its axis (odd, one at the centre of the window) and how far
+ * the axis reaches, in depths of focus, so that it stays put as the focus moves. Display settings,
+ * not statements about the real process.
+ */
+export const M03_AERIAL = { samples: 121, rangeInDofs: 1 } as const;
+
+/**
+ * Ranges of the M03 controls: rpm and window width from the M04 prototype; the dose and the focus
+ * span the process-window chart and step by one of its columns and one of its rows, so the point
+ * that marks the current setting always lies on a sample of the chart (the focus is in DOF, which
+ * the page turns into nm for the source chosen); the bake and develop ranges reach both the
+ * defects the model flags and the nominal values. Control settings, not physical constants.
+ */
+export const M03_CONTROLS = {
+  spinRpm: { min: 1500, max: 6000, step: 250 },
+  designNm: { min: 150, max: 1200, step: 50 },
+  dose: { min: M03_WINDOW.doseMin, max: M03_WINDOW.doseMax, step: 0.025 },
+  defocusInDofs: { min: -M03_WINDOW.focusInDofs, max: M03_WINDOW.focusInDofs, step: 0.125 },
+  softBakeTempC: { min: 60, max: 130, step: 5 },
+  softBakeTimeMin: { min: 0.25, max: 5, step: 0.25 },
+  developMin: { min: 0.25, max: 3, step: 0.05 },
+} as const;
+
 /** Untimed runs of the process window before `?bench=1` times it (the JIT warms up per thread). */
 export const M03_BENCH_WARMUP_RUNS = 3;

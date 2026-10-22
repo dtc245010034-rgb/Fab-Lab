@@ -12,9 +12,14 @@
  *    `commit` is the point of no return and freezes the session.
  */
 import { dofNm } from '../physics/aerial';
-import type { LightSourceId } from '../physics/constants';
 import { constants } from '../physics/constants';
-import { exposeResist, type ExposureInput, type ExposureResult } from '../physics/exposure';
+import {
+  aerialProfile,
+  exposeResist,
+  type AerialProfile,
+  type ExposureInput,
+  type ExposureResult,
+} from '../physics/exposure';
 import { resistThicknessNm, type LithoFlag } from '../physics/litho';
 import { Material } from '../physics/materials';
 import {
@@ -35,7 +40,7 @@ import {
   type ProcessWindow,
   type ProcessWindowSpec,
 } from '../physics/processWindow';
-import { DEFAULT_GRID_SPEC, DEFAULT_M03_RECIPE, M03_SCENARIO, M03_WINDOW } from './defaults';
+import { DEFAULT_GRID_SPEC, DEFAULT_M03_RECIPE, M03_AERIAL, M03_SCENARIO } from './defaults';
 import {
   buildGrid,
   type CrossSection,
@@ -43,49 +48,26 @@ import {
   type GridSpec,
   type LithoStage,
 } from './grid';
+import { LAST_STEP, NO_ALIGNMENT, stageOf, type M03Session } from './m03Session';
 import { seededRandom } from './random';
+import { processWindowSpecFor } from './windowSpec';
 
-/** Steps 3.1 … 3.7 of docs/modules/m03-lithography.md. */
-export const M03_STEPS = [
-  'clean',
-  'coat',
-  'softbake',
-  'expose',
-  'develop',
-  'inspect',
-  'overlay',
-] as const;
-export type M03Step = (typeof M03_STEPS)[number];
-
-const LAST_STEP = M03_STEPS.length - 1;
-const STAGES: readonly LithoStage[] = [
-  'ox',
-  'resist',
-  'resist',
-  'exposed',
-  'developed',
-  'developed',
-  'developed',
-];
-
-const NO_ALIGNMENT: Alignment = { dxNm: 0, dyNm: 0, rotationUrad: 0 };
-
-export interface M03Session {
-  readonly seed: number;
-  /** The learner's choices for steps 3.2 – 3.6. */
-  readonly recipe: ExposureInput;
-  /** Index into `M03_STEPS`. */
-  readonly step: number;
-  /** Where the second mask would land with no correction, drawn from the seed. */
-  readonly hidden: Alignment;
-  /** The correction the resist on the wafer was exposed with. */
-  readonly applied: Alignment;
-  /** The correction dialled in for the next exposure (used from the next `rework` on). */
-  readonly plan: Alignment;
-  readonly reworks: number;
-  /** The etch has begun: nothing can be changed any more. */
-  readonly committed: boolean;
-}
+// The session functions that need no model live in m03Session.ts (the page uses them); the
+// chart's axes in windowSpec.ts. Everything stays importable from here.
+export {
+  canCommit,
+  canRework,
+  commit,
+  goToStep,
+  M03_STEPS,
+  rework,
+  setPlan,
+  setRecipe,
+  stageOf,
+  type M03Session,
+  type M03Step,
+} from './m03Session';
+export { processWindowSpecFor };
 
 /** What the verniers read at the measurement sites, and what that means for the contact. */
 export interface OverlayReadout {
@@ -152,6 +134,8 @@ export interface M03View {
   section: CrossSection;
   overlay: OverlayReadout;
   verdict: M03Verdict;
+  /** The light across the window and the dissolving levels: the graph of step 3.4. */
+  aerial: AerialProfile;
 }
 
 /** What M04 starts from. */
@@ -166,10 +150,12 @@ export interface M03Output {
 }
 
 export type M03Request =
+  | { kind: 'start'; seed: number; recipe?: ExposureInput }
   | { kind: 'view'; session: M03Session; spec?: GridSpec }
   | { kind: 'window'; recipe: ExposureInput; spec: ProcessWindowSpec };
 
 export type M03Result =
+  | { kind: 'start'; session: M03Session; timingsMs: { total: number } }
   | { kind: 'view'; view: M03View; timingsMs: { total: number } }
   | { kind: 'window'; window: ProcessWindow; timingsMs: { total: number } };
 
@@ -218,67 +204,6 @@ export function createSession(
     reworks: 0,
     committed: false,
   };
-}
-
-function assertStep(step: number): void {
-  if (!Number.isInteger(step) || step < 0 || step > LAST_STEP) {
-    throw new RangeError(`step must be a whole number from 0 to ${LAST_STEP}, got ${step}`);
-  }
-}
-
-function assertEditable(s: M03Session): void {
-  if (s.committed) {
-    throw new Error('the session is committed: the etch has begun and nothing can be changed');
-  }
-}
-
-/** What the cross-section shows at a step. */
-export function stageOf(step: number): LithoStage {
-  assertStep(step);
-  return STAGES[step]!;
-}
-
-export function setRecipe(s: M03Session, patch: Partial<ExposureInput>): M03Session {
-  assertEditable(s);
-  return { ...s, recipe: { ...s.recipe, ...patch } };
-}
-
-export function goToStep(s: M03Session, step: number): M03Session {
-  assertEditable(s);
-  assertStep(step);
-  return { ...s, step };
-}
-
-export function setPlan(s: M03Session, plan: Alignment): M03Session {
-  assertEditable(s);
-  for (const [name, value] of Object.entries(plan)) {
-    if (!Number.isFinite(value)) throw new RangeError(`plan.${name} must be finite, got ${value}`);
-  }
-  return { ...s, plan: { ...plan } };
-}
-
-/** There is resist on the wafer to strip, and the etch has not begun. */
-export function canRework(s: M03Session): boolean {
-  return !s.committed && s.step >= 1;
-}
-
-/** Back to bare oxide and the first step; the dialled correction is what the next exposure uses. */
-export function rework(s: M03Session): M03Session {
-  assertEditable(s);
-  if (!canRework(s)) throw new Error('there is no resist on the wafer to strip');
-  return { ...s, step: 0, applied: s.plan, reworks: s.reworks + 1 };
-}
-
-/** Only from the last step: the learner has seen the overlay and chosen to go on. */
-export function canCommit(s: M03Session): boolean {
-  return !s.committed && s.step === LAST_STEP;
-}
-
-/** The etch begins. The session can no longer be changed. */
-export function commit(s: M03Session): M03Session {
-  assertEditable(s);
-  if (!canCommit(s)) throw new Error('the etch can begin only after the last step');
-  return { ...s, committed: true };
 }
 
 // --- from the physics to the grid ---------------------------------------------------------------
@@ -485,6 +410,10 @@ export function deriveView(s: M03Session, spec: GridSpec = DEFAULT_GRID_SPEC): M
     section: buildGrid(spec, toGridLitho(exposure), stage),
     overlay,
     verdict: judge(exposure, s.step === LAST_STEP || s.committed ? overlay : null),
+    aerial: aerialProfile(exposure, {
+      samples: M03_AERIAL.samples,
+      rangeDefocusNm: M03_AERIAL.rangeInDofs * dofNm(exposure.source),
+    }),
   };
 }
 
@@ -506,23 +435,14 @@ export function m03Output(s: M03Session, spec: GridSpec = DEFAULT_GRID_SPEC): M0
 
 // --- the process-window chart and the worker ----------------------------------------------------
 
-/** The chart's axes for a source: dose ×0.7 … ×1.3 and ±1.5 DOF, both 25 samples, (×1, 0) on a sample. */
-export function processWindowSpecFor(source: LightSourceId): ProcessWindowSpec {
-  const reachNm = M03_WINDOW.focusInDofs * dofNm(source);
-  return {
-    doseMin: M03_WINDOW.doseMin,
-    doseMax: M03_WINDOW.doseMax,
-    doseSteps: M03_WINDOW.steps,
-    defocusMinNm: -reachNm,
-    defocusMaxNm: reachNm,
-    defocusSteps: M03_WINDOW.steps,
-  };
-}
-
 /** One request, as the worker runs it. Throws what the model throws (RangeError for a bad input). */
 export function runM03Request(request: M03Request): M03Result {
   const start = performance.now();
   switch (request.kind) {
+    case 'start': {
+      const session = createSession(request.seed, request.recipe);
+      return { kind: 'start', session, timingsMs: { total: performance.now() - start } };
+    }
     case 'view': {
       const view = deriveView(request.session, request.spec);
       return { kind: 'view', view, timingsMs: { total: performance.now() - start } };
