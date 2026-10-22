@@ -239,8 +239,9 @@ test('step 3.6, a print that fails: the verdict is Hỏng, its cause and the oth
   await expect(grade.getByLabel('Nguyên nhân còn lại').getByText('Cặn ở chân')).toBeVisible();
   // a failed print has nothing to "watch": the cautions are for a print that is right
   await expect(page.getByLabel('Lưu ý')).toHaveCount(0);
-  // and the tiles say "—" where there is no number, never "Đạt", "Biên" or "Hỏng"
+  // the tiles say "—" for the foot width that is not there (not 0 nm), and never "Đạt", "Biên" or "Hỏng"
   const tiles = page.getByLabel('Chỉ số của bước');
+  await expect(tiles.getByText('—', { exact: true })).toHaveCount(1);
   await expect(tiles.getByText(/^(Đạt|Biên|Hỏng)$/)).toHaveCount(0);
 
   await page.evaluate(() => document.fonts.ready);
