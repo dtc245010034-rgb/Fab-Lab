@@ -431,7 +431,7 @@ describe('soft bake', () => {
     }
   });
 
-  it('fails an underbaked resist, which sticks to the mask', () => {
+  it('fails an underbaked resist, which keeps too much solvent', () => {
     for (const softBake of [
       { tempC: 60, timeMin: 1 },
       { tempC: 90, timeMin: 0.2 },

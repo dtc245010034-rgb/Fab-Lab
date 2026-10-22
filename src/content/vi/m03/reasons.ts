@@ -25,11 +25,11 @@ export const reasons: Record<CauseCode, (cause: Cause) => string> = {
   'below-resolution': () =>
     'Cửa sổ thiết kế nhỏ hơn mức độ nhòe hiện tại cho phép mở: ngay ở liều chuẩn ×1 và thời gian tráng chuẩn, mô hình này không mở được cửa sổ nào. Hãy tăng độ rộng thiết kế, chọn nguồn sáng bước sóng ngắn hơn hoặc lấy nét chính xác hơn.',
   underbaked: () =>
-    'Resist nung chưa đủ nên còn ướt và dính vào mask; bản in hỏng từ bước nung mềm, dù các bước sau đúng. Hãy tăng nhiệt độ hoặc thời gian nung.',
+    'Resist nung chưa đủ nên còn nhiều dung môi: resist dương bị tráng mòn cả ở vùng không chiếu (chi tiết nhỏ đi, mép kém sắc), resist âm khó liên kết ngang, và cả hai bám đế kém. Mô hình không vẽ các hiệu ứng này mà coi bản in là hỏng ngay từ bước nung mềm, dù các bước sau đúng. Hãy tăng nhiệt độ hoặc thời gian nung.',
   bridging: (c) =>
     `Resist âm tạo một màng liên kết${thick(c)} bắc ngang miệng cửa sổ, nên chất khắc không xuống được tới đế. Hãy giảm liều hoặc tăng độ rộng thiết kế.`,
   underdose: () =>
-    'Liều hiệu dụng (liều chiếu, trừ phần độ nhạy mất đi khi nung quá) thấp hơn liều chuẩn ×1, và đó là lý do bản in sai: ở liều hiệu dụng ×1, cùng thiết kế này không bị lỗi đó. Hãy tăng liều chiếu.',
+    'Liều hiệu dụng (liều chiếu, sau khi mô hình trừ phần mất đi do nung quá) thấp hơn liều chuẩn ×1, và đó là lý do bản in sai: ở liều hiệu dụng ×1, cùng thiết kế này không bị lỗi đó. Hãy tăng liều chiếu.',
   overdose: () =>
     'Liều hiệu dụng cao hơn liều chuẩn ×1, và đó là lý do bản in sai: ở liều hiệu dụng ×1, cùng thiết kế này không bị lỗi đó. Hãy giảm liều chiếu.',
   scum: (c) => `Cặn resist${thick(c)} còn ở chân cửa sổ, nên chất khắc không chạm được tới oxit.`,
@@ -38,7 +38,7 @@ export const reasons: Record<CauseCode, (cause: Cause) => string> = {
   'out-of-focus': () =>
     'Mặt phẳng lấy nét lệch quá nửa độ sâu tiêu cự (DOF) so với giữa lớp resist, nên ảnh nhòe thêm và góp phần làm sai bản in. Hãy đưa lệch tiêu cự về gần 0.',
   overbaked: () =>
-    'Resist nung quá nên kém nhạy hơn, liều hiệu dụng giảm và góp phần làm sai bản in. Hãy giảm nhiệt độ hoặc thời gian nung mềm.',
+    'Resist nung quá nên tính chất của nó đổi: chất cảm quang (PAC) của resist dương phân hủy một phần, resist âm tự liên kết ngang vì nhiệt dù chưa chiếu, và tốc độ tan khi tráng thay đổi. Mô hình gộp các hiệu ứng này thành một liều hiệu dụng giảm, và đó góp phần làm sai bản in. Hãy giảm nhiệt độ hoặc thời gian nung mềm.',
   underdeveloped: () =>
     'Tráng chưa đủ lâu nên chưa hòa tan hết phần resist cần tan, để lại cặn ở chân cửa sổ. Hãy tăng thời gian tráng.',
   overdeveloped: () =>

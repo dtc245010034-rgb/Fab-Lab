@@ -124,7 +124,7 @@ export const constants = {
       underbakeBelowMin: shape(
         0.5,
         'min',
-        'equivalent bake time below this: solvent left, the resist sticks to the mask',
+        'equivalent bake time below this: too much solvent left (a real resist erodes where unexposed, cross-links poorly, adheres badly); the model fails the print',
       ),
       overbakeAboveMin: shape(
         3,

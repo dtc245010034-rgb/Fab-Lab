@@ -34,6 +34,7 @@ không lấy từ bộ nhớ của AI.
 - Resist dương: vùng chiếu sáng tan khi tráng. Resist âm: vùng chiếu sáng ở lại.
 - Độ dày phủ quay: t ≈ k·ω^-1/2 (thực nghiệm, mức B).
 - Liều thấp → cặn đáy (scum); liều cao → cửa sổ nở rộng (mức B).
+- Nung mềm đuổi dung môi còn lại sau khi phủ. Nung thiếu: dung môi dư, resist dương mòn cả ở vùng không chiếu và bám đế kém, resist âm khó liên kết ngang. Nung quá: chất cảm quang của resist dương phân hủy một phần, resist âm tự liên kết ngang vì nhiệt, tốc độ tan khi tráng đổi (mức B, xu hướng). Resist dính vào mask chỉ khi chiếu tiếp xúc, không phải với chiếu qua thấu kính.
 
 ### M04 Khắc
 - Định nghĩa: độ dị hướng A = 1 − (tốc độ ngang / tốc độ dọc); độ chọn lọc S = tốc độ vật liệu cần khắc / tốc độ vật liệu khác.
@@ -68,6 +69,7 @@ không lấy từ bộ nhớ của AI.
 - J. D. Plummer, M. D. Deal, P. B. Griffin, *Silicon VLSI Technology: Fundamentals, Practice and Modeling*.
 - S. A. Campbell, *Fabrication Engineering at the Micro- and Nanoscale*.
 - S. M. Sze, M. K. Lee, *Semiconductor Devices: Physics and Technology*.
+- MicroChemicals, *Softbake of Photoresists* (ghi chú ứng dụng, chương "Fundamentals of Microstructuring"): chỉ dùng cho các câu về nung mềm ở mức B (xu hướng); không phải giáo trình, nên không đưa số của nó lên mức A.
 
 Khi đưa một hằng số lên mức A, ghi đúng tên sách, lần xuất bản, bảng hoặc trang.
 Nếu không có sách trong tay, giữ ở mức C và thêm vào "Values to verify" trong PROGRESS.md.

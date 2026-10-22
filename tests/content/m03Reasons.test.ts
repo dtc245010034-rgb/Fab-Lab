@@ -220,6 +220,39 @@ describe('reasons: what the sentence tells the learner to do works in the model'
   });
 });
 
+describe('reasons: the soft bake says what a real resist does, then what this model does with it', () => {
+  const cause = (code: CauseCode): Cause => ({ code, severity: 'fail' });
+  const cut = (text: string, pattern: RegExp) => text.search(pattern);
+
+  it('underbaked: solvent left; a positive resist erodes where it was not exposed; a negative one cross-links poorly; both hold to the wafer badly', () => {
+    const text = reasons.underbaked(cause('underbaked'));
+    for (const word of [/dung môi/, /không chiếu/, /liên kết ngang/, /bám đế/]) {
+      expect(text, String(word)).toMatch(word);
+    }
+    expect(text, 'the model draws none of it and fails the print at the bake').toMatch(
+      /[Mm]ô hình không vẽ/,
+    );
+    expect(text).toMatch(/tăng nhiệt độ hoặc thời gian nung/);
+  });
+
+  it('underbaked: does not say the resist sticks to the mask (the cause cannot know it is a contact exposure)', () => {
+    expect(reasons.underbaked(cause('underbaked'))).not.toMatch(/dính/);
+  });
+
+  it('overbaked: the PAC of a positive resist breaks down, a negative one cross-links by heat, the develop rate changes; then the model merges it into a lower effective dose', () => {
+    const text = reasons.overbaked(cause('overbaked'));
+    for (const word of [/chất cảm quang \(PAC\)/, /phân hủy/, /liên kết ngang/, /tốc độ tan/]) {
+      expect(text, String(word)).toMatch(word);
+    }
+    expect(text).toMatch(/liều hiệu dụng/);
+    expect(cut(text, /phân hủy/), 'the effect of the real resist first').toBeLessThan(
+      cut(text, /[Mm]ô hình gộp/),
+    );
+    expect(text).not.toMatch(/kém nhạy|giảm độ nhạy|độ nhạy/);
+    expect(text).toMatch(/giảm nhiệt độ hoặc thời gian nung/);
+  });
+});
+
 describe('passReason: why a print that is Đạt is Đạt', () => {
   const pass = (patch: Partial<ExposureInput> = {}) => {
     const view = viewOf(patch, 5); // 3.6, where the verdict is shown and the overlay is not yet counted
@@ -281,6 +314,17 @@ describe('cautions: a print that is right, and what to watch in how it was made'
     expect(text).toContain(`${fixedVi(e.bakeEquivalentMin, 1)} phút`);
     expect(text).toContain(`${constants.litho.bake.refTempC.value} °C`);
     expect(text).toContain(`×${fixedVi(e.effectiveDose, 2)}`);
+  });
+
+  it('overbaked: names what a real resist does, then says it is the model that merges it into a lower dose', () => {
+    const e = rightPrint({ softBake: { tempC: 100, timeMin: 3 }, dose: 1.3 });
+    const text = cautions.overbaked(e);
+    for (const word of [/chất cảm quang \(PAC\)/, /phân hủy/, /liên kết ngang/, /tốc độ tan/]) {
+      expect(text, String(word)).toMatch(word);
+    }
+    expect(text.search(/phân hủy/)).toBeLessThan(text.search(/[Mm]ô hình gộp/));
+    expect(text).toMatch(/liều hiệu dụng/);
+    expect(text).not.toMatch(/độ nhạy/);
   });
 
   it('underdeveloped: says a shorter develop leaves scum, and that is true of the model', () => {

@@ -26,7 +26,7 @@ export const cautions: Record<CautionCode, (e: ExposureResult) => string> = {
   'out-of-focus': (e) =>
     `${STILL_RIGHT} mặt phẳng lấy nét lệch ${nmVi(Math.abs(e.defocusNm))}, quá nửa độ sâu tiêu cự (DOF = ${nmVi(e.dofNm)}): biên an toàn của quy trình đã mỏng.`,
   overbaked: (e) =>
-    `${STILL_RIGHT} resist nung quá (${fixedVi(e.bakeEquivalentMin, 1)} phút quy về ${constants.litho.bake.refTempC.value} °C): độ nhạy đã giảm, liều hiệu dụng là ×${fixedVi(e.effectiveDose, 2)}.`,
+    `${STILL_RIGHT} resist nung quá (${fixedVi(e.bakeEquivalentMin, 1)} phút quy về ${constants.litho.bake.refTempC.value} °C): chất cảm quang (PAC) của resist dương phân hủy một phần, resist âm tự liên kết ngang vì nhiệt, tốc độ tan khi tráng đổi; mô hình gộp các hiệu ứng này thành liều hiệu dụng giảm, còn ×${fixedVi(e.effectiveDose, 2)}.`,
   underdeveloped: (e) =>
     `${STILL_RIGHT} thời gian tráng (${fixedVi(e.developMin, 2)} phút) ngắn hơn thời gian chuẩn (${fixedVi(DEVELOP.refMin.value, 0)} phút): rút ngắn thêm sẽ để lại cặn ở chân cửa sổ.`,
   overdeveloped: (e) =>
