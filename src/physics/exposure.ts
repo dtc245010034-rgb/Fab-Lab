@@ -33,7 +33,7 @@ const DEV = L.develop;
 
 const ALPHA = X.absorptionPerNm.value;
 /** E_th: dose ×1 prints the design width at the foot of the reference film (see the header). */
-const THRESHOLD = 0.5 * Math.exp(-ALPHA * L.resistRefThicknessNm.value);
+export const EXPOSURE_THRESHOLD = 0.5 * Math.exp(-ALPHA * L.resistRefThicknessNm.value);
 /** Smallest opened height, nm, that still counts as an opening (below it the wall slope is noise). */
 const MIN_OPEN_NM = 1e-6;
 /** Develop time cannot thin the film all the way to nothing. */
@@ -151,10 +151,10 @@ export function modelCdMinNm(source: LightSourceId, spinRpm: number, polarity: P
   // The centre intensity I₀ that the window needs at dose ×1 (derivation in the header).
   let need: number;
   if (polarity === 'positive') {
-    need = THRESHOLD * Math.exp(ALPHA * (1 - s) * thicknessNm);
+    need = EXPOSURE_THRESHOLD * Math.exp(ALPHA * (1 - s) * thicknessNm);
   } else if (polarity === 'negative') {
-    if (Math.exp(-ALPHA * thicknessNm) < THRESHOLD) return Infinity; // foot not cross-linked at ×1
-    need = 1 - THRESHOLD * Math.exp(ALPHA * s * thicknessNm);
+    if (Math.exp(-ALPHA * thicknessNm) < EXPOSURE_THRESHOLD) return Infinity; // foot not cross-linked at ×1
+    need = 1 - EXPOSURE_THRESHOLD * Math.exp(ALPHA * s * thicknessNm);
   } else {
     throw new RangeError(`unknown polarity "${String(polarity)}"`);
   }
@@ -209,21 +209,21 @@ function evaluate(env: Env, effectiveDose: number, developMin: number): Core {
   let x2 = 0;
 
   if (polarity === 'positive') {
-    const reach = D * i0 > THRESHOLD ? Math.log((D * i0) / THRESHOLD) / ALPHA : 0;
+    const reach = D * i0 > EXPOSURE_THRESHOLD ? Math.log((D * i0) / EXPOSURE_THRESHOLD) / ALPHA : 0;
     const cleared = Math.max(0, Math.min(reach, T, devDepthNm));
     scumNm = T - cleared;
     if (cleared > MIN_OPEN_NM) {
       exists = true;
       d1 = 0;
       d2 = cleared;
-      x1 = edge(THRESHOLD / D);
-      x2 = edge((THRESHOLD * Math.exp(ALPHA * cleared)) / D);
+      x1 = edge(EXPOSURE_THRESHOLD / D);
+      x2 = edge((EXPOSURE_THRESHOLD * Math.exp(ALPHA * cleared)) / D);
     }
   } else {
-    const levelAt = (depthNm: number) => 1 - (THRESHOLD * Math.exp(ALPHA * depthNm)) / D;
-    const footCrossLinked = D * Math.exp(-ALPHA * T) >= THRESHOLD;
+    const levelAt = (depthNm: number) => 1 - (EXPOSURE_THRESHOLD * Math.exp(ALPHA * depthNm)) / D;
+    const footCrossLinked = D * Math.exp(-ALPHA * T) >= EXPOSURE_THRESHOLD;
     const leak = D * (1 - i0);
-    const bridge = leak > THRESHOLD ? Math.log(leak / THRESHOLD) / ALPHA : 0;
+    const bridge = leak > EXPOSURE_THRESHOLD ? Math.log(leak / EXPOSURE_THRESHOLD) / ALPHA : 0;
     const bottom = Math.min(T, devDepthNm);
     if (footCrossLinked) {
       skinNm = Math.min(bridge, T);
@@ -354,5 +354,99 @@ export function exposeResist(input: ExposureInput): ExposureResult {
     blockedFraction: actual.blockedFraction,
     status,
     flags,
+  };
+}
+
+// --- the aerial-image graph ---------------------------------------------------------------------
+
+/** How far past the slit, in σ at the largest focus offset the graph shows, its axis reaches. */
+const PROFILE_REACH_SIGMA = 3;
+
+export interface AerialProfileOptions {
+  /** Points on the x axis; odd, so that one of them is the centre of the window. */
+  samples: number;
+  /**
+   * The largest focus offset the graph is meant to show, nm. The axis is cut to that blur and
+   * stays put as the focus moves, so a bigger offset shows up as a wider curve, not a rescaled one.
+   */
+  rangeDefocusNm: number;
+}
+
+/**
+ * What the graph of step 3.4 draws. The resist dissolves, at a depth d, where the light on it,
+ * `dose · I(x) · e^(−α·d)`, reaches E_th (positive resist) or falls short of it (negative resist).
+ * Dividing by the dose: it dissolves where I(x) is at or above `level(d) = E_th·e^(α·d)/dose` for a
+ * positive resist, and where I(x) is below that level for a negative one. The level is lowest at
+ * the top of the film and highest at the foot, which is why the window is wider at the top.
+ */
+export interface AerialProfile {
+  /** nm from the centre of the window, evenly spaced, symmetric, including 0. */
+  xNm: Float64Array;
+  /** Relative light on the resist at the current focus, 0 to 1: the slit image, or its complement for a negative resist. */
+  intensity: Float64Array;
+  /** The same at best focus, for comparison. */
+  bestFocusIntensity: Float64Array;
+  designNm: number;
+  polarity: Polarity;
+  /** E_th over the effective dose: the level at the top of the film. */
+  levelTop: number;
+  /** The level at the foot of the film as coated (e^(α·thickness) higher). */
+  levelFoot: number;
+  /** Half-width, nm, where the curve crosses `levelTop`; 0 if it never reaches it, the model's widest if it never leaves it. */
+  edgeTopNm: number;
+  /** The same for `levelFoot`: half of the width at the foot when the opening is clean to it. */
+  edgeFootNm: number;
+}
+
+/**
+ * The aerial image, the two dissolving levels and where they cross, for an exposure already worked
+ * out by `exposeResist`. Built from the same threshold and the same slit functions as that, so the
+ * crossings are the window edges `exposeResist` reports (tests/physics/aerialProfile.test.ts).
+ */
+export function aerialProfile(
+  result: ExposureResult,
+  options: AerialProfileOptions,
+): AerialProfile {
+  const { samples, rangeDefocusNm } = options;
+  if (!Number.isInteger(samples) || samples < 3 || samples % 2 === 0) {
+    throw new RangeError(`samples must be an odd whole number ≥ 3, got ${samples}`);
+  }
+  if (!Number.isFinite(rangeDefocusNm) || rangeDefocusNm < 0) {
+    throw new RangeError(`rangeDefocusNm must be a finite number ≥ 0, got ${rangeDefocusNm}`);
+  }
+  const { designNm, sigmaNm, polarity, source, effectiveDose } = result;
+  const bestSigmaNm = blurSigmaNm(source, 0);
+  const halfRangeNm = designNm / 2 + PROFILE_REACH_SIGMA * blurSigmaNm(source, rangeDefocusNm);
+  const light = (x: number, sigma: number) => {
+    const slit = slitIntensity(x, designNm, sigma);
+    return polarity === 'positive' ? slit : 1 - slit;
+  };
+
+  const middle = (samples - 1) / 2;
+  const xNm = new Float64Array(samples);
+  const intensity = new Float64Array(samples);
+  const bestFocusIntensity = new Float64Array(samples);
+  for (let i = 0; i < samples; i++) {
+    const x = ((i - middle) / middle) * halfRangeNm;
+    xNm[i] = x;
+    intensity[i] = light(x, sigmaNm);
+    bestFocusIntensity[i] = light(x, bestSigmaNm);
+  }
+
+  const levelTop = EXPOSURE_THRESHOLD / effectiveDose;
+  const levelFoot = levelTop * Math.exp(ALPHA * resistThicknessNm(result.spinRpm));
+  // the slit image reaches `level` for a positive resist; a negative one's light is 1 − the slit image
+  const edge = (level: number) =>
+    slitEdgeHalfWidthNm(polarity === 'positive' ? level : 1 - level, designNm, sigmaNm);
+  return {
+    xNm,
+    intensity,
+    bestFocusIntensity,
+    designNm,
+    polarity,
+    levelTop,
+    levelFoot,
+    edgeTopNm: edge(levelTop),
+    edgeFootNm: edge(levelFoot),
   };
 }
