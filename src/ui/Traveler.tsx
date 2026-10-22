@@ -15,10 +15,22 @@ interface Props {
   steps?: readonly TravelerStep[];
   /** What a step puts in its slots; a slot left out says "Chưa có nội dung". */
   content?: (stepIndex: number) => Partial<Record<SlotName, ReactNode>>;
+  /**
+   * The current step, when the page holds it (the picture follows the step). Then the Traveler only
+   * asks, through `onStepChange`, and shows the step it is given. Without it the Traveler keeps
+   * the step itself.
+   */
+  step?: number;
+  onStepChange?: (stepIndex: number) => void;
 }
 
-export default function Traveler({ steps, content }: Props) {
-  const [step, setStep] = useState(0);
+export default function Traveler({ steps, content, step: heldStep, onStepChange }: Props) {
+  const [ownStep, setOwnStep] = useState(0);
+  const step = heldStep ?? ownStep;
+  const setStep = (next: number) => {
+    if (heldStep === undefined) setOwnStep(next);
+    onStepChange?.(next);
+  };
   const count = steps ? steps.length : DEFAULT_STEP_COUNT;
   const named = steps?.[step];
   const slots = content?.(step) ?? {};
@@ -39,7 +51,7 @@ export default function Traveler({ steps, content }: Props) {
             type="button"
             className="btn ghost"
             disabled={step === 0}
-            onClick={() => setStep((s) => Math.max(0, s - 1))}
+            onClick={() => setStep(Math.max(0, step - 1))}
           >
             Bước trước
           </button>
@@ -47,7 +59,7 @@ export default function Traveler({ steps, content }: Props) {
             type="button"
             className="btn"
             disabled={step === count - 1}
-            onClick={() => setStep((s) => Math.min(count - 1, s + 1))}
+            onClick={() => setStep(Math.min(count - 1, step + 1))}
           >
             Bước sau
           </button>

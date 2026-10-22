@@ -50,3 +50,49 @@ describe('Traveler with its own steps', () => {
     expect(titles).toEqual(['Cơ chế', 'Phương trình', 'Điều khiển', 'Ghi chú']);
   });
 });
+
+describe('Traveler with its step held by the page', () => {
+  it('shows the step it is given, and asks to change it instead of changing it', () => {
+    const asked: number[] = [];
+    const { rerender } = render(
+      <Traveler steps={STEPS} step={1} onStepChange={(i) => asked.push(i)} />,
+    );
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('3.2 Phủ quay');
+    const nav = screen.getByRole('navigation', { name: /các bước/i });
+    fireEvent.click(within(nav).getByRole('button', { name: /3\.4/ }));
+    expect(asked).toEqual([3]);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('3.2 Phủ quay'); // not yet
+    rerender(<Traveler steps={STEPS} step={3} onStepChange={(i) => asked.push(i)} />);
+    expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('3.4 Phơi sáng');
+  });
+
+  it('asks for the neighbouring step with "previous" and "next", and stops at the ends', () => {
+    const asked: number[] = [];
+    const { rerender } = render(
+      <Traveler steps={STEPS} step={1} onStepChange={(i) => asked.push(i)} />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /bước sau/i }));
+    fireEvent.click(screen.getByRole('button', { name: /bước trước/i }));
+    expect(asked).toEqual([2, 0]);
+    rerender(<Traveler steps={STEPS} step={0} onStepChange={() => {}} />);
+    expect(screen.getByRole('button', { name: /bước trước/i })).toBeDisabled();
+    rerender(<Traveler steps={STEPS} step={3} onStepChange={() => {}} />);
+    expect(screen.getByRole('button', { name: /bước sau/i })).toBeDisabled();
+  });
+
+  it('gives the content function the step the page holds', () => {
+    const seen: number[] = [];
+    render(
+      <Traveler
+        steps={STEPS}
+        step={2}
+        onStepChange={() => {}}
+        content={(i) => {
+          seen.push(i);
+          return {};
+        }}
+      />,
+    );
+    expect(new Set(seen)).toEqual(new Set([2]));
+  });
+});
