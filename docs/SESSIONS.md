@@ -65,7 +65,7 @@ với JIT bị tắt, nguyên nhân chưa xác định. Chi tiết ở `docs/PRO
 Làm physics trước (aerial image + ngưỡng hòa tan + DOF) kèm test quy luật, sau đó các bước UI 3.1–3.6.
 Gồm cả bước 3.7 Overlay. Đầu ra phải là grid đưa thẳng vào M04. Copy tiếng Việt viết vào src/content/vi/m03/.
 ```
-S1.1 chia thành bảy bước (1, 2, 3a, 3b-1, 3b-2, 4, 5), nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
+S1.1 chia thành tám bước (1, 2, 3a, 3b-1, 3b-2, 3b-3, 4, 5), nhánh `s1.1-m03-litho`. Mỗi bước một context riêng (xem CLAUDE.md): lập plan, bạn duyệt, làm, review, `merge --ff-only` vào `main`, push, rồi bạn chạy `/clear`. Phiên mới làm tiếp từ `docs/PROGRESS.md` (mục Next và mục S1.1 ở Done), không cần hội thoại cũ.
 
 | Bước | Nội dung | Trạng thái |
 |---|---|---|
@@ -73,7 +73,8 @@ S1.1 chia thành bảy bước (1, 2, 3a, 3b-1, 3b-2, 4, 5), nhánh `s1.1-m03-li
 | 2 | Sim (phiên, phán quyết, đầu ra cho M04), worker tổng quát hóa, biểu đồ cửa sổ quy trình trong `?bench=1` | xong 2026-10-21, `2e56407` |
 | 3a | UI kit, MDX + KaTeX lúc build, router `/m03`, StepNav động, e2e 380 px | xong 2026-10-21, `40138ca` |
 | 3b-1 | `/m03` bước 3.1–3.4 nối với worker: store, `aerialProfile`, mặt cắt theo giai đoạn, thanh trượt và ô số, đồ thị ảnh trên không và biểu đồ cửa sổ quy trình, MDX tối giản, e2e 380 px | xong, đã duyệt và merge 2026-10-22 (`main` = HEAD sau commit docs "3b-1 đã duyệt và merge") |
-| 3b-2 | Bước 3.5–3.6: `reasons.ts`, `cautions.ts`, `Grade`, "Lưu ý", `ModelLimits`, MDX đầy đủ 3.1–3.6, e2e 3.5–3.6, DESIGN, tick spec | chưa làm |
+| 3b-2 | Phần mã: ô số có chữ riêng, `reasons.ts`, `cautions.ts`, `Grade`, `ModelLimits`, `verdict.ts`, thanh trượt tráng, ô số 3.5–3.6, phán quyết và Lưu ý ở 3.6 | xong phần mã (commit 1–4, `541c1ca`), chờ duyệt cùng 3b-3 |
+| 3b-3 | Phần còn lại của 3b-2: `Traveler` bỏ slot `null`, MDX đầy đủ 3.1–3.6 (mỗi bước đúng một câu **Nếu làm sai:**), `ModelLimits` ở 3.4, copy cặn do thiếu liều (resist dương), e2e 380 px 3.5–3.6 và không còn "Chưa có nội dung", DESIGN, tick spec, kiểm đột biến | chưa làm |
 | 4 | UI bước 3.7 Overlay: đọc sai lệch, chỉnh, rework hay cho qua | chưa làm |
 | 5 | Đọc lại copy theo SCIENCE.md, e2e, số bundle, tick tiêu chí trong spec M03, PROGRESS | chưa làm |
 
@@ -85,6 +86,12 @@ Làm tiếp /m03 bước 3.5–3.6: src/content/vi/m03/reasons.ts (Record<CauseC
 component Grade riêng ("Phán quyết:", chỉ ở 3.6, ca Đạt cũng có câu "vì sao"), tầng "Lưu ý" cho cờ quy trình (test: Lưu ý ∩ nguyên nhân = ∅), khối "Giới hạn của mô hình" (ModelLimits),
 điều khiển và ô số cho 3.5–3.6, viết lại MDX đầy đủ cho 3.1–3.6 (copy 3.5 nói cách thấy cặn do thiếu liều), e2e 380 px cho 3.5–3.6, DESIGN (Grade, hai biểu đồ), tick ô "biểu đồ cửa sổ quy trình" trong spec.
 Trang không được import mô hình (xem "Page-safe" ở Next). Chưa làm 3.7. Lập plan trước, chờ tôi duyệt; dừng để duyệt, chưa merge.
+
+3b-3 (phần còn lại của 3b-2; commit 1–4 của 3b-2 đã xong ở `541c1ca`, nhánh s1.1-m03-litho, đã push, chưa merge): Đọc CLAUDE.md, docs/PROGRESS.md (Next, nhất là "Bước tiếp: 3b-3", và mục Done "Bước 3b-2, phần mã"),
+docs/modules/m03-lithography.md (cả "Phán quyết" và "Quy tắc cho copy"), docs/DESIGN.md, docs/SCIENCE.md mục M03 và dòng 61–64.
+Làm các việc (a)–(f) trong "Bước tiếp: 3b-3". Việc đầu tiên: chụp 3.6 ở 380 px (M03_SHOTS) và xem Grade, Lưu ý, ModelLimits có vừa khung không, chỉnh CSS nếu cần.
+Ràng buộc đã duyệt: mỗi bước 3.1–3.6 có đúng một câu mở bằng **Nếu làm sai:** trong Cơ chế (test 6 bước, mỗi bước đúng 1 câu); cặn do thiếu liều chỉ với resist dương (copy ghi rõ, test chỉ khẳng định cho resist dương ở 4 nguồn; test đỏ thì báo, không sửa copy cho khớp).
+Trang không được import mô hình (xem "Page-safe"). Chưa làm 3.7. Lập plan ngắn trước, chờ tôi duyệt; sau khi làm xong dừng để duyệt, chưa merge.
 
 4: Đọc CLAUDE.md, docs/PROGRESS.md (Next và mục S1.1), docs/modules/m03-lithography.md. Làm UI bước 3.7 (Overlay): dấu căn chỉnh, đọc sai lệch ẩn,
 chỉnh dx/dy/xoay, rework hay cho qua, vùng đích vẽ làm chú thích (không thêm Material). Chưa có nút "Sang khắc" (S1.2 nối). Lập plan trước.
