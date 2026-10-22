@@ -3,28 +3,63 @@
 import 'katex/dist/katex.min.css';
 import '../../ui/styles/kit.css';
 
-import { DEFAULT_GRID_SPEC } from '../../sim/defaults';
+import { useEffect } from 'react';
+import { M03_STEPS } from '../../sim/m03Session';
+import { useM03 } from '../../ui/useM03';
 import Traveler from '../../ui/Traveler';
+import ViewerPlaceholder from '../../ui/ViewerPlaceholder';
+import type { M03Client } from '../../workers/m03Client';
+import Controls from './controls';
 import { slotsFor } from './content';
+import M03Viewer from './M03Viewer';
+import { metricsFor } from './metrics';
 import { M03_UI_STEPS } from './steps';
 
-/** M03 — lithography, at `/m03`. The cross-section and the controls follow in the next steps. */
-export default function M03Page() {
-  const { widthCells, heightCells } = DEFAULT_GRID_SPEC;
+/**
+ * M03 — lithography, at `/m03`. The cross-section follows the step; the controls change the
+ * session held in the store; the worker computes the view and the process-window chart. Steps
+ * 3.5 – 3.7 (develop, inspect, overlay) follow in the next parts.
+ */
+export default function M03Page({ createClient }: { createClient: () => M03Client }) {
+  const { state, setRecipe, goToStep } = useM03(createClient);
+  const { session, shown, chart, pending, chartPending, error } = state;
+
+  useEffect(() => {
+    if (error) console.error(error);
+  }, [error]);
+
+  const step = session?.step ?? 0;
   return (
     <main className="lab">
-      <section className="viewer" aria-labelledby="viewer-title">
-        <div className="vhead">
-          <h2 id="viewer-title">Mặt cắt quang khắc</h2>
-        </div>
-        <div
-          className="screen placeholder"
-          style={{ aspectRatio: `${widthCells} / ${heightCells}` }}
-        >
-          <p>Chưa có mặt cắt.</p>
-        </div>
-      </section>
-      <Traveler steps={M03_UI_STEPS} content={(i) => slotsFor(M03_UI_STEPS[i]!.id)} />
+      {shown ? (
+        <M03Viewer
+          view={shown.view}
+          metrics={metricsFor(M03_STEPS[shown.view.step]!, shown.view)}
+          pending={pending}
+          failed={error !== null}
+        />
+      ) : (
+        <ViewerPlaceholder failed={error !== null} title="Mặt cắt quang khắc" />
+      )}
+      <Traveler
+        steps={M03_UI_STEPS}
+        step={step}
+        onStepChange={goToStep}
+        content={(i) => {
+          const id = M03_UI_STEPS[i]!.id;
+          const controls = session ? (
+            <Controls
+              step={id}
+              session={session}
+              shown={shown}
+              chart={chart}
+              chartPending={chartPending}
+              setRecipe={setRecipe}
+            />
+          ) : null;
+          return slotsFor(id, controls);
+        }}
+      />
     </main>
   );
 }

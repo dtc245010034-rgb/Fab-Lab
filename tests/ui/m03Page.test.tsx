@@ -1,23 +1,40 @@
 // @vitest-environment jsdom
-/** `/m03`: the lithography page, chosen from `location.pathname` and loaded only when asked for. */
-import { fireEvent, render, screen, within } from '@testing-library/react';
+/**
+ * `/m03`: the lithography page, chosen from `location.pathname`, loaded only when asked for, and
+ * driven by the M03 worker's client (a stand-in that answers with the real model here).
+ */
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { resistThicknessNm } from '../../src/physics/litho';
 import App from '../../src/App';
+import { dofNm } from '../../src/physics/aerial';
 import { inlineClient } from './clients';
+import { inlineM03Client, type TestM03Client } from './m03Clients';
 
 afterEach(() => {
   window.history.replaceState({}, '', '/');
 });
 
-function openM03() {
+function openM03(client: TestM03Client = inlineM03Client()) {
   window.history.replaceState({}, '', '/m03');
+  const createM03Client = () => client;
+  render(<App createClient={() => inlineClient()} createM03Client={createM03Client} />);
+  return client;
 }
+
+const stepNav = () => screen.findByRole('navigation', { name: /các bước/i });
+const goTo = async (code: string) => {
+  const nav = await stepNav();
+  fireEvent.click(within(nav).getByRole('button', { name: new RegExp(code.replace('.', '\\.')) }));
+};
+const slider = (name: RegExp) => screen.getByRole('slider', { name });
+const change = (name: RegExp, value: number) =>
+  fireEvent.change(slider(name), { target: { value: String(value) } });
 
 describe('/m03', () => {
   it('shows seven steps, the first one current, instead of the six of the etch lab', async () => {
     openM03();
-    render(<App createClient={() => inlineClient()} />);
-    const nav = await screen.findByRole('navigation', { name: /các bước/i });
+    const nav = await stepNav();
     const steps = within(nav).getAllByRole('button');
     expect(steps).toHaveLength(7);
     expect(steps[0]).toHaveAttribute('aria-current', 'step');
@@ -25,18 +42,17 @@ describe('/m03', () => {
   });
 
   it('does not start the etch worker: that page is not the one asked for', async () => {
-    openM03();
     const createClient = vi.fn(() => inlineClient());
-    render(<App createClient={createClient} />);
-    await screen.findByRole('navigation', { name: /các bước/i });
+    window.history.replaceState({}, '', '/m03');
+    render(<App createClient={createClient} createM03Client={() => inlineM03Client()} />);
+    await stepNav();
     expect(createClient).not.toHaveBeenCalled();
-    expect(screen.queryByRole('img', { name: /mặt cắt wafer/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /mặt cắt wafer:?$/i })).not.toBeInTheDocument();
   });
 
   it('keeps the product header, with one h1', async () => {
     openM03();
-    render(<App createClient={() => inlineClient()} />);
-    await screen.findByRole('navigation', { name: /các bước/i });
+    await stepNav();
     const h1 = screen.getAllByRole('heading', { level: 1 });
     expect(h1).toHaveLength(1);
     expect(h1[0]).toHaveTextContent(/Fab Lab/i);
@@ -44,8 +60,7 @@ describe('/m03', () => {
 
   it('puts the cross-section frame before the traveler in DOM order', async () => {
     openM03();
-    render(<App createClient={() => inlineClient()} />);
-    await screen.findByRole('navigation', { name: /các bước/i });
+    await stepNav();
     const viewer = screen.getByRole('region', { name: /mặt cắt quang khắc/i });
     const traveler = screen.getByRole('complementary', { name: /phiếu công đoạn/i });
     expect(
@@ -55,10 +70,8 @@ describe('/m03', () => {
 
   it('shows the equation of the exposure step as typeset KaTeX, from the MDX, in its own chip', async () => {
     openM03();
-    render(<App createClient={() => inlineClient()} />);
-    const nav = await screen.findByRole('navigation', { name: /các bước/i });
     expect(screen.queryByRole('group', { name: /giới hạn phân giải/i })).not.toBeInTheDocument();
-    fireEvent.click(within(nav).getByRole('button', { name: /3\.4/ }));
+    await goTo('3.4');
     const chip = await screen.findByRole('group', { name: /giới hạn phân giải/i });
     // typeset at build time: the markup of KaTeX is already there, no script ran to make it
     expect(chip.querySelector('.katex')).not.toBeNull();
@@ -66,5 +79,145 @@ describe('/m03', () => {
     expect(chip.querySelector('annotation[encoding="application/x-tex"]')?.textContent).toContain(
       '\\mathrm{CD}_{\\min}',
     );
+  });
+});
+
+describe('/m03: the worker and the picture', () => {
+  it('asks the worker for the first session and the first view, and describes the picture it gets', async () => {
+    const client = openM03();
+    expect(await screen.findByRole('img', { name: /oxit trần/i })).toBeInTheDocument();
+    expect(client.starts).toHaveLength(1);
+    expect(client.views[0]!.step).toBe(0);
+  });
+
+  it('draws the stage of the step: coated at 3.2, latent at 3.4, developed at 3.5', async () => {
+    openM03();
+    await screen.findByRole('img', { name: /oxit trần/i });
+    await goTo('3.2');
+    expect(
+      await screen.findByRole('img', {
+        name: new RegExp(`phủ resist dày ${resistThicknessNm(3000)} nm`),
+      }),
+    ).toBeInTheDocument();
+    await goTo('3.4');
+    expect(await screen.findByRole('img', { name: /ảnh ẩn/i })).toBeInTheDocument();
+    await goTo('3.5');
+    expect(await screen.findByRole('img', { name: /sau khi tráng/i })).toBeInTheDocument();
+  });
+
+  it('is released when the page goes away', async () => {
+    window.history.replaceState({}, '', '/m03');
+    const client = inlineM03Client();
+    const { unmount } = render(
+      <App createClient={() => inlineClient()} createM03Client={() => client} />,
+    );
+    await screen.findByRole('img', { name: /oxit trần/i });
+    unmount();
+    expect(client.disposed).toBe(true);
+  });
+});
+
+describe('/m03: the controls of steps 3.1 – 3.4', () => {
+  it('3.1 has no control, says so, and the lesson says why', async () => {
+    openM03();
+    await stepNav();
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    expect(screen.getByText(/không có điều khiển/i)).toBeInTheDocument();
+    expect(screen.getByText(/không mô phỏng bước đó/i)).toBeInTheDocument();
+  });
+
+  it('3.2: the spin speed changes the thickness, in the session sent to the worker and in the tile', async () => {
+    const client = openM03();
+    await goTo('3.2');
+    change(/tốc độ quay/i, 4000);
+    expect(screen.getByRole('slider', { name: /tốc độ quay/i })).toHaveValue('4000'); // at once
+    await waitFor(() => expect(client.views.at(-1)!.recipe.spinRpm).toBe(4000));
+    const tiles = await screen.findByLabelText(/chỉ số của bước/i);
+    await waitFor(() =>
+      expect(within(tiles).getByText(`${resistThicknessNm(4000)} nm`)).toBeInTheDocument(),
+    );
+  });
+
+  it('3.3: a bake that is too cool is a Lỗi tile, a nominal one is Đạt', async () => {
+    openM03();
+    await goTo('3.3');
+    const tiles = await screen.findByLabelText(/chỉ số của bước/i);
+    await waitFor(() => expect(within(tiles).getByText('Đạt')).toBeInTheDocument());
+    change(/nhiệt độ nung/i, 60);
+    await waitFor(() => expect(within(tiles).getByText('Lỗi')).toBeInTheDocument());
+  });
+
+  describe('3.4', () => {
+    it('has the source, the resist, the width, the dose and the focus, and the two charts', async () => {
+      openM03();
+      await goTo('3.4');
+      expect(screen.getByRole('group', { name: /nguồn sáng/i })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: /loại resist/i })).toBeInTheDocument();
+      for (const name of [/độ rộng cửa sổ/i, /liều chiếu/i, /lệch tiêu cự/i]) {
+        expect(slider(name)).toBeInTheDocument();
+      }
+      expect(await screen.findByRole('img', { name: /ảnh trên không/i })).toBeInTheDocument();
+      expect(await screen.findByRole('img', { name: /cửa sổ quy trình/i })).toBeInTheDocument();
+    });
+
+    it('shows the wavelength and NA of the source chosen, from the constants', async () => {
+      openM03();
+      await goTo('3.4');
+      expect(screen.getByText(/λ = 365 nm/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /krf/i }));
+      expect(await screen.findByText(/λ = 248 nm/)).toBeInTheDocument();
+    });
+
+    it('asks for the chart on arriving, again for another source, but not when only the dose moves', async () => {
+      const client = openM03();
+      await goTo('3.4');
+      await screen.findByRole('img', { name: /cửa sổ quy trình/i });
+      expect(client.windows).toHaveLength(1);
+      change(/liều chiếu/i, 1.2);
+      await waitFor(() => expect(client.views.at(-1)!.recipe.dose).toBe(1.2));
+      expect(client.windows).toHaveLength(1);
+      fireEvent.click(screen.getByRole('button', { name: /krf/i }));
+      await waitFor(() => expect(client.windows).toHaveLength(2));
+      expect(client.windows[1]!.recipe.source).toBe('krf');
+    });
+
+    it('keeps the focus at the same number of DOF when the source changes', async () => {
+      const client = openM03();
+      await goTo('3.4');
+      change(/lệch tiêu cự/i, 0.5);
+      await waitFor(() =>
+        expect(client.views.at(-1)!.recipe.defocusNm).toBeCloseTo(0.5 * dofNm('i'), 6),
+      );
+      fireEvent.click(screen.getByRole('button', { name: /arf/i }));
+      await waitFor(() =>
+        expect(client.views.at(-1)!.recipe.defocusNm).toBeCloseTo(0.5 * dofNm('arf'), 6),
+      );
+    });
+
+    it('turns the resist negative, and the aerial chart follows', async () => {
+      openM03();
+      await goTo('3.4');
+      await screen.findByRole('img', { name: /ảnh trên không, resist dương/i });
+      fireEvent.click(screen.getByRole('button', { name: /^âm$/i }));
+      expect(
+        await screen.findByRole('img', { name: /ảnh trên không, resist âm/i }),
+      ).toBeInTheDocument();
+    });
+
+    it('shows the effective k₁ as a tile and offers no way to type it', async () => {
+      openM03();
+      await goTo('3.4');
+      const tiles = await screen.findByLabelText(/chỉ số của bước/i);
+      await waitFor(() => expect(within(tiles).getByText('k₁ hiệu dụng')).toBeInTheDocument());
+      expect(screen.queryByRole('slider', { name: /k₁/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('spinbutton', { name: /k[₁₂]/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('slider', { name: /k₂/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it('leaves steps 3.5 – 3.7 for the next part of the page: no control yet', async () => {
+    openM03();
+    await goTo('3.5');
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 });

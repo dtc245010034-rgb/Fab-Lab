@@ -4,8 +4,9 @@ import { isBenchMainThreadRequested, isBenchRequested } from './ui/describe';
 import BenchPanel from './ui/BenchPanel';
 import Lab from './ui/Lab';
 import { routeFor } from './ui/route';
+import type { M03Client } from './workers/m03Client';
 import type { SimClient } from './workers/simClient';
-import { createWorkerClient } from './workers/spawn';
+import { createM03WorkerClient, createWorkerClient } from './workers/spawn';
 
 /**
  * The lithography page is loaded when `/m03` is asked for, and with it the MDX of its lessons and
@@ -24,12 +25,15 @@ async function loadMainThreadBench(): Promise<MainBench> {
 interface Props {
   /** Starts the simulation worker. Tests pass a stable function that answers without a Worker. */
   createClient?: () => SimClient;
+  /** Starts the M03 worker (`/m03` only). Tests pass a stable function that answers without a Worker. */
+  createM03Client?: () => M03Client;
   /** Starts the main-thread benchmark (`?bench=1&thread=main` only). Tests pass a fake. */
   createMainBench?: () => Promise<MainBench>;
 }
 
 export default function App({
   createClient = createWorkerClient,
+  createM03Client = createM03WorkerClient,
   createMainBench = loadMainThreadBench,
 }: Props) {
   const bench = isBenchRequested(window.location.search);
@@ -47,7 +51,7 @@ export default function App({
       </header>
       {onM03 ? (
         <Suspense fallback={<p role="status">Đang tải…</p>}>
-          <M03Page />
+          <M03Page createClient={createM03Client} />
         </Suspense>
       ) : bench ? (
         <BenchPanel
