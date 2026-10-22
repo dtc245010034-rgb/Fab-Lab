@@ -31,7 +31,16 @@ const SLOTS: Record<M03Step, Slots> = {
   overlay: {},
 };
 
-/** The slots of a step; `controls` is the content of its "Điều khiển" slot, if it has any. */
-export function slotsFor(step: M03Step, controls: ReactNode = null): Slots {
-  return controls === null ? SLOTS[step] : { ...SLOTS[step], 'Điều khiển': controls };
+/**
+ * The slots of a step: what the MDX gives it, and what depends on the session (the controls, and
+ * the notes of the step that has a verdict) added to it.
+ */
+export function slotsFor(
+  step: M03Step,
+  extra: { controls?: ReactNode; notes?: ReactNode } = {},
+): Slots {
+  const slots: Slots = { ...SLOTS[step] };
+  if (extra.controls != null) slots['Điều khiển'] = extra.controls;
+  if (extra.notes != null) slots['Ghi chú'] = extra.notes;
+  return slots;
 }

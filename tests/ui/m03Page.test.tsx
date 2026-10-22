@@ -216,9 +216,74 @@ describe('/m03: the controls of steps 3.1 – 3.4', () => {
     });
   });
 
-  it('leaves steps 3.5 – 3.7 for the next part of the page: no control yet', async () => {
+  it('leaves step 3.7 for the next part of the page: no control yet', async () => {
+    openM03();
+    await goTo('3.7');
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  });
+});
+
+describe('/m03: steps 3.5 and 3.6', () => {
+  it('3.5 has the develop time as its one slider, and it changes the session sent to the worker', async () => {
+    const client = openM03();
+    await goTo('3.5');
+    expect(screen.getAllByRole('slider')).toHaveLength(1);
+    change(/thời gian tráng/i, 2);
+    expect(slider(/thời gian tráng/i)).toHaveValue('2'); // at once
+    await waitFor(() => expect(client.views.at(-1)!.recipe.developMin).toBe(2));
+    const tiles = await screen.findByLabelText(/chỉ số của bước/i);
+    await waitFor(() => expect(within(tiles).getByText('Tráng quá')).toBeInTheDocument());
+    expect(within(tiles).queryByText('Đạt')).not.toBeInTheDocument();
+  });
+
+  it('3.5 does not show the verdict: that is for the inspection', async () => {
     openM03();
     await goTo('3.5');
+    await screen.findByLabelText(/chỉ số của bước/i);
+    expect(screen.queryByText('Phán quyết:')).not.toBeInTheDocument();
+  });
+
+  it('3.6 has no control, shows the verdict of the default print and the sentence that says why', async () => {
+    openM03();
+    await goTo('3.6');
     expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    const grade = await screen.findByRole('region', { name: /phán quyết/i });
+    expect(within(grade).getByText('Phán quyết:')).toBeInTheDocument();
+    expect(within(grade).getByText('Đạt')).toBeInTheDocument();
+    expect(within(grade).getByText(/cửa sổ mở tới oxit, rộng/i)).toBeInTheDocument();
+    expect(within(grade).getByText(/chưa tính căn chỉnh/i)).toBeInTheDocument();
+  });
+
+  it('3.6 says Hỏng, gives the root cause first and the scum among the others', async () => {
+    const client = openM03();
+    await goTo('3.4');
+    change(/độ rộng cửa sổ/i, 400);
+    change(/liều chiếu/i, 0.7);
+    await waitFor(() => expect(client.views.at(-1)!.recipe.designNm).toBe(400));
+    await goTo('3.6');
+    const grade = await screen.findByRole('region', { name: /phán quyết/i });
+    await waitFor(() => expect(within(grade).getByText('Hỏng')).toBeInTheDocument());
+    expect(within(grade).getByText(/liều hiệu dụng .* thấp hơn liều chuẩn/i)).toBeInTheDocument();
+    const others = within(grade).getByRole('list', { name: /nguyên nhân còn lại/i });
+    expect(within(others).getByText('Cặn ở chân')).toBeInTheDocument();
+  });
+
+  it('3.6 lists a flag that is not a defect under Lưu ý, beside a verdict that stays Đạt', async () => {
+    openM03();
+    await goTo('3.5');
+    change(/thời gian tráng/i, 2);
+    await goTo('3.6');
+    const grade = await screen.findByRole('region', { name: /phán quyết/i });
+    await waitFor(() => expect(within(grade).getByText('Đạt')).toBeInTheDocument());
+    const cautions = screen.getByRole('list', { name: /lưu ý/i });
+    expect(within(cautions).getByText(/bản in vẫn đúng, nhưng tráng/i)).toBeInTheDocument();
+    expect(within(grade).queryByText(/bản in vẫn đúng/i)).not.toBeInTheDocument();
+  });
+
+  it('3.6 has no Lưu ý when there is nothing to watch', async () => {
+    openM03();
+    await goTo('3.6');
+    await screen.findByRole('region', { name: /phán quyết/i });
+    expect(screen.queryByRole('list', { name: /lưu ý/i })).not.toBeInTheDocument();
   });
 });

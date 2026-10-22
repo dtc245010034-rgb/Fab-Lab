@@ -13,12 +13,13 @@ import Controls from './controls';
 import { slotsFor } from './content';
 import M03Viewer from './M03Viewer';
 import { metricsFor } from './metrics';
+import VerdictSlot from './VerdictSlot';
 import { M03_UI_STEPS } from './steps';
 
 /**
  * M03 — lithography, at `/m03`. The cross-section follows the step; the controls change the
- * session held in the store; the worker computes the view and the process-window chart. Steps
- * 3.5 – 3.7 (develop, inspect, overlay) follow in the next parts.
+ * session held in the store; the worker computes the view and the process-window chart. Step 3.6
+ * shows the verdict; step 3.7 (overlay) follows in the next part.
  */
 export default function M03Page({ createClient }: { createClient: () => M03Client }) {
   const { state, setRecipe, goToStep } = useM03(createClient);
@@ -57,7 +58,9 @@ export default function M03Page({ createClient }: { createClient: () => M03Clien
               setRecipe={setRecipe}
             />
           ) : null;
-          return slotsFor(id, controls);
+          const notes =
+            id === 'inspect' ? <VerdictSlot shown={shown} pending={pending} /> : undefined;
+          return slotsFor(id, { controls, notes });
         }}
       />
     </main>

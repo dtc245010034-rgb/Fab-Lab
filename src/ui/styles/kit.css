@@ -228,6 +228,30 @@
   border-radius: 3px;
 }
 
+.grade-foot {
+  margin: 8px 0 0;
+  font: 500 12px/1.4 var(--f-mono);
+  color: var(--muted);
+}
+
+/* the cautions: a list beside the verdict, not part of it */
+.cautions {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font: 13px/1.45 var(--f-body);
+}
+
+.cautions li {
+  padding: 6px 0 6px 10px;
+  border-left: 3px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.cautions li + li {
+  margin-top: 6px;
+}
+
 /* ── ModelLimits ────────────────────────────────────────── */
 
 .limits {

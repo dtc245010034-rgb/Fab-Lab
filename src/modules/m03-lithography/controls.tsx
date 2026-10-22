@@ -168,10 +168,28 @@ function ExposeControls({ session, shown, chart, chartPending, setRecipe }: Cont
   );
 }
 
+function DevelopControls({ session, setRecipe }: ControlsProps) {
+  const c = M03_CONTROLS.developMin;
+  return (
+    <ParamSlider
+      id="m03-develop"
+      label="Thời gian tráng"
+      value={session.recipe.developMin}
+      min={c.min}
+      max={c.max}
+      step={c.step}
+      unit="phút"
+      format={(v) => fixedVi(v, 2)}
+      onChange={(developMin) => setRecipe({ developMin })}
+    />
+  );
+}
+
 /** The slot's content for a step, or null when the step has no control yet. */
 export default function Controls(props: ControlsProps) {
   switch (props.step) {
     case 'clean':
+    case 'inspect':
       return <p>Không có điều khiển ở bước này.</p>;
     case 'coat':
       return <CoatControls {...props} />;
@@ -180,8 +198,8 @@ export default function Controls(props: ControlsProps) {
     case 'expose':
       return <ExposeControls {...props} />;
     case 'develop':
-    case 'inspect':
+      return <DevelopControls {...props} />;
     case 'overlay':
-      return null; // steps 3.5 – 3.7 come with the next part of the page
+      return null; // step 3.7 comes with the next part of the page
   }
 }

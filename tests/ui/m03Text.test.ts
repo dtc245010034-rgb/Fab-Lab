@@ -135,6 +135,87 @@ describe('metricsFor: the tiles of each step', () => {
   });
 });
 
+describe('metricsFor: the tiles of the develop and inspect steps', () => {
+  const tiles = (step: number, patch: Partial<typeof DEFAULT_M03_RECIPE> = {}) =>
+    metricsFor(M03_STEPS[step]!, viewAt(step, patch));
+  const byLabel = (list: ReturnType<typeof tiles>, label: RegExp) =>
+    list.find((t) => label.test(t.label));
+
+  it('3.5 names the develop time, in words of its own, and shows the resist that is left', () => {
+    const develop = (developMin: number) => byLabel(tiles(4, { developMin }), /thời gian tráng/i)!;
+    expect(develop(1)).toMatchObject({ value: '1,00 phút', status: 'ok', word: 'Tráng đủ' });
+    expect(develop(0.5)).toMatchObject({ status: 'warn', word: 'Tráng thiếu' });
+    expect(develop(2)).toMatchObject({ status: 'warn', word: 'Tráng quá' });
+    const left = viewAt(4, { developMin: 2 }).exposure.resistThicknessNm;
+    expect(byLabel(tiles(4, { developMin: 2 }), /resist còn lại/i)!.value).toBe(nmVi(left));
+  });
+
+  it('3.5 shows the scum at the foot, so an underdeveloped window can be read from a number', () => {
+    const view = viewAt(4, { developMin: 0.5 });
+    expect(byLabel(tiles(4, { developMin: 0.5 }), /cặn/i)!.value).toBe(nmVi(view.exposure.scumNm));
+    expect(view.exposure.scumNm).toBeGreaterThan(0);
+  });
+
+  it('3.6 gives the widths at the foot and the top, the wall angle, the scum and the resist, with no status', () => {
+    const view = viewAt(5);
+    const list = tiles(5);
+    const e = view.exposure;
+    expect(byLabel(list, /ở chân/i)!.value).toBe(nmVi(e.printedNm));
+    expect(byLabel(list, /ở đỉnh/i)!.value).toBe(nmVi(e.cdTopNm));
+    expect(byLabel(list, /góc vách/i)!.value).toBe(`${fixedVi(e.wallAngleDeg, 1)}°`);
+    expect(byLabel(list, /cặn/i)!.value).toBe(nmVi(e.scumNm));
+    expect(byLabel(list, /resist còn lại/i)!.value).toBe(nmVi(e.resistThicknessNm));
+    for (const tile of list) expect(tile.status, tile.label).toBeUndefined();
+  });
+
+  it('3.6 writes a dash for a window that did not open, not a width of 0 and an angle of 90°', () => {
+    const list = tiles(5, { designNm: 150 });
+    expect(viewAt(5, { designNm: 150 }).exposure.openAtTop).toBe(false);
+    expect(byLabel(list, /ở chân/i)!.value).toBe('—');
+    expect(byLabel(list, /ở đỉnh/i)!.value).toBe('—');
+    expect(byLabel(list, /góc vách/i)!.value).toBe('—');
+  });
+
+  it('never has a tile that says Đạt, Biên or Hỏng, at any step, for any setting: those words are the verdict', () => {
+    const verdictWords = ['Đạt', 'Biên', 'Hỏng'];
+    let withStatus = 0;
+    const recipes: Partial<typeof DEFAULT_M03_RECIPE>[] = [];
+    for (const polarity of ['positive', 'negative'] as const) {
+      for (const designNm of [150, 400, 800]) {
+        for (const dose of [0.7, 1, 1.3]) {
+          for (const defocusNm of [0, 600]) {
+            for (const developMin of [0.25, 1, 3]) {
+              for (const softBake of [
+                { tempC: 60, timeMin: 0.25 },
+                { tempC: 90, timeMin: 1 },
+                { tempC: 130, timeMin: 5 },
+              ]) {
+                recipes.push({ polarity, designNm, dose, defocusNm, developMin, softBake });
+              }
+            }
+          }
+        }
+      }
+    }
+    for (const recipe of recipes) {
+      for (let step = 0; step < M03_STEPS.length; step++) {
+        for (const tile of tiles(step, recipe)) {
+          const text = [tile.label, tile.value, tile.word ?? ''].join(' | ');
+          for (const word of verdictWords) {
+            expect(text, `step ${step}`).not.toMatch(new RegExp(word));
+          }
+          if (tile.status) {
+            withStatus++;
+            expect(tile.word, `step ${step}: ${tile.label}`).toBeTruthy();
+          }
+        }
+      }
+    }
+    // the sweep does reach the tiles that have a status: the bake, the focus and the develop time
+    expect(withStatus).toBe(recipes.length * 3);
+  });
+});
+
 describe('dimensionMetrics: what the line on the picture measures', () => {
   it('is the width at the foot once the window is developed and open to the oxide', () => {
     const view = viewAt(4);

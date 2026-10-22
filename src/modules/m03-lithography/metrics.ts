@@ -61,8 +61,32 @@ export function metricsFor(step: M03Step, view: M03View): MetricSpec[] {
       ];
     }
     case 'develop':
+      return [
+        {
+          label: 'Thời gian tráng',
+          value: `${fixedVi(e.developMin, 2)} phút`,
+          ...(has('underdeveloped')
+            ? { status: 'warn', word: 'Tráng thiếu' }
+            : has('overdeveloped')
+              ? { status: 'warn', word: 'Tráng quá' }
+              : { status: 'ok', word: 'Tráng đủ' }),
+        },
+        { label: 'Cặn ở chân', value: nmVi(e.scumNm) },
+        { label: 'Resist còn lại', value: nmVi(e.resistThicknessNm) },
+      ];
     case 'inspect':
+      // no status on these: the verdict of the step is the Grade, and it says it once
+      return [
+        { label: 'Bề rộng ở chân', value: e.printedNm > 0 ? nmVi(e.printedNm) : '—' },
+        { label: 'Bề rộng ở đỉnh', value: e.cdTopNm > 0 ? nmVi(e.cdTopNm) : '—' },
+        {
+          label: 'Góc vách',
+          value: e.openAtTop ? `${fixedVi(e.wallAngleDeg, 1)}°` : '—',
+        },
+        { label: 'Cặn ở chân', value: nmVi(e.scumNm) },
+        { label: 'Resist còn lại', value: nmVi(e.resistThicknessNm) },
+      ];
     case 'overlay':
-      return []; // steps 3.5 – 3.7 come with the next part of the page
+      return []; // step 3.7 comes with the next part of the page
   }
 }
