@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * `/m03` steps 3.1 – 3.4 in the production build, on a 380 px screen (docs/DESIGN.md: it must work
+ * `/m03` steps 3.1 – 3.6 in the production build, on a 380 px screen (docs/DESIGN.md: it must work
  * there, with no sideways scroll): the picture follows the step, the controls move it, the charts
  * of 3.4 fit, and there is one worker and no error all the way. Set M03_SHOTS to a folder to also
  * save a screenshot of each step there (for a look with the eyes; the test does not need it).
@@ -74,7 +74,20 @@ async function shot(page: Page, name: string) {
   if (folder) await page.screenshot({ path: join(folder, `${name}.png`), fullPage: true });
 }
 
-test('every step 3.1 – 3.4 fits 380 px: nothing sticks out, nothing scrolls sideways, no tile is cut', async ({
+/** Text that must not be cut off: a tile, a slider value, the verdict word, a leftover cause, the "Giới hạn" bar. */
+const CUT_OFF_CANDIDATES =
+  '.metric dd, .metric dt, .ctl-head output, .grade-word, .grade-others li, .limits summary';
+
+const clippedText = (page: Page) =>
+  page.evaluate(
+    (selector) =>
+      [...document.querySelectorAll(selector)]
+        .filter((el) => el.scrollWidth > el.clientWidth)
+        .map((el) => el.textContent),
+    CUT_OFF_CANDIDATES,
+  );
+
+test('every step 3.1 – 3.6 fits 380 px: nothing sticks out, nothing scrolls sideways, no tile is cut, no empty slot', async ({
   page,
 }) => {
   const problems: string[] = [];
@@ -85,7 +98,7 @@ test('every step 3.1 – 3.4 fits 380 px: nothing sticks out, nothing scrolls si
   await open(page);
   await page.evaluate(() => document.fonts.ready);
 
-  for (const code of ['3.1', '3.2', '3.3', '3.4']) {
+  for (const code of ['3.1', '3.2', '3.3', '3.4', '3.5', '3.6']) {
     await go(page, code);
     await expect(
       page.getByRole('heading', { level: 2, name: new RegExp(`^${code.replace('.', '\\.')} `) }),
@@ -98,12 +111,11 @@ test('every step 3.1 – 3.4 fits 380 px: nothing sticks out, nothing scrolls si
     await shot(page, `step-${code}`);
     expect(await sideways(page), `${code}: the page scrolls sideways`).toBeLessThanOrEqual(0);
     expect(await overflowing(page), `${code}: elements outside the screen`).toEqual([]);
-    const clipped = await page.evaluate(() =>
-      [...document.querySelectorAll('.metric dd, .metric dt, .ctl-head output')]
-        .filter((el) => el.scrollWidth > el.clientWidth)
-        .map((el) => el.textContent),
-    );
-    expect(clipped, `${code}: text cut off`).toEqual([]);
+    expect(await clippedText(page), `${code}: text cut off`).toEqual([]);
+    // every slot of the traveler card has its content, or is left out for good
+    await expect(page.getByLabel('Phiếu công đoạn')).not.toContainText('Chưa có nội dung');
+    // the verdict belongs to 3.6 alone
+    await expect(page.getByLabel('Phán quyết')).toHaveCount(code === '3.6' ? 1 : 0);
   }
 
   expect(page.workers(), 'one worker for the page').toHaveLength(1);
@@ -190,4 +202,88 @@ test('k₁ hiệu dụng is a tile; there is no control for k₁ or k₂', async
   await expect(page.getByLabel('Chỉ số của bước').getByText('k₁ hiệu dụng')).toBeVisible();
   await expect(page.getByRole('slider', { name: /k[₁₂]/ })).toHaveCount(0);
   await expect(page.getByRole('spinbutton')).toHaveCount(0);
+});
+
+test('step 3.4: "Giới hạn của mô hình" is shut at first, opens to its list, and the list fits 380 px', async ({
+  page,
+}) => {
+  await open(page);
+  await go(page, '3.4');
+  const limits = page.locator('details.limits');
+  await expect(limits).toBeVisible();
+  await expect(limits).not.toHaveAttribute('open', '');
+  await expect(page.locator('.limits-body')).toBeHidden();
+
+  await limits.getByText('Giới hạn của mô hình').click();
+  await expect(limits).toHaveAttribute('open', '');
+  await expect(page.locator('.limits-body')).toContainText('Không có sóng đứng');
+  await page.evaluate(() => document.fonts.ready);
+  await shot(page, 'step-3.4-limits-open');
+  expect(await sideways(page)).toBeLessThanOrEqual(0);
+  expect(await overflowing(page)).toEqual([]);
+  expect(await clippedText(page)).toEqual([]);
+});
+
+test('step 3.6, a print that fails: the verdict is Hỏng, its cause and the others are said, and it fits', async ({
+  page,
+}) => {
+  await open(page);
+  await go(page, '3.4');
+  await page.getByRole('slider', { name: 'Độ rộng cửa sổ thiết kế' }).fill('400');
+  await page.getByRole('slider', { name: 'Liều chiếu' }).fill('0.7');
+  await go(page, '3.6');
+
+  const grade = page.getByLabel('Phán quyết');
+  await expect(grade.locator('.grade-word')).toHaveText('Hỏng');
+  await expect(grade.locator('.grade-why')).toContainText('liều');
+  await expect(grade.getByLabel('Nguyên nhân còn lại').getByText('Cặn ở chân')).toBeVisible();
+  // a failed print has nothing to "watch": the cautions are for a print that is right
+  await expect(page.getByLabel('Lưu ý')).toHaveCount(0);
+  // and the tiles say "—" where there is no number, never "Đạt", "Biên" or "Hỏng"
+  const tiles = page.getByLabel('Chỉ số của bước');
+  await expect(tiles.getByText(/^(Đạt|Biên|Hỏng)$/)).toHaveCount(0);
+
+  await page.evaluate(() => document.fonts.ready);
+  await shot(page, 'step-3.6-hong');
+  expect(await sideways(page)).toBeLessThanOrEqual(0);
+  expect(await overflowing(page)).toEqual([]);
+  expect(await clippedText(page)).toEqual([]);
+});
+
+test('step 3.6, a print that is right but made with a long develop: Đạt, and a "Lưu ý" beside it', async ({
+  page,
+}) => {
+  await open(page);
+  await go(page, '3.6');
+  const grade = page.getByLabel('Phán quyết');
+  await expect(grade.locator('.grade-word')).toHaveText('Đạt');
+  await expect(page.getByLabel('Lưu ý')).toHaveCount(0); // nothing to watch at the default recipe
+
+  await go(page, '3.5');
+  await expect(page.getByLabel('Phán quyết')).toHaveCount(0); // the verdict is not at 3.5
+  await page.getByRole('slider', { name: 'Thời gian tráng' }).fill('2');
+  await expect(page.getByLabel('Chỉ số của bước').getByText('Tráng quá')).toBeVisible();
+
+  await go(page, '3.6');
+  await expect(grade.locator('.grade-word')).toHaveText('Đạt');
+  const cautions = page.getByLabel('Lưu ý');
+  await expect(cautions.getByRole('listitem')).toHaveCount(1);
+  await expect(cautions).toContainText('Bản in vẫn đúng, nhưng');
+  await expect(page.getByRole('heading', { level: 4, name: 'Lưu ý' })).toBeVisible();
+  // the heading sits nearer the list it names (below) than the verdict it is not part of (above)
+  const gaps = await page.evaluate(() => {
+    const heading = document.querySelector('h4.ctl-title')!.getBoundingClientRect();
+    const above = document.querySelector('.grade')!.getBoundingClientRect();
+    const below = document.querySelector('ul.cautions')!.getBoundingClientRect();
+    return { above: heading.top - above.bottom, below: below.top - heading.bottom };
+  });
+  expect(gaps.below, 'the Lưu ý heading floats nearer the verdict than its list').toBeLessThan(
+    gaps.above,
+  );
+
+  await page.evaluate(() => document.fonts.ready);
+  await shot(page, 'step-3.6-luu-y');
+  expect(await sideways(page)).toBeLessThanOrEqual(0);
+  expect(await overflowing(page)).toEqual([]);
+  expect(await clippedText(page)).toEqual([]);
 });

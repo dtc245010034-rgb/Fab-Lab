@@ -494,7 +494,7 @@
 }
 
 .slot h4.ctl-title {
-  margin-top: 6px;
+  margin: 6px 0 0; /* the slot's own 4px gap sits below it: a heading belongs to what follows */
   font: 600 12px/1.2 var(--f-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
