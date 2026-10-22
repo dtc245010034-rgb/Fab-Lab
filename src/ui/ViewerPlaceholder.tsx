@@ -13,12 +13,18 @@ export function ComputeFailedNotice() {
  * The Viewer's frame before the first result exists: the same header and a screen of the same
  * proportions, so the page does not jump when the picture arrives.
  */
-export default function ViewerPlaceholder({ failed }: { failed: boolean }) {
+export default function ViewerPlaceholder({
+  failed,
+  title = 'Mặt cắt wafer',
+}: {
+  failed: boolean;
+  title?: string;
+}) {
   const { widthCells, heightCells } = DEFAULT_GRID_SPEC;
   return (
     <section className="viewer" aria-labelledby="viewer-title" aria-busy={!failed}>
       <div className="vhead">
-        <h2 id="viewer-title">Mặt cắt wafer</h2>
+        <h2 id="viewer-title">{title}</h2>
       </div>
       <div className="screen placeholder" style={{ aspectRatio: `${widthCells} / ${heightCells}` }}>
         {failed ? <p>Chưa có mặt cắt.</p> : <p role="status">Đang tính mặt cắt…</p>}
