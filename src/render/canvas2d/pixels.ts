@@ -4,6 +4,7 @@
  */
 import type { ArrivalField, MaterialGrid } from '../../physics/etch';
 import { Material } from '../../physics/materials';
+import type { CrossSection } from '../../sim/grid';
 import type { MaterialPalette, Rgb } from './palette';
 
 const { AIR } = Material;
@@ -53,6 +54,49 @@ export function gridToPixels(
     pixels[o] = r;
     pixels[o + 1] = g;
     pixels[o + 2] = b;
+    pixels[o + 3] = 255;
+  }
+  return pixels;
+}
+
+/** Width of a stripe of the latent image, in grid cells. */
+const LATENT_STRIPE_CELLS = 2;
+
+/**
+ * RGBA bytes of a lithography cross-section, one pixel per grid cell. There is no etch to read
+ * here: every cell shows its material. Resist that is exposed but not yet developed (`latent`)
+ * is drawn as slanted stripes of the resist and the air colour, "about to dissolve", so no colour
+ * outside the palette is ever drawn. Throws RangeError for a latent mask of another size or a
+ * material code it has no colour for.
+ */
+export function sectionToPixels(
+  grid: Pick<CrossSection, 'materials' | 'latent' | 'widthCells' | 'heightCells'>,
+  palette: MaterialPalette,
+): Uint8ClampedArray<ArrayBuffer> {
+  const { materials, latent, widthCells } = grid;
+  if (latent.length !== materials.length) {
+    throw new RangeError(`latent has ${latent.length} cells, grid has ${materials.length}`);
+  }
+  const colourOf: Rgb[] = [];
+  colourOf[Material.AIR] = palette.air;
+  colourOf[Material.SI] = palette.si;
+  colourOf[Material.OX] = palette.ox;
+  colourOf[Material.PR] = palette.pr;
+
+  const pixels = new Uint8ClampedArray(materials.length * 4);
+  for (let i = 0; i < materials.length; i++) {
+    const m = materials[i]!;
+    let colour = colourOf[m];
+    if (!colour) throw new RangeError(`no colour for material code ${m} at cell ${i}`);
+    if (latent[i] === 1 && m === Material.PR) {
+      const x = i % widthCells;
+      const y = (i - x) / widthCells;
+      if (Math.floor((x + y) / LATENT_STRIPE_CELLS) % 2 === 1) colour = palette.air;
+    }
+    const o = i * 4;
+    pixels[o] = colour[0];
+    pixels[o + 1] = colour[1];
+    pixels[o + 2] = colour[2];
     pixels[o + 3] = 255;
   }
   return pixels;

@@ -52,7 +52,7 @@ export const SCALE_BAR_NM = 500;
  */
 export function overlayLayout(
   grid: OverlayGrid,
-  metrics: EtchMetrics,
+  metrics: Pick<EtchMetrics, 'topNm' | 'bottomNm' | 'cleared'>,
   scale: number,
   dpr: number,
 ): OverlayLayout {

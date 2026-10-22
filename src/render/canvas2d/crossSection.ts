@@ -20,15 +20,27 @@ import {
   type Rect,
 } from './overlay';
 import { toCssHex, type Rgb, type RenderPalette } from './palette';
-import { formatApproxNm, gridToPixels, planCanvas } from './pixels';
+import { formatApproxNm, gridToPixels, planCanvas, sectionToPixels } from './pixels';
 
-export interface CrossSectionView {
+/** What the dimension lines need: the opening at the top of the oxide, and the one at its bottom. */
+export type DimensionMetrics = Pick<EtchMetrics, 'topNm' | 'bottomNm' | 'cleared'>;
+
+/**
+ * An etch (M04): the arrival field is read at `timeMin` and cells the front has reached are drawn as
+ * air. Without a field (M03, no etch yet) every cell is drawn as its material, and resist that is
+ * exposed but not developed as stripes. `field` and `timeMin` come together or not at all.
+ */
+export type CrossSectionView = {
   section: CrossSection;
-  field: ArrivalField;
-  /** Etch time to draw; must not exceed `field.maxTimeMin`. */
-  timeMin: number;
-  metrics: EtchMetrics;
-}
+  metrics: DimensionMetrics;
+} & (
+  | {
+      field: ArrivalField;
+      /** Etch time to draw; must not exceed `field.maxTimeMin`. */
+      timeMin: number;
+    }
+  | { field?: undefined; timeMin?: undefined }
+);
 
 export interface DrawOptions {
   palette: RenderPalette;
@@ -99,7 +111,7 @@ export function drawCrossSection(
 ): DrawResult | null {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  const { section, field, timeMin, metrics } = view;
+  const { section, metrics } = view;
   const { palette, availableCssWidth, dpr, labels } = options;
 
   const plan = planCanvas(section, availableCssWidth, dpr);
@@ -115,7 +127,9 @@ export function drawCrossSection(
   buffer.height = section.heightCells;
   const bufferCtx = buffer.getContext('2d');
   if (!bufferCtx) return null;
-  const pixels = gridToPixels(section, field, timeMin, palette.materials);
+  const pixels = view.field
+    ? gridToPixels(section, view.field, view.timeMin, palette.materials)
+    : sectionToPixels(section, palette.materials);
   bufferCtx.putImageData(new ImageData(pixels, section.widthCells, section.heightCells), 0, 0);
   ctx.fillStyle = toCssHex(palette.surround);
   for (const r of surroundRects(plan)) ctx.fillRect(r.x, r.y, r.w, r.h);
