@@ -310,8 +310,32 @@ describe('/m03: steps 3.5 and 3.6', () => {
     const grade = await screen.findByRole('region', { name: /phán quyết/i });
     expect(within(grade).getByText('Phán quyết:')).toBeInTheDocument();
     expect(within(grade).getByText('Đạt')).toBeInTheDocument();
+    expect(grade).toHaveClass('grade--ok');
     expect(within(grade).getByText(/cửa sổ mở tới oxit, rộng/i)).toBeInTheDocument();
     expect(within(grade).getByText(/chưa tính căn chỉnh/i)).toBeInTheDocument();
+  });
+
+  it('3.6 says it is working until a view of 3.6 lands: the verdict of the step before is not this one', async () => {
+    const manual = manualM03Client();
+    openM03(manual.client);
+    await stepNav();
+    await act(async () => manual.answerStart());
+    await waitFor(() => expect(manual.views).toHaveLength(1));
+    await act(async () => manual.answerView(0)); // the view of 3.1
+    await goTo('3.5');
+    await waitFor(() => expect(manual.views).toHaveLength(2));
+    await act(async () => manual.answerView(1)); // the view of 3.5, which has a verdict of its own
+    await goTo('3.6');
+    await waitFor(() => expect(manual.views).toHaveLength(3));
+
+    // the picture and the tiles still come from the view of 3.5: the notes must not read a verdict from it
+    const notes = screen.getByRole('heading', { level: 3, name: 'Ghi chú' }).parentElement!;
+    expect(within(notes).getByRole('status')).toHaveTextContent('Đang tính…');
+    expect(screen.queryByRole('region', { name: /phán quyết/i })).not.toBeInTheDocument();
+
+    await act(async () => manual.answerView(2));
+    expect(await screen.findByRole('region', { name: /phán quyết/i })).toBeInTheDocument();
+    expect(within(notes).queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('3.6 says Hỏng, gives the root cause first and the scum among the others', async () => {
@@ -323,9 +347,21 @@ describe('/m03: steps 3.5 and 3.6', () => {
     await goTo('3.6');
     const grade = await screen.findByRole('region', { name: /phán quyết/i });
     await waitFor(() => expect(within(grade).getByText('Hỏng')).toBeInTheDocument());
+    expect(grade).toHaveClass('grade--bad');
     expect(within(grade).getByText(/liều hiệu dụng .* thấp hơn liều chuẩn/i)).toBeInTheDocument();
     const others = within(grade).getByRole('list', { name: /nguyên nhân còn lại/i });
     expect(within(others).getByText('Cặn ở chân')).toBeInTheDocument();
+  });
+
+  it('3.6 says Biên in the colour of a warning when the window is clean but the size is off', async () => {
+    const client = openM03();
+    await goTo('3.4');
+    change(/liều chiếu/i, 1.3); // 800 nm at the highest dose: a clean window, wider than 10%
+    await waitFor(() => expect(client.views.at(-1)!.recipe.dose).toBe(1.3));
+    await goTo('3.6');
+    const grade = await screen.findByRole('region', { name: /phán quyết/i });
+    await waitFor(() => expect(within(grade).getByText('Biên')).toBeInTheDocument());
+    expect(grade).toHaveClass('grade--warn');
   });
 
   it('3.6 lists a flag that is not a defect under Lưu ý, beside a verdict that stays Đạt', async () => {

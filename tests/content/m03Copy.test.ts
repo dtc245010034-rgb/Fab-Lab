@@ -159,3 +159,20 @@ describe('copy of M03: the model limits, in one place', () => {
     expect(limits()).toMatch(/giá trị minh họa/);
   });
 });
+
+describe('copy of M03: scum from too little dose is a fact of the positive resist', () => {
+  const note = read('developNote.mdx');
+
+  it('the sentence that explains it names the positive resist: the model says it of no other', () => {
+    const explains = sentences(note).find((s) => /đáy/.test(s) && /cặn/.test(s));
+    expect(explains, 'a sentence about the bottom of the film and the scum').toBeDefined();
+    expect(explains).toMatch(/resist dương/i);
+  });
+
+  it('says the negative resist has none: in the model too little dose widens its window', () => {
+    const sentence = sentences(note).find((s) => /^Resist âm/.test(s));
+    expect(sentence, 'a sentence that opens with "Resist âm"').toBeDefined();
+    expect(sentence).toMatch(/không/);
+    expect(sentence).toMatch(/trong mô hình/);
+  });
+});
